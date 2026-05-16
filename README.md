@@ -1,6 +1,6 @@
 # Hollywood High
 
-A professional-grade screenplay editor and interactive narrative engine built with GameMaker.
+A modern take on an old Windows 95 edutainment software.
 
 ## Features
 
