@@ -1,6 +1,6 @@
 # Hollywood High
 
-A modern take on an old Windows 95 edutainment software.
+A modern take on old Windows 95 edutainment software.
 
 ## Features
 
