@@ -16,8 +16,16 @@ $HostPath = Join-Path $PSScriptRoot "TiSpeech.Host.exe"
 $DllDir = $PSScriptRoot
 
 # Get parent process (the game) to monitor its life
-$ParentProcess = Get-Process -Id ([System.Diagnostics.Process]::GetCurrentProcess().Id) | Select-Object -ExpandProperty ParentId
-try { $Parent = Get-Process -Id $ParentProcess } catch { $Parent = $null }
+$Parent = $null
+try {
+    $ParentProcessId = (Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = $PID").ParentProcessId
+    if ($ParentProcessId) { $Parent = Get-Process -Id $ParentProcessId -ErrorAction SilentlyContinue }
+} catch {
+    try {
+        $ParentProcessId = (Get-WmiObject Win32_Process -Filter "ProcessId = $PID").ParentProcessId
+        if ($ParentProcessId) { $Parent = Get-Process -Id $ParentProcessId -ErrorAction SilentlyContinue }
+    } catch {}
+}
 
 $psi = New-Object System.Diagnostics.ProcessStartInfo
 $psi.FileName = $HostPath
