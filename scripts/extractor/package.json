@@ -1,0 +1,11 @@
+{
+  "name": "hollywood-high-extractor",
+  "version": "1.0.0",
+  "description": "Extractor for Hollywood High original CD-ROM character sprites, background scenes, and sound assets",
+  "main": "extract_hhi.js",
+  "dependencies": {
+    "jimp": "^1.6.0"
+  },
+  "author": "",
+  "license": "ISC"
+}

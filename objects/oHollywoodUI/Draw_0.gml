@@ -80,6 +80,7 @@ if (theater_mode) {
             }
         }
     }
+    
     gpu_set_scissor(0, 0, 1280, 960); // Reset clipping
     
     // Subtitles (Narrower to avoid Play/Exit buttons)
@@ -132,38 +133,6 @@ dropdown_w = 350;
 btn_add_w = 125; btn_add_h = 35;
 btn_add_scene_w = 125; btn_add_scene_h = 35;
 btn_add_action_w = 125; btn_add_action_h = 35;
-
-var _add_hov = (_mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h);
-draw_set_color(_add_hov ? make_color_rgb(0, 220, 120) : make_color_rgb(0, 180, 100));
-draw_rectangle(btn_add_x, btn_add_y, btn_add_x + btn_add_w, btn_add_y + btn_add_h, false);
-draw_set_color(c_white); draw_text(btn_add_x + 12, btn_add_y + 5, "+ VOICE");
-
-// --- 1.2 SCENE EDIT MODE INDICATOR ---
-if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
-    var _scene = script_blocks[active_scene_block_idx];
-    draw_set_color(make_color_rgb(255, 150, 0));
-    draw_rectangle(scene_win_x, scene_win_y - 30, scene_win_x + 180, scene_win_y, false);
-    draw_set_color(c_black); draw_text(scene_win_x + 10, scene_win_y - 25, "STAGING");
-}
-
-if (insertion_idx != -1 && !scene_edit_mode) {
-    draw_set_color(make_color_rgb(0, 150, 255));
-    draw_rectangle(scene_win_x, scene_win_y - 30, scene_win_x + 180, scene_win_y, false);
-    draw_set_color(c_white); draw_text(scene_win_x + 10, scene_win_y - 25, "SPLICE MODE");
-}
-var _is_narrator = (selected_character_index == 0);
-var _act_hov = (_mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h);
-var _act_col = _is_narrator ? make_color_rgb(50, 50, 60) : make_color_rgb(180, 50, 255);
-var _act_hov_col = _is_narrator ? make_color_rgb(50, 50, 60) : make_color_rgb(220, 100, 255);
-draw_set_color(_act_hov ? _act_hov_col : _act_col);
-draw_rectangle(btn_add_action_x, btn_add_action_y, btn_add_action_x + btn_add_action_w, btn_add_action_y + btn_add_action_h, false);
-draw_set_color(_is_narrator ? c_gray : c_white);
-draw_text(btn_add_action_x + 12, btn_add_action_y + 5, "+ ACTION");
-
-var _scn_hov = (_mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h);
-draw_set_color(_scn_hov ? make_color_rgb(0, 120, 220) : make_color_rgb(0, 100, 180));
-draw_rectangle(btn_add_scene_x, btn_add_scene_y, btn_add_scene_x + btn_add_scene_w, btn_add_scene_y + btn_add_scene_h, false);
-draw_set_color(c_white); draw_text(btn_add_scene_x + 12, btn_add_scene_y + 5, "+ SCENE");
 
 // --- 1b. SCENE WINDOW ---
 draw_set_color(c_black);
@@ -241,7 +210,42 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
     
     }
 }
+
+
 gpu_set_scissor(0, 0, 1280, 960);
+
+// --- 1. GLOBAL BUTTONS (Drawn on top of Scene Window to prevent any overlap) ---
+var _add_hov = (_mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h);
+draw_set_color(_add_hov ? make_color_rgb(0, 220, 120) : make_color_rgb(0, 180, 100));
+draw_rectangle(btn_add_x, btn_add_y, btn_add_x + btn_add_w, btn_add_y + btn_add_h, false);
+draw_set_color(c_white); draw_text(btn_add_x + 12, btn_add_y + 5, "+ VOICE");
+
+var _is_narrator = (selected_character_index == 0);
+var _act_hov = (_mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h);
+var _act_col = _is_narrator ? make_color_rgb(50, 50, 60) : make_color_rgb(180, 50, 255);
+var _act_hov_col = _is_narrator ? make_color_rgb(50, 50, 60) : make_color_rgb(220, 100, 255);
+draw_set_color(_act_hov ? _act_hov_col : _act_col);
+draw_rectangle(btn_add_action_x, btn_add_action_y, btn_add_action_x + btn_add_action_w, btn_add_action_y + btn_add_action_h, false);
+draw_set_color(_is_narrator ? c_gray : c_white);
+draw_text(btn_add_action_x + 12, btn_add_action_y + 5, "+ ACTION");
+
+var _scn_hov = (_mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h);
+draw_set_color(_scn_hov ? make_color_rgb(0, 120, 220) : make_color_rgb(0, 100, 180));
+draw_rectangle(btn_add_scene_x, btn_add_scene_y, btn_add_scene_x + btn_add_scene_w, btn_add_scene_y + btn_add_scene_h, false);
+draw_set_color(c_white); draw_text(btn_add_scene_x + 12, btn_add_scene_y + 5, "+ SCENE");
+
+// --- 1.2 SCENE EDIT MODE INDICATORS (Drawn on top of Scene Window) ---
+if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+    draw_set_color(make_color_rgb(255, 150, 0));
+    draw_rectangle(scene_win_x, scene_win_y - 30, scene_win_x + 180, scene_win_y, false);
+    draw_set_color(c_black); draw_text(scene_win_x + 10, scene_win_y - 25, "STAGING");
+}
+
+if (insertion_idx != -1 && !scene_edit_mode) {
+    draw_set_color(make_color_rgb(0, 150, 255));
+    draw_rectangle(scene_win_x, scene_win_y - 30, scene_win_x + 180, scene_win_y, false);
+    draw_set_color(c_white); draw_text(scene_win_x + 10, scene_win_y - 25, "SPLICE MODE");
+}
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
 if (scene_edit_mode && scene_edit_selected_actor_idx != -1) {
@@ -488,7 +492,7 @@ draw_rectangle(btn_play_x, btn_play_y, btn_play_x + btn_play_w, btn_play_y + btn
 draw_set_color(c_white); draw_text(btn_play_x + 25, btn_play_y + 8, (playing_block_index != -1) ? "STOP" : "PLAY");
 
 // ENTER THEATER Button
-var _thov = (!theater_mode && !is_speaking && playing_block_index == -1 && insertion_idx == -1 && !scene_edit_mode && _mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h);
+var _thov = (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h);
 draw_set_color(_thov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150));
 draw_rectangle(btn_theater_x, btn_theater_y, btn_theater_x + btn_theater_w, btn_theater_y + btn_theater_h, false);
 draw_set_color(c_white); draw_text(btn_theater_x + 10, btn_theater_y + 8, "ENTER THEATER");

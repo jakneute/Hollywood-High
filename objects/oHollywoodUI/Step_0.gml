@@ -277,15 +277,17 @@ if (scene_edit_menu_open) {
     if (mouse_check_button_pressed(mb_left)) {
         var _mw = 100; var _mh = 35;
         var _bx = scene_edit_menu_x; var _by = scene_edit_menu_y;
-        var _scene = script_blocks[active_scene_block_idx];
-        
-        // FLIP Button
-        if (_mx > _bx && _mx < _bx + _mw && _my > _by && _my < _by + _mh) {
-            if (scene_edit_menu_actor_idx != -1 && scene_edit_menu_actor_idx < array_length(_scene.actors)) {
-                var _act = _scene.actors[scene_edit_menu_actor_idx];
-                _act.facing = (variable_struct_exists(_act, "facing") ? _act.facing : 1) * -1;
+        if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+            var _scene = script_blocks[active_scene_block_idx];
+            
+            // FLIP Button
+            if (_mx > _bx && _mx < _bx + _mw && _my > _by && _my < _by + _mh) {
+                if (scene_edit_menu_actor_idx != -1 && scene_edit_menu_actor_idx < array_length(_scene.actors)) {
+                    var _act = _scene.actors[scene_edit_menu_actor_idx];
+                    _act.facing = (variable_struct_exists(_act, "facing") ? _act.facing : 1) * -1;
+                }
+                return;
             }
-            return;
         }
         
         // Close menu on click anywhere else (and allow the click to pass through)
@@ -520,7 +522,7 @@ if (mouse_check_button_pressed(mb_left)) {
 }
 
 // --- 2e. IN-SCENE DRAGGING & DROPPING ---
-if (scene_edit_mode && active_scene_block_idx != -1) {
+if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     var _scene = script_blocks[active_scene_block_idx];
     
     // Start dragging actor already in scene / or just Click to open menu
@@ -615,12 +617,14 @@ if (scene_edit_mode && active_scene_block_idx != -1) {
 if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && mouse_check_button_pressed(mb_left)) {
     var _btn_x = scene_win_x + 200; var _btn_y = scene_win_y - 30;
     if (_mx > _btn_x && _mx < _btn_x + 100 && _my > _btn_y && _my < _btn_y + 30) {
-        var _scene = script_blocks[active_scene_block_idx];
-        if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
-            var _act = _scene.actors[scene_edit_selected_actor_idx];
-            if (!variable_struct_exists(_act, "facing")) _act.facing = 1;
-            _act.facing *= -1;
-            return;
+        if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+            var _scene = script_blocks[active_scene_block_idx];
+            if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
+                var _act = _scene.actors[scene_edit_selected_actor_idx];
+                if (!variable_struct_exists(_act, "facing")) _act.facing = 1;
+                _act.facing *= -1;
+                return;
+            }
         }
     }
 }
@@ -759,11 +763,13 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     // ENTER THEATER Button
-    if (!theater_mode && !is_speaking && playing_block_index == -1 && insertion_idx == -1 && !scene_edit_mode && !action_modal_open && !scene_modal_open) {
+    if (!theater_mode && !is_speaking && playing_block_index == -1 && !action_modal_open && !scene_modal_open) {
         if (_mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h) {
             theater_mode = true;
             theater_paused = true; // Start PAUSED on entry
             theater_subtitles = "";
+            scene_edit_mode = false;
+            insertion_idx = -1;
             play_from_index(0); 
             return;
         }
@@ -1181,7 +1187,7 @@ if (dragging_char_index != -1) {
         if (_in_live) {
             if (scene_edit_mode) {
                 // STAGING DROP: Add to scene block permanently
-                if (active_scene_block_idx != -1) {
+                if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
                     var _scene = script_blocks[active_scene_block_idx];
                     var _dup = false;
                     for (var a = 0; a < array_length(_scene.actors); a++) {
@@ -1312,8 +1318,8 @@ last_played_block_index = clamp(last_played_block_index, -1, _len - 1);
 var _ref_idx = (playing_block_index != -1) ? playing_block_index : (insertion_idx != -1 ? insertion_idx : (focused_block != -1 ? focused_block : _len - 1));
 _ref_idx = clamp(_ref_idx, -1, _len - 1);
 
-current_scene_sprite = -1; // Default to Blank (Black) if no scene found above
 active_scene_block_idx = -1;
+var _found_scene = false;
 if (_ref_idx != -1) {
     for (var i = _ref_idx; i >= 0; i--) {
         var _b = script_blocks[i];
@@ -1324,10 +1330,13 @@ if (_ref_idx != -1) {
                 current_scene_sprite = _new_spr;
                 set_scene_dimensions(current_scene_sprite);
             }
+            _found_scene = true;
             break;
         }
     }
-} else {
+}
+
+if (!_found_scene) {
     if (current_scene_sprite != -1) {
         current_scene_sprite = -1;
         set_scene_dimensions(-1);
@@ -1342,7 +1351,7 @@ if (scene_edit_mode && focused_block != active_scene_block_idx) {
 // Compute preview_actors
 if (playing_block_index == -1) {
     preview_actors = [];
-    if (active_scene_block_idx != -1) {
+    if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
         var _scene = script_blocks[active_scene_block_idx];
         if (variable_struct_exists(_scene, "actors")) {
             for(var a=0; a<array_length(_scene.actors); a++) {
@@ -1430,4 +1439,9 @@ if (dragging_preview_idx != -1) {
             break;
         }
     }
+}
+
+// 4. Staging and Splicing Mutual Exclusion Safety Check
+if (scene_edit_mode && insertion_idx != -1) {
+    insertion_idx = -1;
 }

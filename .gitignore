@@ -66,5 +66,9 @@ layout.xml
 Build/
 
 # Executables and DLLs in datafiles (uncomment if you want to exclude them)
-# datafiles/talkit/*.dll
-# datafiles/talkit/*.exe
+# datafiles/talkit/*.exe
+
+# Ignore the scratch and extraction folder
+scratch/
+**/node_modules/
+**/extracted_assets/

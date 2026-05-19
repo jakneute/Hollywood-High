@@ -241,6 +241,7 @@ get_scene_sprite = function(_internal_name) {
     return -1;
 }
 
+
 scene_live_top = 0;
 scene_live_bottom = 0;
 
@@ -275,7 +276,12 @@ detect_scene_live_area = function(_spr) {
 };
 
 set_scene_dimensions = function(_spr) {
-    if (_spr == -1) { scene_win_w = 800; scene_win_h = 450; scene_live_top = 0; scene_live_bottom = 0; return; }
+    if (_spr == -1) { 
+        scene_win_w = 800; scene_win_h = 450; 
+        scene_win_x = 50; scene_win_y = 60;
+        scene_live_top = 0; scene_live_bottom = 0; 
+        return; 
+    }
     var _sw = sprite_get_width(_spr);
     var _sh = sprite_get_height(_spr);
     var _ratio = _sw / _sh;
@@ -421,6 +427,10 @@ update_all_block_heights = function() {
  */
 play_from_index = function(_idx) {
     if (_idx < 0 || _idx >= array_length(script_blocks)) return;
+    
+    // Disable splicing and staging modes before playback starts
+    scene_edit_mode = false;
+    insertion_idx = -1;
     
     // 1. Find the last scene heading
     active_scene_block_idx = -1;
