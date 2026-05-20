@@ -315,14 +315,14 @@ const sceneReroutes = {
     491: 38, // living room day foreground
     500: 49, // clothing store background
     501: 45, // the burbs foreground
-    510: 68, // pyramid background
-    511: 50, // music store background
+    510: 50, // pyramid background
+    511: 68, // music store background
     531: 67, // leaning tower background
     532: 66, // silent movie background
     550: 58, // lookout point foreground
     560: 67, // leaning tower foreground
-    570: 55, // orthodontist foreground
-    571: 59, // city street background
+    570: 59, // city street background
+    571: 55, // orthodontist foreground
     580: 62, // movies foreground
     591: 54, // beach foreground
     600: 56, // fastfood counter foreground
@@ -337,6 +337,7 @@ const sceneReroutes = {
 const manualSceneNames = {
     15: "jungle",
     29: "alley",
+    50: "music store",
     66: "silent movie",
     67: "leaning tower",
     68: "pyramid",
@@ -575,6 +576,8 @@ async function processRFFile(filePath, mode) {
             const entrySize = 12;
             let extractedCount = 0;
 
+            const rfFileName = path.basename(filePath, path.extname(filePath));
+
             for (let i = 0; i < typeEntry.count; i++) {
                 const entryOffset = actualStart + i * entrySize;
                 const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
@@ -620,8 +623,30 @@ async function processRFFile(filePath, mode) {
 
                     const name = getString(nameOff);
                     const cleanName = sanitizeFilename(name);
+
+                    // Determine intelligent sub-folder organization
+                    let subFolder = rfFileName; 
+                    if (cleanName) {
+                        const upperName = cleanName.toUpperCase();
+                        // 1. Check for character name matches
+                        for (const key in actrNames) {
+                            const characterName = actrNames[key];
+                            if (upperName.startsWith(characterName.toUpperCase())) {
+                                subFolder = characterName;
+                                break;
+                            }
+                        }
+                        // 2. Check for general SFX
+                        if (upperName.startsWith("SFX")) subFolder = "SFX";
+                    }
+
+                    const soundSubDir = path.join(soundsDir, subFolder);
+                    if (!fs.existsSync(soundSubDir)) {
+                        fs.mkdirSync(soundSubDir, { recursive: true });
+                    }
+
                     const soundFilename = cleanName ? `${cleanName}_${id}.wav` : `sound_${id}.wav`;
-                    const outPath = path.join(soundsDir, soundFilename);
+                    const outPath = path.join(soundSubDir, soundFilename);
 
                     writeWav(pcmData, sampleRate, sampleSize, outPath);
                     extractedCount++;
@@ -680,6 +705,10 @@ async function runExtractor(drive, choice) {
         await processRFFile(`${drive}:\\SOUND3.RF`, 'sounds');
         await processRFFile(`${drive}:\\SOUND4.RF`, 'sounds');
         await processRFFile(`${drive}:\\SOUND5.RF`, 'sounds');
+        await processRFFile(`${drive}:\\ACTORS1.RF`, 'sounds');
+        await processRFFile(`${drive}:\\ACTORS2.RF`, 'sounds');
+        await processRFFile(`${drive}:\\ACTORS3.RF`, 'sounds');
+        await processRFFile(`${drive}:\\ACTORS4.RF`, 'sounds');
         await processRFFile(`${drive}:\\SCENES1.RF`, 'sounds');
         await processRFFile(`${drive}:\\SCENES2.RF`, 'sounds');
         await processRFFile(`${drive}:\\SCENES3.RF`, 'sounds');

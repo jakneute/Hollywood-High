@@ -189,6 +189,13 @@ for (var e = 0; e < array_length(_exts); e++) {
         _name = string_replace(_name, ".png", "");
         _name = string_replace(_name, ".jpg", "");
         _name = string_replace(_name, ".jpeg", "");
+        
+        // Filter out mask files from the selectable list
+        if (string_pos("_mask", _name) > 0) {
+            _fname = file_find_next();
+            continue;
+        }
+        
         var _disp_name = string_upper(string_char_at(_name, 1)) + string_copy(_name, 2, string_length(_name)-1);
         array_push(all_scenes, { name: _disp_name, internal_name: _name, sprite: -1, path: "backgrounds/" + _fname });
         _fname = file_find_next();
@@ -223,6 +230,42 @@ array_sort(all_scenes, function(a, b) {
     return 0;
 });
 
+mask_properties = ds_map_create();
+
+check_mask_properties = function(_sprite_index) {
+    if (_sprite_index == -1) return { has_top: false };
+    
+    var _w = sprite_get_width(_sprite_index);
+    var _h = sprite_get_height(_sprite_index);
+    
+    // This function can be slow, but it's only called once per mask on load.
+    var _surf = surface_create(_w, _h);
+    if (!surface_exists(_surf)) return { has_top: false };
+    
+    surface_set_target(_surf);
+    draw_clear_alpha(c_black, 0);
+    draw_sprite(_sprite_index, 0, 0, 0);
+    
+    var _has_top_mask = false;
+    // Scan top 7 pixels for any non-transparent pixel
+    for (var yy = 0; yy < min(7, _h); yy++) {
+        for (var xx = 0; xx < _w; xx++) {
+            var _pixel_color_with_alpha = surface_getpixel_ext(_surf, xx, yy);
+            var _alpha = (_pixel_color_with_alpha >> 24) & 255;
+            if (_alpha > 0) { // Check for any visible pixel
+                _has_top_mask = true;
+                break;
+            }
+        }
+        if (_has_top_mask) break;
+    }
+    
+    surface_reset_target();
+    surface_free(_surf);
+    
+    return { has_top: _has_top_mask };
+}
+
 scene_sprites = ds_map_create();
 get_scene_sprite = function(_internal_name) {
     if (_internal_name == "") return -1;
@@ -238,7 +281,26 @@ get_scene_sprite = function(_internal_name) {
             break;
         }
     }
-    return -1;
+    
+    // Fallback for files not in the list (e.g., masks)
+    var _exts_check = [".png", ".jpg", ".jpeg"];
+    for (var e = 0; e < array_length(_exts_check); e++) {
+        var _path = working_directory + "images/backgrounds/" + _internal_name + _exts_check[e];
+        if (file_exists(_path)) {
+            var _spr = sprite_add(_path, 1, false, false, 0, 0);
+            
+            // If it's a mask, check its properties and cache them
+            if (string_pos("_mask", _internal_name) > 0) {
+                var _props = check_mask_properties(_spr);
+                ds_map_add(mask_properties, _internal_name, _props);
+            }
+            
+            ds_map_add(scene_sprites, _internal_name, _spr);
+            return _spr;
+        }
+    }
+    
+    return -1; // Truly not found
 }
 
 
@@ -341,6 +403,9 @@ insert_menu_x = 0;
 insert_menu_y = 0;
 insert_menu_target_idx = -1;
 insert_menu_above = true;
+
+o_char_surface = -1;
+o_mask_surface = -1;
 
 is_speaking      = false;  
 check_timer      = 0;      

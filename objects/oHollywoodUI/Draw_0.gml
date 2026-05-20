@@ -37,49 +37,98 @@ if (theater_mode) {
     // Actor Clipping (Clips exactly to the background area, clear of subtitles)
     gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
     
-    // Actors
-    for (var i = 0; i < array_length(preview_actors); i++) {
-        var _act = preview_actors[i];
-        var _spr = get_character_sprite(_act.char_index);
-        if (_spr != -1) {
-            var _csh = sprite_get_height(_spr);
-            var _csw = sprite_get_width(_spr);
-            // Matching Standard Scale (150% of theater stage height / 450px reference)
-            var _asc = (_stage_h * 1.5) / 450; 
-            
-            // Accurate Mapping (Mapped to Centered Stage Area)
-            var _ax = _stage_x + (_act.x / scene_win_w) * _stage_w;
-            var _ay = _stage_y + (_act.y / scene_win_h) * _stage_h; 
-            
-            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-            
-            // CENTER-MATH DRAWING
-            var _draw_x = _ax - (_csw * _asc * _face / 2);
-            var _draw_y = _ay - (_csh * _asc); 
-            
-            // Talking Glow (Theater Mode - Halo Pass)
-            if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-                var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
-                if (_pulse > 0) {
-                    gpu_set_blendmode(bm_add);
-                    draw_sprite_ext(_spr, 0, _draw_x - (_csw*_asc*0.04), _draw_y - (_csh*_asc*0.08), _asc * _face * 1.08, _asc * 1.08, 0, c_yellow, _pulse * 0.6);
-                    gpu_set_blendmode(bm_normal);
-                }
-            }
-            
-            draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_white, 1);
-            
-            // Talking Glow (Theater Mode - Rim Light Pass)
-            if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-                var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
-                if (_pulse > 0) {
-                    gpu_set_blendmode(bm_add);
-                    draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_yellow, _pulse);
-                    gpu_set_blendmode(bm_normal);
-                }
-            }
-        }
-    }
+	var _scene_block = (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) ? script_blocks[active_scene_block_idx] : -1;
+	var _mask_sprite = -1;
+	if (_scene_block != -1 && variable_struct_exists(_scene_block, "internal_name")) {
+		var _mask_name = _scene_block.internal_name + "_mask";
+		_mask_sprite = get_scene_sprite(_mask_name);
+	}
+
+	var draw_theater_actors = function(_stg_w, _stg_h, _stg_x, _stg_y, target_surface = -1) {
+		for (var i = 0; i < array_length(preview_actors); i++) {
+			var _act = preview_actors[i];
+			var _spr = get_character_sprite(_act.char_index);
+			if (_spr != -1) {
+				var _csh = sprite_get_height(_spr);
+				var _csw = sprite_get_width(_spr);
+				var _asc = (_stg_h * 1.5) / 450;
+				
+				var _ax = (_act.x / scene_win_w) * _stg_w;
+				var _ay = (_act.y / scene_win_h) * _stg_h;
+				
+				var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+				
+				var _draw_x = (target_surface == -1) ? (_stg_x + _ax - (_csw * _asc * _face / 2)) : (_ax - (_csw * _asc * _face / 2));
+				var _draw_y = (target_surface == -1) ? (_stg_y + _ay - (_csh * _asc)) : (_ay - (_csh * _asc));
+				
+				if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
+					var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
+					if (_pulse > 0) {
+						gpu_set_blendmode(bm_add);
+						draw_sprite_ext(_spr, 0, _draw_x - (_csw*_asc*0.04), _draw_y - (_csh*_asc*0.08), _asc * _face * 1.08, _asc * 1.08, 0, c_yellow, _pulse * 0.6);
+						gpu_set_blendmode(bm_normal);
+					}
+				}
+				
+				draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_white, 1);
+				
+				if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
+					var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
+					if (_pulse > 0) {
+						gpu_set_blendmode(bm_add);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_yellow, _pulse);
+						gpu_set_blendmode(bm_normal);
+					}
+				}
+			}
+		}
+	}
+
+	if (_mask_sprite != -1) {
+		// --- Masked Drawing using Surfaces ---
+		if (!surface_exists(o_char_surface) || surface_get_width(o_char_surface) != _stage_w || surface_get_height(o_char_surface) != _stage_h) {
+			if (surface_exists(o_char_surface)) surface_free(o_char_surface);
+			o_char_surface = surface_create(_stage_w, _stage_h);
+		}
+		surface_set_target(o_char_surface);
+		draw_clear_alpha(c_black, 0);
+		draw_theater_actors(_stage_w, _stage_h, _stage_x, _stage_y, o_char_surface);
+		surface_reset_target();
+
+		if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != _stage_w || surface_get_height(o_mask_surface) != _stage_h) {
+			if (surface_exists(o_mask_surface)) surface_free(o_mask_surface);
+			o_mask_surface = surface_create(_stage_w, _stage_h);
+		}
+		surface_set_target(o_mask_surface);
+		draw_clear_alpha(c_black, 0);
+		
+		// Conditionally shift occlusion mask to handle top/bottom transparent fringes
+		var _props = ds_map_exists(mask_properties, _mask_name) ? mask_properties[? _mask_name] : { has_top: false };
+		var _y_shift = 0;
+		if (_props.has_top) {
+			_y_shift = -7 * _bg_sc; // Shift occlusion UP for top-heavy masks
+		} else {
+			_y_shift = 3 * _bg_sc; // Shift occlusion DOWN for bottom-gap masks
+		}
+		draw_sprite_ext(_mask_sprite, 0, 0, _y_shift, _bg_sc, _bg_sc, 0, c_white, 1);
+		
+		surface_reset_target();
+
+		surface_set_target(o_char_surface);
+		gpu_set_blendmode_ext(bm_zero, bm_inv_src_alpha);
+		draw_surface(o_mask_surface, 0, 0);
+		gpu_set_blendmode(bm_normal);
+		surface_reset_target();
+
+		draw_surface(o_char_surface, _stage_x, _stage_y);
+		
+		// Draw the visual mask (unshifted)
+		draw_sprite_ext(_mask_sprite, 0, _stage_x, _stage_y, _bg_sc, _bg_sc, 0, c_white, 1);
+
+	} else {
+		// --- Unmasked Drawing ---
+		draw_theater_actors(_stage_w, _stage_h, _stage_x, _stage_y);
+	}
     
     gpu_set_scissor(0, 0, 1280, 960); // Reset clipping
     
@@ -146,73 +195,133 @@ if (current_scene_sprite != -1) {
 // Actor Clipping (Clips exactly to the background area)
 gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
 if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
-    var _scene = script_blocks[active_scene_block_idx];
-    if (variable_struct_exists(_scene, "actors")) {
-    for (var a = 0; a < array_length(preview_actors); a++) {
-        var _act = preview_actors[a];
-        
-        var _is_being_dragged = false;
-        if (dragging_actor_idx != -1 && dragging_actor_idx < array_length(_scene.actors) && _scene.actors[dragging_actor_idx].char_index == _act.char_index) {
-            _is_being_dragged = true;
-        }
-        if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) {
-            _is_being_dragged = true;
-        }
-        if (_is_being_dragged) continue;
-        
-        var _spr = get_character_sprite(_act.char_index);
-        if (_spr != -1) {
-            var _csw = sprite_get_width(_spr);
-            var _csh = sprite_get_height(_spr);
-            var _scale = (scene_win_h * 1.5) / 450;
-            var _is_speaking = false;
-            if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
-                var _pb = script_blocks[playing_block_index];
-                if (!variable_struct_exists(_pb, "type") && real(_pb.char_index) == real(_act.char_index)) _is_speaking = true;
-            }
-            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-            var _sc = _scale;
-            var _draw_x = scene_win_x + _act.x - (_csw * _sc * _face)/2;
-            var _draw_y = scene_win_y + _act.y - (_csh * _sc);
-            
-            var _alpha = (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) ? 0.5 : 1.0;
-            
-            // Speaking Highlight (Editor Mode - Halo Pass)
-            if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-                var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
-                if (_pulse > 0) {
-                    gpu_set_blendmode(bm_add);
-                    draw_sprite_ext(_spr, 0, _draw_x - (_csw*_sc*0.04), _draw_y - (_csh*_sc*0.08), _sc * _face * 1.08, _sc * 1.08, 0, c_yellow, _pulse * 0.6);
-                    gpu_set_blendmode(bm_normal);
-                }
-            }
-            
-            // Selection Outline (Edit Mode)
-            if (playing_block_index == -1 && selected_character_index == _act.char_index) {
-                gpu_set_fog(true, c_yellow, 0, 1);
-                draw_sprite_ext(_spr, 0, _draw_x - 2, _draw_y, _sc * _face, _sc, 0, c_white, 1);
-                draw_sprite_ext(_spr, 0, _draw_x + 2, _draw_y, _sc * _face, _sc, 0, c_white, 1);
-                draw_sprite_ext(_spr, 0, _draw_x, _draw_y - 2, _sc * _face, _sc, 0, c_white, 1);
-                draw_sprite_ext(_spr, 0, _draw_x, _draw_y + 2, _sc * _face, _sc, 0, c_white, 1);
-                gpu_set_fog(false, c_black, 0, 0);
-            }
+	var _scene = script_blocks[active_scene_block_idx];
+	var _mask_sprite = -1;
+	if (variable_struct_exists(_scene, "internal_name")) {
+		var _mask_name = _scene.internal_name + "_mask";
+		_mask_sprite = get_scene_sprite(_mask_name);
+	}
 
-            // Main Sprite
-            draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_white, _alpha);
-            
-            // Speaking Highlight (Editor Mode - Rim Light Pass)
-            if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-                var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
-                if (_pulse > 0) {
-                    gpu_set_blendmode(bm_add);
-                    draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_yellow, _pulse);
-                    gpu_set_blendmode(bm_normal);
-                }
-            }
-        }
-    }
-    
-    }
+	// --- Actor Drawing Logic ---
+	var draw_editor_actors = function(_s, target_surface = -1, _draw_outline = true, _draw_sprite = true) {
+		if (variable_struct_exists(_s, "actors")) {
+			for (var a = 0; a < array_length(preview_actors); a++) {
+				var _act = preview_actors[a];
+				
+				var _is_being_dragged = false;
+				if (dragging_actor_idx != -1 && dragging_actor_idx < array_length(_s.actors) && _s.actors[dragging_actor_idx].char_index == _act.char_index) _is_being_dragged = true;
+				if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) _is_being_dragged = true;
+				if (_is_being_dragged) continue;
+				
+				var _spr = get_character_sprite(_act.char_index);
+				if (_spr != -1) {
+					var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
+					var _sc = (scene_win_h * 1.5) / 450;
+					var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+					var _draw_x = (target_surface == -1) ? (scene_win_x + _act.x - (_csw * _sc * _face)/2) : (_act.x - (_csw * _sc * _face)/2);
+					var _draw_y = (target_surface == -1) ? (scene_win_y + _act.y - (_csh * _sc)) : (_act.y - (_csh * _sc));
+
+					var _is_speaking = false;
+					if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
+						var _pb = script_blocks[playing_block_index];
+						if (!variable_struct_exists(_pb, "type") && real(_pb.char_index) == real(_act.char_index)) _is_speaking = true;
+					}
+					var _alpha = (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) ? 0.5 : 1.0;
+					
+					if (_draw_sprite && talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
+						var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
+						if (_pulse > 0) {
+							gpu_set_blendmode(bm_add);
+							draw_sprite_ext(_spr, 0, _draw_x - (_csw*_sc*0.04), _draw_y - (_csh*_sc*0.08), _sc * _face * 1.08, _sc * 1.08, 0, c_yellow, _pulse * 0.6);
+							gpu_set_blendmode(bm_normal);
+						}
+					}
+					
+					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
+						gpu_set_fog(true, c_yellow, 0, 1);
+						draw_sprite_ext(_spr, 0, _draw_x - 1, _draw_y, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x + 1, _draw_y, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y - 1, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y + 1, _sc * _face, _sc, 0, c_white, 1);
+						gpu_set_fog(false, c_black, 0, 0);
+					}
+
+					if (_draw_sprite) draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_white, _alpha);
+					
+					if (_draw_sprite && talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
+						var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
+						if (_pulse > 0) {
+							gpu_set_blendmode(bm_add);
+							draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_yellow, _pulse);
+							gpu_set_blendmode(bm_normal);
+						}
+					}
+				}
+			}
+		}
+	};
+
+	if (_mask_sprite != -1) {
+		// --- Masked Drawing using Surfaces ---
+		if (!surface_exists(o_char_surface) || surface_get_width(o_char_surface) != scene_win_w || surface_get_height(o_char_surface) != scene_win_h) {
+			if (surface_exists(o_char_surface)) surface_free(o_char_surface);
+			o_char_surface = surface_create(scene_win_w, scene_win_h);
+		}
+		surface_set_target(o_char_surface);
+		draw_clear_alpha(c_black, 0);
+		draw_editor_actors(_scene, o_char_surface, false, true);
+		surface_reset_target();
+
+		if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != scene_win_w || surface_get_height(o_mask_surface) != scene_win_h) {
+			if (surface_exists(o_mask_surface)) surface_free(o_mask_surface);
+			o_mask_surface = surface_create(scene_win_w, scene_win_h);
+		}
+		surface_set_target(o_mask_surface);
+		draw_clear_alpha(c_black, 0);
+		var _mask_w = sprite_get_width(_mask_sprite), _mask_h = sprite_get_height(_mask_sprite);
+		var _mask_scale_x = scene_win_w / _mask_w;
+		var _mask_scale_y = scene_win_h / _mask_h;
+		
+		// Conditionally shift occlusion mask to handle top/bottom transparent fringes
+		var _props = ds_map_exists(mask_properties, _mask_name) ? mask_properties[? _mask_name] : { has_top: false };
+		var _y_shift = 0;
+		if (_props.has_top) {
+			_y_shift = -7 * _mask_scale_y; // Shift occlusion UP for top-heavy masks
+		} else {
+			_y_shift = 3 * _mask_scale_y; // Shift occlusion DOWN for bottom-gap masks
+		}
+		
+		draw_sprite_ext(_mask_sprite, 0, 0, _y_shift, _mask_scale_x, _mask_scale_y, 0, c_white, 1);
+
+		surface_reset_target();
+
+		surface_set_target(o_char_surface);
+		gpu_set_blendmode_ext(bm_zero, bm_inv_src_alpha);
+		draw_surface(o_mask_surface, 0, 0);
+		gpu_set_blendmode(bm_normal);
+		surface_reset_target();
+
+		draw_surface(o_char_surface, scene_win_x, scene_win_y);
+		
+		// Draw the visual mask (unshifted)
+		draw_sprite_ext(_mask_sprite, 0, scene_win_x, scene_win_y, _mask_scale_x, _mask_scale_y, 0, c_white, 1);
+
+		// Always draw Hollow Selection Outline on top of the mask for tracking
+		if (playing_block_index == -1) {
+			surface_set_target(o_mask_surface);
+			draw_clear_alpha(c_black, 0);
+			draw_editor_actors(_scene, o_mask_surface, true, false); // Draw yellow edges
+			gpu_set_blendmode_ext(bm_zero, bm_inv_src_alpha);
+			draw_editor_actors(_scene, o_mask_surface, false, true); // Punch hole in center
+			gpu_set_blendmode(bm_normal);
+			surface_reset_target();
+			draw_surface_ext(o_mask_surface, scene_win_x, scene_win_y, 1, 1, 0, c_white, 0.6);
+		}
+
+	} else {
+		// --- Unmasked Drawing ---
+		draw_editor_actors(_scene, -1, true, true);
+	};
 }
 
 
