@@ -44,8 +44,8 @@ if (theater_mode) {
         if (_spr != -1) {
             var _csh = sprite_get_height(_spr);
             var _csw = sprite_get_width(_spr);
-            // Matching Standard Scale (75% of theater stage height / 450px reference)
-            var _asc = (_stage_h * 0.75) / 450; 
+            // Matching Standard Scale (150% of theater stage height / 450px reference)
+            var _asc = (_stage_h * 1.5) / 450; 
             
             // Accurate Mapping (Mapped to Centered Stage Area)
             var _ax = _stage_x + (_act.x / scene_win_w) * _stage_w;
@@ -164,7 +164,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
         if (_spr != -1) {
             var _csw = sprite_get_width(_spr);
             var _csh = sprite_get_height(_spr);
-            var _scale = (scene_win_h * 0.75) / 450;
+            var _scale = (scene_win_h * 1.5) / 450;
             var _is_speaking = false;
             if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
                 var _pb = script_blocks[playing_block_index];
@@ -186,6 +186,16 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
                     gpu_set_blendmode(bm_normal);
                 }
             }
+            
+            // Selection Outline (Edit Mode)
+            if (playing_block_index == -1 && selected_character_index == _act.char_index) {
+                gpu_set_fog(true, c_yellow, 0, 1);
+                draw_sprite_ext(_spr, 0, _draw_x - 2, _draw_y, _sc * _face, _sc, 0, c_white, 1);
+                draw_sprite_ext(_spr, 0, _draw_x + 2, _draw_y, _sc * _face, _sc, 0, c_white, 1);
+                draw_sprite_ext(_spr, 0, _draw_x, _draw_y - 2, _sc * _face, _sc, 0, c_white, 1);
+                draw_sprite_ext(_spr, 0, _draw_x, _draw_y + 2, _sc * _face, _sc, 0, c_white, 1);
+                gpu_set_fog(false, c_black, 0, 0);
+            }
 
             // Main Sprite
             draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_white, _alpha);
@@ -198,12 +208,6 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
                     draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_yellow, _pulse);
                     gpu_set_blendmode(bm_normal);
                 }
-            }
-            
-            // Selection Highlight (Scene Edit Mode)
-            if (scene_edit_mode && scene_edit_selected_actor_idx == a) {
-                draw_set_color(c_yellow);
-                draw_rectangle(_draw_x, _draw_y, _draw_x + (_csw * _sc * _face), _draw_y + (_csh * _sc), true);
             }
         }
     }
@@ -301,7 +305,7 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
     if (_spr != -1) {
         var _csh = sprite_get_height(_spr);
         var _csw = sprite_get_width(_spr);
-        var _scale = (scene_win_h * 0.75) / 450; 
+        var _scale = (scene_win_h * 1.5) / 450; 
         
         _mx = (window_mouse_get_x() / window_get_width()) * 1280;
         _my = (window_mouse_get_y() / window_get_height()) * 960;

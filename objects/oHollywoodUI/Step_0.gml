@@ -165,7 +165,7 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 }
                 
                 var _spr = get_character_sprite(_b.char_index);
-                var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 0.75) / sprite_get_height(_spr)) : 100;
+                var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 1.5) / 450) : 100;
                 
                 if (_is_enter) {
                     if (_act_idx != -1) { speaking_pause_timer = 5; } // Conflict
@@ -382,10 +382,30 @@ if (scene_modal_open) {
                 if (_my > _by && _my < _by + 35) {
                     var _data = all_scenes[i];
                     var _new_scene = { type: "scene", name: _data.name, internal_name: _data.internal_name, actors: [], height: 80 };
-                    if (scene_modal_target_index == -1) array_push(script_blocks, _new_scene);
-                    else array_insert(script_blocks, scene_modal_target_index, _new_scene);
+                            
+                            var _new_idx = -1;
+                            if (scene_modal_target_index == -1) {
+                                array_push(script_blocks, _new_scene);
+                                _new_idx = array_length(script_blocks) - 1;
+                            } else {
+                                array_insert(script_blocks, scene_modal_target_index, _new_scene);
+                                _new_idx = scene_modal_target_index;
+                            }
+                            
                     update_all_block_heights();
-                    scene_modal_open = false; return;
+                            scene_modal_open = false; 
+                            
+                            // Auto-enable Staging Mode for the new scene
+                            focused_block = _new_idx;
+                            scene_edit_mode = true;
+                            insertion_idx = -1;
+                            active_scene_block_idx = _new_idx;
+                            current_scene_sprite = get_scene_sprite(_new_scene.internal_name);
+                            set_scene_dimensions(current_scene_sprite);
+                            
+                            var _th = 0; for (var k = 0; k <= _new_idx; k++) _th += script_blocks[k].height + 20;
+                            block_scroll_y = min(0, (box_h - 100) - _th);
+                            return;
                 }
             }
         }
@@ -463,43 +483,6 @@ if (insert_menu_open) {
     }
 }
 
-// --- 2c. ACTION MODAL INTERACTION ---
-if (action_modal_open) {
-    var _m_w = 600; var _m_h = 400;
-    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
-    var _list_x = _m_x + 20; var _list_y = _m_y + 60;
-    var _list_w = 250; var _item_h = 40;
-
-    if (mouse_check_button_pressed(mb_left)) {
-        // Selection
-        for (var i = 0; i < array_length(all_actions); i++) {
-            var _iy = _list_y + (i * (_item_h + 5));
-            if (_mx > _list_x && _mx < _list_x + _list_w && _my > _iy && _my < _iy + _item_h) {
-                action_modal_selected_idx = i;
-                action_modal_locked = true;
-                return;
-            }
-        }
-
-        var _btn_y = _m_y + _m_h - 50;
-        // OK Button
-        if (action_modal_locked && _mx > _m_x + 20 && _mx < _m_x + _m_w/2 - 10 && _my > _btn_y && _my < _btn_y + 35) {
-            var _act = all_actions[action_modal_selected_idx];
-            var _new_block = { type: "action", char_index: selected_character_index, action_name: _act.name, height: 80 };
-            if (action_modal_target_index == -1) array_push(script_blocks, _new_block);
-            else array_insert(script_blocks, action_modal_target_index, _new_block);
-            update_all_block_heights();
-            action_modal_open = false; return;
-        }
-
-        // Cancel Button
-        if (_mx > _m_x + _m_w/2 + 10 && _mx < _m_x + _m_w - 20 && _my > _btn_y && _my < _btn_y + 35) {
-            action_modal_open = false; return;
-        }
-    }
-    return;
-}
-
 // --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
 if (mouse_check_button_pressed(mb_left)) {
     if (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
@@ -534,7 +517,7 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
                 if (_spr != -1) {
                     var _sw = sprite_get_width(_spr);
                     var _sh = sprite_get_height(_spr);
-                    var _scale = (scene_win_h * 0.75) / 450; 
+                    var _scale = (scene_win_h * 1.5) / 450; 
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
                     var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
@@ -564,7 +547,7 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
             var _act = _scene.actors[dragging_actor_idx];
             var _spr = get_character_sprite(_act.char_index);
             var _csh = (_spr != -1) ? sprite_get_height(_spr) : 100;
-            var _scale = (scene_win_h * 0.75) / 450; 
+            var _scale = (scene_win_h * 1.5) / 450; 
             
             _act.x = _mx - scene_win_x - drag_off_x;
             _act.y = _my - scene_win_y - drag_off_y;
@@ -577,7 +560,7 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
             if (_spr != -1) {
                 var _sw = sprite_get_width(_spr);
                 var _sh = sprite_get_height(_spr);
-                var _sc = (scene_win_h * 0.75) / 450; 
+                var _sc = (scene_win_h * 1.5) / 450; 
                 var _cw = _sw * _sc;
                 var _ch = _sh * _sc;
                 
@@ -639,7 +622,7 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                 if (_spr != -1) {
                     var _sw = sprite_get_width(_spr);
                     var _sh = sprite_get_height(_spr);
-                    var _scale = (scene_win_h * 0.75) / 450; 
+                    var _scale = (scene_win_h * 1.5) / 450; 
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
                     if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _ay - (_sh*_scale) && _my < _ay) {
@@ -661,6 +644,8 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                         var _iy = _row * 100;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 100 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 135) );
+                        
+                        break; // Stop loop so we only select the topmost clicked character
                     }
                 }
             }
@@ -672,7 +657,7 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
             var _act = preview_actors[dragging_preview_idx];
             var _spr = get_character_sprite(_act.char_index);
             var _csh = (_spr != -1) ? sprite_get_height(_spr) : 100;
-            var _scale = (scene_win_h * 0.75) / 450; 
+            var _scale = (scene_win_h * 1.5) / 450; 
 
             _act.x = _mx - scene_win_x - drag_off_x;
             _act.y = _my - scene_win_y - drag_off_y;
@@ -690,7 +675,7 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                 var _spr = get_character_sprite(_act.char_index);
                 var _sw = sprite_get_width(_spr);
                 var _sh = sprite_get_height(_spr);
-                var _sc = (scene_win_h * 0.75) / 450; 
+                var _sc = (scene_win_h * 1.5) / 450; 
                 var _cw = _sw * _sc;
                 var _ch = _sh * _sc;
                 
@@ -730,8 +715,12 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                 });
                 focused_block = _insert_idx;
                 insertion_idx = -1; // Reset after commit
-                dragging_preview_idx = -1;
+            } else {
+                // Revert position cleanly if clicked without dragging to select
+                _act.x = drag_start_x;
+                _act.y = drag_start_y;
             }
+            dragging_preview_idx = -1;
         }
     }
 }
@@ -830,12 +819,31 @@ if (mouse_check_button_pressed(mb_left)) {
             action_modal_target_index = (insertion_idx != -1) ? insertion_idx + 1 : -1;
             action_modal_selected_idx = -1;
             action_modal_locked = false;
-            // Check if char is onstage
-            action_modal_char_onstage = false;
-            if (active_scene_block_idx != -1) {
-                for (var pa = 0; pa < array_length(preview_actors); pa++) {
+            
+            // Calculate onstage context for the selected character
+            var _is_onstage = false;
+            var _limit = (action_modal_target_index == -1) ? array_length(script_blocks) : action_modal_target_index;
+            for (var k = 0; k < _limit; k++) {
+                var _b = script_blocks[k];
+                if (variable_struct_exists(_b, "type")) {
+                    if (_b.type == "scene") {
+                        _is_onstage = false;
+                        if (variable_struct_exists(_b, "actors")) {
+                            for (var a = 0; a < array_length(_b.actors); a++) {
+                                if (_b.actors[a].char_index == selected_character_index) {
+                                    _is_onstage = true; break;
+                                }
+                            }
+                        }
+                    } else if (_b.type == "action" && _b.char_index == selected_character_index) {
+                        var _aname = string_lower(_b.action_name);
+                        if (string_pos("enter", _aname) > 0) _is_onstage = true;
+                        else if (string_pos("exit", _aname) > 0) _is_onstage = false;
+                    }
                 }
             }
+            action_modal_char_onstage = _is_onstage;
+            
             scene_edit_mode = false;
         }
         return;
@@ -1127,7 +1135,7 @@ if (!is_speaking && !edit_mode && !theater_mode) {
                 if (_mx > _ix && _mx < _ix + 80 && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h) {
                     var _spr = get_character_sprite(i);
                     var _csh = (_spr != -1) ? sprite_get_height(_spr) : 100;
-                    var _scale = (scene_win_h * 0.75) / 450; 
+                    var _scale = (scene_win_h * 1.5) / 450; 
                     
                     selected_character_index = i;
                     dragging_char_index = i; // START DRAGGING (Unified)
@@ -1154,8 +1162,8 @@ if (!is_speaking && !edit_mode && !theater_mode) {
 if (dragging_char_index != -1) {
     if (!mouse_check_button(mb_left)) {
         var _spr_ghost = get_character_sprite(dragging_char_index);
-        var _char_h = (_spr_ghost != -1) ? sprite_get_height(_spr_ghost) * ((scene_win_h * 0.75) / 450) : 100;
-        var _char_w = (_spr_ghost != -1) ? sprite_get_width(_spr_ghost) * ((scene_win_h * 0.75) / 450) : 100;
+        var _char_h = (_spr_ghost != -1) ? sprite_get_height(_spr_ghost) * ((scene_win_h * 1.5) / 450) : 100;
+        var _char_w = (_spr_ghost != -1) ? sprite_get_width(_spr_ghost) * ((scene_win_h * 1.5) / 450) : 100;
 
         // Proposed Position (relative to window, with offsets and clamps)
         var _px = _mx - scene_win_x - drag_off_x;
@@ -1373,7 +1381,7 @@ if (playing_block_index == -1) {
                     
                     if (_is_enter) {
                         var _spr = get_character_sprite(_b.char_index);
-                        var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 0.75) / sprite_get_height(_spr)) : 100;
+                        var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 1.5) / 450) : 100;
                         var _x = _is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20;
                         var _found = false;
                         var _pa_idx = -1;

@@ -525,8 +525,8 @@ async function processRFFile(filePath, mode) {
                                     const dataIdx = (destY * canvasWidth + destX) * 4;
                                     
                                     // True transparency routing: backgrounds/walkmasks render index 0 & 255 as solid colors
-                                    const isTransparent = (isActorFile || typeSuffix === 'foreground' || typeSuffix === 'mask') && 
-                                                          (paletteIdx === 255 || paletteIdx === 0);
+									const isTransparent = (isActorFile || typeSuffix === 'foreground' || typeSuffix === 'mask') && 
+														  paletteIdx === 255;
                                     
                                     if (isTransparent) {
                                         image.bitmap.data[dataIdx] = 0;

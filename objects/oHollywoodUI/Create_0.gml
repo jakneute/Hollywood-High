@@ -160,7 +160,7 @@ get_character_sprite = function(_char_index) {
     if (ds_map_exists(char_sprites, _c.name)) return char_sprites[? _c.name];
     var _path = working_directory + "images/characters/" + string_lower(_c.name) + ".png";
     if (file_exists(_path)) {
-        var _spr = sprite_add(_path, 1, true, false, 0, 0);
+        var _spr = sprite_add(_path, 1, false, false, 0, 0);
         ds_map_add(char_sprites, _c.name, _spr);
         return _spr;
     }
@@ -414,15 +414,6 @@ update_block_height = function(_idx) {
 };
 
 /**
- * Iterates through all blocks to ensure heights are correct.
- */
-update_all_block_heights = function() {
-    for (var i = 0; i < array_length(script_blocks); i++) {
-        update_block_height(i);
-    }
-};
-
-/**
  * Starts playback from a specific block, calculating proper scene state.
  */
 play_from_index = function(_idx) {
@@ -470,7 +461,7 @@ play_from_index = function(_idx) {
                 if (_is_enter) {
                     if (_act_idx == -1) {
                         var _spr = get_character_sprite(_b.char_index);
-                        var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 0.75) / sprite_get_height(_spr)) : 100;
+                        var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 1.5) / 450) : 100;
                         var _start_x = _is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20; 
                         
                         var _final_x = variable_struct_exists(_b, "target_x") ? _b.target_x : _start_x;
@@ -522,18 +513,6 @@ play_from_index = function(_idx) {
     action_animating = false;
     audio_stop_all();
     tts_stop();
-};
-
-
-/**
- * Safely deletes a portion of a string, preventing out-of-bounds errors.
- */
-safe_delete = function(_str, _start, _count) {
-    if (string_length(_str) == 0) return "";
-    var _s = clamp(_start, 1, string_length(_str));
-    var _c = min(_count, string_length(_str) - _s + 1);
-    if (_c <= 0) return _str;
-    return string_delete(_str, _s, _c);
 };
 
 /**
