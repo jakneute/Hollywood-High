@@ -137,7 +137,8 @@ if (theater_mode) {
     // Subtitles (Narrower to avoid Play/Exit buttons)
     if (theater_subtitles != "") {
         draw_set_alpha(0.7); draw_set_color(c_black);
-        draw_rectangle(180, 820, 1100, 940, false); 
+        // Expanded to 960 (bottom of screen) to ensure 3 full lines (32px * 3 = 96px) fit
+        draw_rectangle(180, 820, 1100, 960, false); 
         draw_set_alpha(1.0);
         
         draw_set_color(c_yellow);
@@ -154,7 +155,10 @@ if (theater_mode) {
         draw_text(200, 830, _name + ":");
         
         draw_set_color(c_white);
-        draw_text_ext(200, 860, theater_subtitles, 32, 880);
+        // Clip to 3 lines (32px * 3 = 96px) starting from the subtitle Y (860)
+        gpu_set_scissor(200, 860, 880, 96);
+        draw_text_ext(200, 860 + theater_subtitle_scroll_y, theater_subtitles, 32, 880);
+        gpu_set_scissor(0, 0, 1280, 960);
     }
     
     // Controls
@@ -181,7 +185,7 @@ if (theater_mode) {
 
 
 // --- 1. GLOBAL BUTTONS (Shuffled Midsection) ---
-btn_add_x = box_x; btn_add_y = btn_play_y;
+btn_add_x = box_x + 10; btn_add_y = btn_play_y;
 btn_add_action_x = btn_add_x + 135; btn_add_action_y = btn_play_y;
 btn_add_scene_x = btn_add_action_x + 135; btn_add_scene_y = btn_play_y;
 
@@ -196,6 +200,13 @@ btn_theater_w = 170;
 btn_theater_h = 35;
 btn_theater_x = scene_win_x + (scene_win_w / 2) - (btn_theater_w / 2);
 btn_theater_y = scene_win_y - 45;
+
+btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
+btn_dictionary_y = btn_theater_y;
+var _d_hov = (_mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h);
+draw_set_color(_d_hov ? make_color_rgb(100, 200, 255) : make_color_rgb(60, 120, 180));
+draw_rectangle(btn_dictionary_x, btn_dictionary_y, btn_dictionary_x + btn_dictionary_w, btn_dictionary_y + btn_dictionary_h, false);
+draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_dictionary_x + (btn_dictionary_w/2), btn_dictionary_y + 8, "DICTIONARY"); draw_set_halign(fa_left);
 
 var _btn_gap = 10;
 var _half_w = (char_sel_w - _btn_gap) / 2;
@@ -598,47 +609,79 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         draw_set_color((playing_block_index == b) ? make_color_rgb(255, 255, 180) : (_is_focused ? make_color_rgb(245, 250, 255) : c_white));
         draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, false);
         draw_set_color(_is_focused ? c_blue : c_black); draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, true);
+
+        // Text Selection Highlight
+        var _sel_s = min(selection_start, selection_end);
+        var _sel_e = max(selection_start, selection_end);
+        if (_is_focused && _sel_s != _sel_e) {
+            var _p_start = get_text_pos(_block.text, _sel_s, _wrap_w, 28);
+            var _p_end   = get_text_pos(_block.text, _sel_e, _wrap_w, 28);
+            draw_set_alpha(0.3); draw_set_color(c_blue);
+            if (_p_start.y == _p_end.y) {
+                draw_rectangle(box_x + 60 + _p_start.x, _cur_y + 32 + _p_start.y, box_x + 60 + _p_end.x, _cur_y + 32 + _p_start.y + 24, false);
+            } else {
+                // First line
+                draw_rectangle(box_x + 60 + _p_start.x, _cur_y + 32 + _p_start.y, box_x + 60 + _wrap_w, _cur_y + 32 + _p_start.y + 24, false);
+                // Middle lines
+                var _mid_y = _p_start.y + 28;
+                while (_mid_y < _p_end.y) {
+                    draw_rectangle(box_x + 60, _cur_y + 32 + _mid_y, box_x + 60 + _wrap_w, _cur_y + 32 + _mid_y + 24, false);
+                    _mid_y += 28;
+                }
+                // Last line
+                draw_rectangle(box_x + 60, _cur_y + 32 + _p_end.y, box_x + 60 + _p_end.x, _cur_y + 32 + _p_end.y + 24, false);
+            }
+            draw_set_alpha(1.0);
+        }
+
         draw_set_color(c_black); draw_text_ext(box_x + 60, _cur_y + 30, _block.text, 28, _wrap_w);
+
+        // Caret (Cursor) Rendering
+        if (_is_focused && cursor_visible) {
+            var _cp = get_text_pos(_block.text, _block.caret_pos, _wrap_w, 28);
+            draw_set_color(c_blue);
+            draw_line_width(box_x + 60 + _cp.x, _cur_y + 32 + _cp.y, box_x + 60 + _cp.x, _cur_y + 32 + _cp.y + 24, 2);
+        }
     }
 
     // Button Stacks
     var _lx = box_x + 10; var _rx = box_x + box_w - 35; var _bw = 28; var _bh = 22;
     
     // Left Hover Checks
-    var _hov_up = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y && _my < _cur_y + _bh);
-    var _hov_ed = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y+30 && _my < _cur_y + 30 + _bh);
-    var _hov_dn = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y+60 && _my < _cur_y + 60 + _bh);
+    var _hov_up = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
+    var _hov_ed = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
+    var _hov_dn = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
     
     // Right Hover Checks
-    var _hov_del = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y && _my < _cur_y + _bh);
-    var _hov_au  = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y+30 && _my < _cur_y + 30 + _bh);
-    var _hov_ad  = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y+60 && _my < _cur_y + 60 + _bh);
+    var _hov_del = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
+    var _hov_au  = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
+    var _hov_ad  = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
 
     // Render Left Stack
     draw_set_color(_hov_up ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120));
-    draw_rectangle(_lx, _cur_y, _lx + _bw, _cur_y + _bh, false); 
-    draw_set_color(c_white); draw_text(_lx+8, _cur_y, "^");
+    draw_rectangle(_lx, _cur_y + 5, _lx + _bw, _cur_y + 5 + _bh, false); 
+    draw_set_color(c_white); draw_text(_lx+8, _cur_y + 5, "^");
     
     draw_set_color(_hov_ed ? make_color_rgb(255, 255, 150) : c_yellow);
-    draw_rectangle(_lx, _cur_y+30, _lx + _bw, _cur_y + 30 + _bh, false); 
-    draw_set_color(c_black); draw_text(_lx+8, _cur_y+30, "/");
+    draw_rectangle(_lx, _cur_y+35, _lx + _bw, _cur_y + 35 + _bh, false); 
+    draw_set_color(c_black); draw_text(_lx+8, _cur_y+35, "/");
     
     draw_set_color(_hov_dn ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120));
-    draw_rectangle(_lx, _cur_y+60, _lx + _bw, _cur_y + 60 + _bh, false); 
-    draw_set_color(c_white); draw_text(_lx+8, _cur_y+60, "v");
+    draw_rectangle(_lx, _cur_y+65, _lx + _bw, _cur_y + 65 + _bh, false); 
+    draw_set_color(c_white); draw_text(_lx+8, _cur_y+65, "v");
 
     // Render Right Stack
     draw_set_color(_hov_del ? make_color_rgb(230, 80, 80) : make_color_rgb(180, 50, 50));
-    draw_rectangle(_rx, _cur_y, _rx + _bw, _cur_y + _bh, false); 
-    draw_set_color(c_white); draw_text(_rx+6, _cur_y, "X");
+    draw_rectangle(_rx, _cur_y + 5, _rx + _bw, _cur_y + 5 + _bh, false); 
+    draw_set_color(c_white); draw_text(_rx+6, _cur_y + 5, "X");
     
     draw_set_color(_hov_au ? make_color_rgb(80, 200, 80) : make_color_rgb(50, 150, 50));
-    draw_rectangle(_rx, _cur_y+30, _rx + _bw, _cur_y + 30 + _bh, false); 
-    draw_set_color(c_white); draw_text(_rx+4, _cur_y+30, "^+");
+    draw_rectangle(_rx, _cur_y+35, _rx + _bw, _cur_y + 35 + _bh, false); 
+    draw_set_color(c_white); draw_text(_rx+4, _cur_y+35, "^+");
     
     draw_set_color(_hov_ad ? make_color_rgb(80, 200, 80) : make_color_rgb(50, 150, 50));
-    draw_rectangle(_rx, _cur_y+60, _rx + _bw, _cur_y + 60 + _bh, false); 
-    draw_set_color(c_white); draw_text(_rx+4, _cur_y+60, "v+");
+    draw_rectangle(_rx, _cur_y+65, _rx + _bw, _cur_y + 65 + _bh, false); 
+    draw_set_color(c_white); draw_text(_rx+4, _cur_y+65, "v+");
 
     // 4. Play From Here (Green Triangle) - Now in the GUTTER
     var _px = box_x - 30; var _py = _cur_y + 5;
@@ -709,7 +752,80 @@ draw_set_color(_ev_hov ? make_color_rgb(160, 160, 160) : make_color_rgb(100, 100
 draw_set_color(c_white); draw_text(btn_edit_x + 10, btn_edit_y + 5, "EDIT VOICE");
 
 // --- 6. MODALS ---
-// Dropdown modal removed
+if (dictionary_open) {
+    draw_set_color(c_black); draw_set_alpha(0.8); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+    var _m_w = 700; var _m_h = 500; var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    draw_set_color(make_color_rgb(40, 40, 50)); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 20, 20, false);
+    draw_set_color(c_aqua); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 20, 20, true);
+    
+    draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "PRONUNCIATION DICTIONARY");
+    draw_text(_m_x + 20, _m_y + 55, "Written Word"); draw_text(_m_x + 280, _m_y + 55, "Pronunciation");
+
+    gpu_set_scissor(_m_x + 10, _m_y + 80, _m_w - 20, 320);
+    for (var i = 0; i < array_length(dictionary_list); i++) {
+        var _ey = _m_y + 80 + (i * 45) + dictionary_scroll_y;
+        var _entry = dictionary_list[i];
+        
+        // Column 1: Written
+        draw_set_color((dict_focused_entry == i && dict_focused_field == 0) ? c_white : make_color_rgb(60, 60, 70));
+        draw_rectangle(_m_x + 20, _ey, _m_x + 260, _ey + 35, false);
+        draw_set_color(c_black); draw_text(_m_x + 25, _ey + 8, _entry.written);
+        if (dict_focused_entry == i && dict_focused_field == 0 && cursor_visible) {
+            var _cx = string_width(string_copy(_entry.written, 1, dict_caret_pos));
+            draw_set_color(c_blue);
+            draw_line_width(_m_x + 25 + _cx, _ey + 5, _m_x + 25 + _cx, _ey + 30, 2);
+        }
+
+        // Column 2: Pronunciation
+        draw_set_color((dict_focused_entry == i && dict_focused_field == 1) ? c_white : make_color_rgb(60, 60, 70));
+        draw_rectangle(_m_x + 280, _ey, _m_x + 520, _ey + 35, false);
+        draw_set_color(c_black); draw_text(_m_x + 285, _ey + 8, _entry.pronunciation);
+        if (dict_focused_entry == i && dict_focused_field == 1 && cursor_visible) {
+            var _cx = string_width(string_copy(_entry.pronunciation, 1, dict_caret_pos));
+            draw_set_color(c_blue);
+            draw_line_width(_m_x + 285 + _cx, _ey + 5, _m_x + 285 + _cx, _ey + 30, 2);
+        }
+        
+        // Test Button
+        var _thov = (_mx > _m_x + 540 && _mx < _m_x + 610 && _my > _ey && _my < _ey + 35);
+        draw_set_color(_thov ? c_lime : make_color_rgb(50, 150, 50));
+        draw_rectangle(_m_x + 540, _ey, _m_x + 610, _ey + 35, false);
+        draw_set_color(c_white); draw_text(_m_x + 550, _ey + 8, "TEST");
+        
+        // Remove Button
+        var _rhov = (_mx > _m_x + 630 && _mx < _m_x + 670 && _my > _ey && _my < _ey + 35);
+        draw_set_color(_rhov ? c_red : make_color_rgb(150, 50, 50));
+        draw_rectangle(_m_x + 630, _ey, _m_x + 670, _ey + 35, false);
+        draw_set_color(c_white); draw_text(_m_x + 643, _ey + 8, "X");
+    }
+    gpu_set_scissor(0, 0, 1280, 960);
+
+    // Dictionary Scrollbar
+    var _dict_total_h = array_length(dictionary_list) * 45;
+    var _dict_view_h = 320;
+    if (_dict_total_h > _dict_view_h) {
+        var _sb_w = 8; var _sb_x = _m_x + _m_w - 22;
+        var _sb_y = _m_y + 80; var _sb_h = _dict_view_h;
+        draw_set_color(make_color_rgb(60, 60, 70));
+        draw_rectangle(_sb_x, _sb_y, _sb_x + _sb_w, _sb_y + _sb_h, false); // Track
+        var _bar_h = (_dict_view_h / _dict_total_h) * _sb_h;
+        var _bar_y = _sb_y + (-dictionary_scroll_y / _dict_total_h) * _sb_h;
+        draw_set_color(make_color_rgb(120, 120, 140));
+        draw_rectangle(_sb_x, _bar_y, _sb_x + _sb_w, _bar_y + _bar_h, false); // Handle
+    }
+    
+    // Add Button
+    var _ahov = (_mx > _m_x + 20 && _mx < _m_x + 150 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_ahov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 20, _m_y + _m_h - 60, _m_x + 150, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 40, _m_y + _m_h - 50, "ADD ENTRY");
+    
+    // Close Button
+    var _chov = (_mx > _m_x + _m_w - 140 && _mx < _m_x + _m_w - 20 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_chov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + _m_w - 140, _m_y + _m_h - 60, _m_x + _m_w - 20, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + _m_w - 105, _m_y + _m_h - 50, "CLOSE");
+}
 
 if (edit_mode) {
     draw_set_color(c_black); draw_set_alpha(0.85); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);

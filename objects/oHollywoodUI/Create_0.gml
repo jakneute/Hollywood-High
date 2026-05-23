@@ -37,6 +37,17 @@ char_sel_x = 880; char_sel_y = 60; char_sel_w = 350; char_sel_h = 450;
 char_sel_scroll_y = 0;
 btn_theater_x = 880; btn_theater_y = 15; btn_theater_w = 140; btn_theater_h = 35;
 
+// --- 2c. DICTIONARY STATE ---
+dictionary_open = false;
+dictionary_list = []; // Array of {written: "", pronunciation: ""}
+dictionary_scroll_y = 0;
+dict_focused_entry = -1; 
+dict_focused_field = 0; // 0: Written, 1: Pronunciation
+dict_caret_pos = 0;
+btn_dictionary_w = 140; btn_dictionary_h = 35;
+btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
+btn_dictionary_y = scene_win_y - 45;
+
 // --- 2b. MOVEMENT PARAMETERS STATE ---
 btn_move_params_x = btn_theater_x + btn_theater_w + 10; btn_move_params_y = 15; 
 btn_move_params_w = 170; btn_move_params_h = 35;
@@ -53,7 +64,9 @@ move_modal_target_index = -1;
 theater_mode = false;
 theater_paused = false;
 theater_subtitles = "";
+theater_subtitle_scroll_y = 0;
 theater_active_char = -1;
+speaking_phonetic_ratio = 1.0; // Ratio of visual text length to phonetic length
 
 ctrl_x = 880; ctrl_y = char_sel_y + char_sel_h + 20; ctrl_w = 350; ctrl_h = 150;
 slider_x = ctrl_x + 30; 
@@ -113,8 +126,46 @@ update_block_height = function(_idx) {
     if (_is_scene || _is_action) {
         _b.height = 85; 
     } else {
-        _b.height = max(60, string_height_ext(_b.text, 28, _wrap_w) + 30) + 55;
+        // Default box height is 70px, providing breathing room for text.
+        // We add 16px of vertical padding and then 25px for the header/name area.
+        var _txt_h = string_height_ext(_b.text, 28, _wrap_w);
+        _b.height = 25 + max(70, _txt_h + 16);
     }
+};
+
+/**
+ * Processes text through the dictionary before sending it to the TTS engine.
+ * Performs case-insensitive, whole-word replacement to ensure script integrity while fixing audio.
+ */
+apply_dictionary = function(_text) {
+    var _out = _text;
+    var _delims = " .,!?;:()[]<>\"'/\n\r\t"; // Characters that define word boundaries
+    
+    for (var i = 0; i < array_length(dictionary_list); i++) {
+        var _entry = dictionary_list[i];
+        var _find = string_lower(_entry.written); // Search using lowercase
+        var _repl = _entry.pronunciation;
+        if (_find == "" || _repl == "") continue;
+        
+        var _pos = 1;
+        while (true) {
+            var _out_l = string_lower(_out); // Check against lowercase version of text
+            _pos = string_pos_ext(_find, _out_l, _pos);
+            if (_pos == 0) break;
+            
+            var _is_start = (_pos == 1 || string_pos(string_char_at(_out, _pos - 1), _delims) > 0);
+            var _is_end   = (_pos + string_length(_find) > string_length(_out) || string_pos(string_char_at(_out, _pos + string_length(_find)), _delims) > 0);
+            
+            if (_is_start && _is_end) {
+                _out = string_delete(_out, _pos, string_length(_find)); // Delete original casing
+                _out = string_insert(_repl, _out, _pos); // Insert phonetic version
+                _pos += string_length(_repl);
+            } else {
+                _pos += string_length(_find); // Skip this partial match
+            }
+        }
+    }
+    return _out;
 };
 
 /**
@@ -135,6 +186,30 @@ safe_delete = function(_str, _start, _count) {
     var _c = min(_count, string_length(_str) - _s + 1);
     if (_c <= 0) return _str;
     return string_delete(_str, _s, _c);
+};
+
+/**
+ * Calculates the X and Y offset for a caret position within wrapped text.
+ */
+get_text_pos = function(_txt, _target_pos, _wrap_w, _line_h) {
+    var _tx = 0; var _ty = 0;
+    for (var i = 1; i <= _target_pos; i++) {
+        var _c = string_char_at(_txt, i);
+        var _cw = string_width(_c);
+        if (_c == " " || _c == "\n") {
+            _tx += _cw; if (_c == "\n") { _tx = 0; _ty += _line_h; }
+        } else {
+            var _next_space = string_pos_ext(" ", _txt, i);
+            var _next_nl = string_pos_ext("\n", _txt, i);
+            var _end = string_length(_txt);
+            if (_next_space > 0) _end = min(_end, _next_space - 1);
+            if (_next_nl > 0) _end = min(_end, _next_nl - 1);
+            var _word = string_copy(_txt, i, _end - i + 1);
+            if (_tx + string_width(_word) > _wrap_w && _tx > 0) { _tx = 0; _ty += _line_h; }
+            _tx += _cw;
+        }
+    }
+    return { x: _tx, y: _ty };
 };
 
 // --- 5. TTS ENGINE & CHARACTERS ---
@@ -493,7 +568,8 @@ update_block_height = function(_idx) {
     if (_is_scene || _is_action) {
         _b.height = 85; 
     } else {
-        _b.height = max(60, string_height_ext(_b.text, 28, _wrap_w)) + 25;
+        var _txt_h = string_height_ext(_b.text, 28, _wrap_w);
+        _b.height = 25 + max(70, _txt_h + 16);
     }
 };
 

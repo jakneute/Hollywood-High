@@ -3,6 +3,110 @@ var _mx = mouse_x; var _my = mouse_y;
 
 // --- 0. MODAL OVERLAY BLOCKING ---
 // Ensure modals capture all input and prevent background logic from running
+if (dictionary_open) {
+    var _m_w = 700; var _m_h = 500;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    
+    if (mouse_check_button_pressed(mb_left)) {
+        dict_focused_entry = -1;
+        // Add New Entry
+        if (_mx > _m_x + 20 && _mx < _m_x + 150 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+            array_push(dictionary_list, { written: "", pronunciation: "" });
+            dict_focused_entry = array_length(dictionary_list) - 1;
+            dict_focused_field = 0; keyboard_string = "";
+            dict_caret_pos = 0;
+        }
+        // Close Button
+        if (_mx > _m_x + _m_w - 140 && _mx < _m_x + _m_w - 20 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+            dictionary_open = false;
+        }
+        
+        // Entry Interactions
+        for (var i = 0; i < array_length(dictionary_list); i++) {
+            var _ey = _m_y + 80 + (i * 45) + dictionary_scroll_y;
+            if (_ey < _m_y + 70 || _ey > _m_y + 400) continue;
+            
+            // Written Column Focus
+            if (_mx > _m_x + 20 && _mx < _m_x + 260 && _my > _ey && _my < _ey + 35) {
+                dict_focused_entry = i; dict_focused_field = 0; 
+                keyboard_string = "";
+                var _rx = _mx - (_m_x + 25);
+                var _best_p = 0; var _min_d = 999999;
+                for (var c = 0; c <= string_length(dictionary_list[i].written); c++) {
+                    var _d = abs(_rx - string_width(string_copy(dictionary_list[i].written, 1, c)));
+                    if (_d < _min_d) { _min_d = _d; _best_p = c; }
+                }
+                dict_caret_pos = _best_p;
+            }
+            // Pronunciation Column Focus
+            if (_mx > _m_x + 280 && _mx < _m_x + 520 && _my > _ey && _my < _ey + 35) {
+                dict_focused_entry = i; dict_focused_field = 1; 
+                keyboard_string = "";
+                var _rx = _mx - (_m_x + 285);
+                var _best_p = 0; var _min_d = 999999;
+                for (var c = 0; c <= string_length(dictionary_list[i].pronunciation); c++) {
+                    var _d = abs(_rx - string_width(string_copy(dictionary_list[i].pronunciation, 1, c)));
+                    if (_d < _min_d) { _min_d = _d; _best_p = c; }
+                }
+                dict_caret_pos = _best_p;
+            }
+            // Test Button
+            if (_mx > _m_x + 540 && _mx < _m_x + 610 && _my > _ey && _my < _ey + 35) {
+                var _txt = (dictionary_list[i].pronunciation != "") ? dictionary_list[i].pronunciation : "Nothing to test";
+                tts_stop(); tts_speak(_txt, all_voices[0].voice_id, 50, 50, 0, 0);
+            }
+            // Remove (X) Button
+            if (_mx > _m_x + 630 && _mx < _m_x + 670 && _my > _ey && _my < _ey + 35) {
+                array_delete(dictionary_list, i, 1); break;
+            }
+        }
+    }
+    
+    // Keyboard Input for Dictionary Fields
+    if (dict_focused_entry != -1) {
+        var _entry = dictionary_list[dict_focused_entry];
+        var _txt = (dict_focused_field == 0) ? _entry.written : _entry.pronunciation;
+        
+        if (keyboard_string != "") {
+            _txt = string_insert(keyboard_string, _txt, dict_caret_pos + 1);
+            dict_caret_pos += string_length(keyboard_string);
+            keyboard_string = "";
+            
+            // Enforce visual width limit
+            while (string_width(_txt) > 230) {
+                _txt = string_delete(_txt, string_length(_txt), 1);
+                dict_caret_pos = min(dict_caret_pos, string_length(_txt));
+            }
+        }
+
+        if (keyboard_check_pressed(vk_left)) { dict_caret_pos = max(0, dict_caret_pos - 1); cursor_timer = 0; cursor_visible = true; }
+        if (keyboard_check_pressed(vk_right)) { dict_caret_pos = min(string_length(_txt), dict_caret_pos + 1); cursor_timer = 0; cursor_visible = true; }
+        if (keyboard_check_pressed(vk_backspace) && dict_caret_pos > 0) {
+            _txt = string_delete(_txt, dict_caret_pos, 1);
+            dict_caret_pos--;
+            cursor_timer = 0; cursor_visible = true;
+        }
+        if (keyboard_check_pressed(vk_delete) && dict_caret_pos < string_length(_txt)) {
+            _txt = string_delete(_txt, dict_caret_pos + 1, 1);
+            cursor_timer = 0; cursor_visible = true;
+        }
+
+        if (dict_focused_field == 0) _entry.written = _txt;
+        else _entry.pronunciation = _txt;
+
+        if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_escape)) {
+            dict_focused_entry = -1;
+        }
+    }
+
+    if (mouse_wheel_up()) dictionary_scroll_y += 45;
+    if (mouse_wheel_down()) dictionary_scroll_y -= 45;
+    dictionary_scroll_y = clamp(dictionary_scroll_y, -max(0, (array_length(dictionary_list) * 45) - 320), 0);
+
+    cursor_timer++; if (cursor_timer >= 60) cursor_timer = 0; cursor_visible = (cursor_timer < 30);
+    return;
+}
+
 if (move_modal_open) {
     var _m_w = 400; var _m_h = 420;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
@@ -60,28 +164,6 @@ if (move_modal_open) {
     return; // Block entire frame logic while modal is open
 }
 
-// --- Helper Layout Function ---
-function get_text_pos(_txt, _target_pos, _wrap_w, _line_h) {
-    var _tx = 0; var _ty = 0;
-    for (var i = 1; i <= _target_pos; i++) {
-        var _c = string_char_at(_txt, i);
-        var _cw = string_width(_c);
-        if (_c == " " || _c == "\n") {
-            _tx += _cw; if (_c == "\n") { _tx = 0; _ty += _line_h; }
-        } else {
-            var _next_space = string_pos_ext(" ", _txt, i);
-            var _next_nl = string_pos_ext("\n", _txt, i);
-            var _end = string_length(_txt);
-            if (_next_space > 0) _end = min(_end, _next_space - 1);
-            if (_next_nl > 0) _end = min(_end, _next_nl - 1);
-            var _word = string_copy(_txt, i, _end - i + 1);
-            if (_tx + string_width(_word) > _wrap_w && _tx > 0) { _tx = 0; _ty += _line_h; }
-            _tx += _cw;
-        }
-    }
-    return { x: _tx, y: _ty };
-}
-
 // --- 0. SCRIPT HEIGHT CALCULATION ---
 // (Now handled on-demand via update_block_height and update_all_block_heights)
 
@@ -96,6 +178,25 @@ if (playing_block_index != -1) {
     var _char_progress_y = 0;
     
     if (is_speaking && string_length(_b.text) > 0) {
+        // 1. Check for Accurate Progress Pulse from TTS Bridge
+        var _prog_file = working_directory + "talkit\\talkit_prog_" + string(active_request_id) + ".tmp";
+        if (file_exists(_prog_file)) {
+            var _f = file_text_open_read(_prog_file);
+            if (_f != -1) {
+                var _perc = file_text_read_real(_f);
+                file_text_close(_f);
+                // Re-sync visual index: allow estimation to move past pulse, but use pulse as a floor
+                if (_perc > 0) speaking_index = max(speaking_index, _perc * string_length(_b.text));
+            }
+        }
+
+        // 2. Advance estimation (Aggressive 20 CPS base to prevent lagging)
+        var _base_cps = 20; 
+        var _ui_speed = variable_struct_exists(_b, "speed") ? _b.speed : 50;
+        var _spd_factor = (50 + (_ui_speed * 2.5)) / 175;
+        speaking_index += (_base_cps / 60) * _spd_factor * speaking_phonetic_ratio;
+        speaking_index = min(speaking_index, string_length(_b.text));
+
         var _cur_char = floor(speaking_index);
         var _sub = string_copy(_b.text, 1, _cur_char);
         _char_progress_y = string_height_ext(_sub, 28, box_w - 120);
@@ -104,6 +205,20 @@ if (playing_block_index != -1) {
     var _dest_scroll = -(_target_y + _header_offset + _char_progress_y) + (box_h / 2); 
     block_scroll_y += (_dest_scroll - block_scroll_y) * 0.15; // Faster interpolation
     block_scroll_y = min(0, block_scroll_y);
+    // --- Theater Subtitle Auto-Scroll ---
+    if (theater_mode && is_speaking && !theater_paused) {
+        // Subtitles use 32px line height and 880px wrap width (from Draw_0.gml)
+        var _p = get_text_pos(_b.text, floor(speaking_index), 880, 32);
+        var _target_sub_scroll = 0;
+        // If the current line is the 4th or lower (y >= 96), scroll up
+        if (_p.y >= 96) {
+            _target_sub_scroll = -(_p.y - 64); // Keeps the current line as the 3rd visible line
+        }
+        theater_subtitle_scroll_y += (_target_sub_scroll - theater_subtitle_scroll_y) * 0.1;
+    }
+} else {
+    theater_subtitle_scroll_y = 0;
+
 }
 
 // --- 1.1 ACTION ANIMATOR ---
@@ -291,8 +406,16 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 } else { speaking_pause_timer = 5; }
             } else {
                 var _c = characters[_b.char_index];
-                active_request_id = tts_speak(_b.text, _b.voice_id, _b.pitch, _b.speed, _b.mode, _b.style);
+                var _phonetic_text = apply_dictionary(_b.text);
+                active_request_id = tts_speak(_phonetic_text, _b.voice_id, _b.pitch, _b.speed, _b.mode, _b.style);
                 is_speaking = true;
+                speaking_index = 0; // Reset progress for the new line
+                
+                // Calculate Timing Ratio: (Written Length / Phonetic Length)
+                // This stretches the visual progress to match expanded dictionary pronunciations
+                var _v_len = max(1, string_length(_b.text));
+                var _p_len = max(1, string_length(_phonetic_text));
+                speaking_phonetic_ratio = _v_len / _p_len;
             }
             
             // Update Talking State
@@ -668,6 +791,8 @@ if (mouse_check_button_pressed(mb_left)) {
     var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
+        focused_block = -1;
+        selection_start = 0; selection_end = 0;
         var _grid_x = char_sel_x + 10;
         var _grid_y = char_sel_y + 35;
         var _item_w = 80;
@@ -957,6 +1082,8 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
 if (mouse_check_button_pressed(mb_left)) {
     // PLAY Button
     if (_mx > btn_play_x && _mx < btn_play_x + btn_play_w && _my > btn_play_y && _my < btn_play_y + btn_play_h) {
+        focused_block = -1;
+        selection_start = 0; selection_end = 0;
         if (playing_block_index != -1) {
             playing_block_index = -1; is_speaking = false; audio_stop_all(); tts_stop();
             theater_mode = false; theater_paused = false; theater_subtitles = "";
@@ -965,6 +1092,18 @@ if (mouse_check_button_pressed(mb_left)) {
         }
         return;
     }
+
+        // DICTIONARY Button
+        // Force coordinate update to match visual placement exactly
+        btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
+        btn_dictionary_y = scene_win_y - 45;
+
+        if (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h) {
+            dictionary_open = true;
+            dictionary_scroll_y = 0;
+            focused_block = -1; // Clear any text focus when opening modal
+            return;
+        }
 
     // GLOBAL HEADER BUTTONS (Theater & Move Params)
     if (!theater_mode && !is_speaking && playing_block_index == -1 && !action_modal_open && !scene_modal_open && !move_modal_open) {
@@ -990,6 +1129,8 @@ if (mouse_check_button_pressed(mb_left)) {
     if (theater_mode) {
         // Theater Mode Controls
         if (mouse_check_button_pressed(mb_left)) {
+            focused_block = -1;
+            selection_start = 0; selection_end = 0;
             // EXIT Button (Bottom Right)
             if (_mx > 1280 - 200 && _mx < 1280 - 20 && _my > 860 && _my < 910) {
                 theater_mode = false;
@@ -1023,6 +1164,7 @@ if (mouse_check_button_pressed(mb_left)) {
     
     // ADD VOICE Button
     if (!is_speaking && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h) {
+        selection_start = 0; selection_end = 0;
         var _c = characters[selected_character_index];
         var _idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
         array_insert(script_blocks, _idx, { 
@@ -1041,6 +1183,8 @@ if (mouse_check_button_pressed(mb_left)) {
 
     // ADD ACTION Button (Now also inserts at focused point)
     if (!is_speaking && _mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h) {
+        focused_block = -1;
+        selection_start = 0; selection_end = 0;
         {
             action_modal_open = true;
             action_modal_target_index = (insertion_idx != -1) ? insertion_idx + 1 : -1;
@@ -1078,6 +1222,8 @@ if (mouse_check_button_pressed(mb_left)) {
 
     // ADD SCENE Button (Now also inserts at focused point)
     if (!is_speaking && _mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h) {
+        focused_block = -1;
+        selection_start = 0; selection_end = 0;
         scene_modal_open = true;
         scene_modal_target_index = (insertion_idx != -1) ? insertion_idx + 1 : -1;
         scene_edit_mode = false;
@@ -1235,6 +1381,8 @@ if (mouse_check_button_pressed(mb_left)) {
     // EDIT VOICE Button
     var _overlay_active = (scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     if (!_overlay_active && !is_speaking && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
+        focused_block = -1;
+        selection_start = 0; selection_end = 0;
         edit_mode = true;
         modal_is_local_edit = false;
         scene_edit_mode = false; // Exit edit mode on edit voice
@@ -1280,22 +1428,22 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
             }
 
-            // 1. Delete (X) - Anchored to _cy
-            if (_mx > _bx && _mx < _bx + _bw && _my > _cy && _my < _cy + _btn_h) {
+            // 1. Delete (X) - Anchored to _cy + 5
+            if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 5 && _my < _cy + 5 + _btn_h) {
                 array_delete(script_blocks, i, 1);
                 update_all_block_heights();
                 if (focused_block >= array_length(script_blocks)) focused_block = array_length(script_blocks) - 1;
                 return;
             }
-            // 2. Insert Up (^+) - Anchored to _cy + 30
-            else if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 30 && _my < _cy + 30 + _btn_h) {
+            // 2. Insert Up (^+) - Anchored to _cy + 35
+            else if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 35 && _my < _cy + 35 + _btn_h) {
                 insert_menu_open = true; 
                 insert_menu_x = min(_mx, 1280 - 130); 
                 insert_menu_y = min(_my, 800 - 80);
                 insert_menu_target_idx = i; insert_menu_above = true; return;
             }
-            // 3. Insert Down (v+) - Anchored to _cy + 60
-            else if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 60 && _my < _cy + 60 + _btn_h) {
+            // 3. Insert Down (v+) - Anchored to _cy + 65
+            else if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 65 && _my < _cy + 65 + _btn_h) {
                 insert_menu_open = true; 
                 insert_menu_x = min(_mx, 1280 - 130); 
                 insert_menu_y = min(_my, 800 - 80);
@@ -1305,7 +1453,7 @@ if (mouse_check_button_pressed(mb_left)) {
             // --- 4c. RESEQUENCE BUTTONS (LEFT STACK) ---
             var _lx = box_x + 15;
             // UP
-            if (_mx > _lx && _mx < _lx + _bw && _my > _cy && _my < _cy + _btn_h) {
+            if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 5 && _my < _cy + 5 + _btn_h) {
                 if (i > 0) {
                     var _h = script_blocks[i-1].height + 25;
                     var _temp = script_blocks[i]; script_blocks[i] = script_blocks[i-1]; script_blocks[i-1] = _temp;
@@ -1315,7 +1463,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 return;
             }
             // PENCIL (EDIT)
-            else if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 30 && _my < _cy + 30 + _btn_h) {
+            else if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 35 && _my < _cy + 35 + _btn_h) {
                 if (_is_scene) {
                     scene_modal_open = true;
                     scene_modal_target_index = i;
@@ -1373,7 +1521,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 return;
             }
             // DOWN
-            else if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 60 && _my < _cy + 60 + _btn_h) {
+            else if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 65 && _my < _cy + 65 + _btn_h) {
                 if (i < array_length(script_blocks) - 1) {
                     var _h = script_blocks[i+1].height + 25;
                     var _temp = script_blocks[i]; script_blocks[i] = script_blocks[i+1]; script_blocks[i+1] = _temp;
@@ -1421,7 +1569,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     
                     if (_is_voice) {
                         keyboard_string = "";
-                        var _rx = _mx - (box_x + 55 + _text_margin); var _ry = _my - (_box_y + 10);
+                        var _rx = _mx - (box_x + 60); var _ry = _my - (_cy + 32);
                         var _best_p = 0; var _min_d = 999999;
                         for (var c = 0; c <= string_length(_block.text); c++) {
                             var _pos = get_text_pos(_block.text, c, _wrap_w, 28);
@@ -1429,6 +1577,9 @@ if (mouse_check_button_pressed(mb_left)) {
                             if (_d < _min_d) { _min_d = _d; _best_p = c; }
                         }
                         _block.caret_pos = _best_p;
+                        selection_start = _best_p;
+                        selection_end = _best_p;
+                        is_selecting = true;
                     }
                     return;
                 }
@@ -1438,6 +1589,7 @@ if (mouse_check_button_pressed(mb_left)) {
             if (_mx > box_x + 50 && _mx < box_x + box_w - 50 && _my > _cy && _my < _cy + _bh) {
                 focused_block = i;
                 insertion_idx = -1;
+                selection_start = 0; selection_end = 0; // Clear on general focus
                 if (!_is_scene && !_is_action) {
                     keyboard_string = ""; 
                     _block.caret_pos = string_length(_block.text);
@@ -1462,8 +1614,33 @@ if (mouse_check_button_pressed(mb_left)) {
         }
         // Clicked script area but not a block or gap
         insertion_idx = -1;
+        focused_block = -1;
         scene_edit_mode = false; // Exit Staging on empty area click
+        selection_start = 0; selection_end = 0;
     }
+
+// --- 4e. TEXT SELECTION DRAGGING ---
+if (is_selecting && focused_block != -1) {
+    if (mouse_check_button(mb_left)) {
+        var _b = script_blocks[focused_block];
+        // Calculate current y of focused block for coordinate mapping
+        var _calc_y = box_y + 5 + block_scroll_y;
+        for (var i = 0; i < focused_block; i++) _calc_y += script_blocks[i].height + 20;
+        
+        var _rx = _mx - (box_x + 60); var _ry = _my - (_calc_y + 32);
+        var _best_p = 0; var _min_d = 999999;
+        for (var c = 0; c <= string_length(_b.text); c++) {
+            var _pos = get_text_pos(_b.text, c, _wrap_w, 28);
+            var _d = point_distance(_rx, _ry, _pos.x, _pos.y);
+            if (_d < _min_d) { _min_d = _d; _best_p = c; }
+        }
+        selection_end = _best_p;
+        _b.caret_pos = _best_p;
+        cursor_timer = 0; cursor_visible = true; // Keep caret solid while dragging
+    } else {
+        is_selecting = false;
+    }
+}
 
 // Scroll Wheel
 var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
@@ -1654,6 +1831,13 @@ if (!is_speaking && focused_block >= 0) {
     }
 
     if (string_length(keyboard_string) > 0) {
+        if (selection_start != selection_end) {
+            var _s = min(selection_start, selection_end);
+            var _e = max(selection_start, selection_end);
+            _b.text = string_delete(_b.text, _s + 1, _e - _s);
+            _b.caret_pos = _s;
+            selection_start = _s; selection_end = _s;
+        }
         _b.text = string_insert(keyboard_string, _b.text, _b.caret_pos + 1);
         _b.caret_pos += string_length(keyboard_string);
         update_block_height(focused_block);
@@ -1661,22 +1845,42 @@ if (!is_speaking && focused_block >= 0) {
     }
     
     if (_do_action) {
+        if ((_repeat_key == vk_backspace || _repeat_key == vk_delete) && selection_start != selection_end) {
+            var _s = min(selection_start, selection_end);
+            var _e = max(selection_start, selection_end);
+            _b.text = string_delete(_b.text, _s + 1, _e - _s);
+            _b.caret_pos = _s;
+            selection_start = _s; selection_end = _s;
+            update_block_height(focused_block);
+            _do_action = false; // Consume the keypress
+        }
+        
         // _wrap_w is already defined as box_w - 120 for consistency with Draw event
         if (_repeat_key == vk_left) _b.caret_pos = max(0, _b.caret_pos - 1);
         if (_repeat_key == vk_right) _b.caret_pos = min(string_length(_b.text), _b.caret_pos + 1);
         if (_repeat_key == vk_up || _repeat_key == vk_down) {
             var _cur_p = get_text_pos(_b.text, _b.caret_pos, _wrap_w, 28);
             var _target_y = _cur_p.y + (_repeat_key == vk_up ? -28 : 28);
-            if (_target_y >= 0 && _target_y < string_height_ext(_b.text, 28, _wrap_w)) {
-                var _best_p = _b.caret_pos; var _min_d = 999999;
+            
+            // Calculate the last character's position to define vertical bounds
+            var _last_p = get_text_pos(_b.text, string_length(_b.text), _wrap_w, 28);
+            
+            if (_target_y < 0) {
+                _b.caret_pos = 0;
+            } else if (_target_y > _last_p.y) {
+                _b.caret_pos = string_length(_b.text);
+            } else {
+                var _best_p = _b.caret_pos; var _min_dx = 999999;
+                var _found_on_line = false;
                 for (var c = 0; c <= string_length(_b.text); c++) {
                     var _pos = get_text_pos(_b.text, c, _wrap_w, 28);
-                    var _d = point_distance(_cur_p.x, _target_y, _pos.x, _pos.y);
-                    if (_d < _min_d) { _min_d = _d; _best_p = c; }
+                    if (_pos.y == _target_y) {
+                        var _dx = abs(_cur_p.x - _pos.x);
+                        if (_dx < _min_dx) { _min_dx = _dx; _best_p = c; _found_on_line = true; }
+                    }
                 }
-                _b.caret_pos = _best_p;
-            } else if (_repeat_key == vk_up) _b.caret_pos = 0;
-            else _b.caret_pos = string_length(_b.text);
+                if (_found_on_line) _b.caret_pos = _best_p;
+            }
         }
         if (_repeat_key == vk_backspace && _b.caret_pos > 0) { _b.text = string_delete(_b.text, _b.caret_pos, 1); _b.caret_pos--; update_block_height(focused_block); }
         if (_repeat_key == vk_delete && _b.caret_pos < string_length(_b.text)) { _b.text = string_delete(_b.text, _b.caret_pos + 1, 1); update_block_height(focused_block); }

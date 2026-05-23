@@ -53,6 +53,9 @@ Send @{"Cmd"="SetPitch"; "I"=$Pitch}
 Send @{"Cmd"="SetVoicingMode"; "I"=$Mode}
 Send @{"Cmd"="SetF0Style"; "I"=$Style}
 
+$totalPhoneticLength = $Text.Length
+$charsProcessed = 0
+
 # Split text into chunks to avoid engine limits (max ~400 chars per speak command)
 # We split by sentence boundaries or by length if no boundaries exist
 $chunks = $Text -split "(?<=[.!?])\s+"
@@ -73,7 +76,11 @@ foreach ($chunk in $chunks) {
             $p.Kill(); Send @{"Cmd"="Close"}; exit 
         }
 
+        # Update Progress Pulse (Report progress of what has already finished)
+        ($charsProcessed / $totalPhoneticLength).ToString("F2") | Set-Content -Path "$DllDir\talkit_prog_$Req.tmp" -NoNewline
+
         Send @{"Cmd"="Speak"; "S"=$sub; "B"=$true}
+
         while ($line = $stdout.ReadLine()) {
             # Continuous check while waiting for speech to finish
             if ($Parent -and $Parent.HasExited) { $p.Kill(); exit }
@@ -81,8 +88,12 @@ foreach ($chunk in $chunks) {
             if ($line -like '*SpeakCompleted*') { break }
             if ($line -like '*Error*') { break }
         }
+        $charsProcessed += $sub.Length
     }
 }
+
+# Final 100% pulse
+"1.00" | Set-Content -Path "$DllDir\talkit_prog_$Req.tmp" -NoNewline
 
 # Create signal file IMMEDIATELY so the game can start the next block
 New-Item -Path "$DllDir\talkit_done_$Req.tmp" -ItemType File -Force
