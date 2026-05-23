@@ -142,6 +142,15 @@ if (theater_mode) {
         
         draw_set_color(c_yellow);
         var _name = (theater_active_char != -1) ? string_upper(characters[theater_active_char].name) : "";
+        if (theater_active_char != -1 && playing_block_index != -1) {
+            var _pb = script_blocks[playing_block_index];
+            var _c_ref = characters[theater_active_char];
+            var _is_v = !variable_struct_exists(_pb, "type") || _pb.type == "voice";
+            var _is_alt = _is_v && (variable_struct_exists(_pb, "is_altered") ? _pb.is_altered : (_pb.voice_id != _c_ref.voice_id || _pb.pitch != _c_ref.pitch || _pb.speed != _c_ref.speed || _pb.mode != _c_ref.mode || _pb.style != _c_ref.style || _pb.tweaked != _c_ref.tweaked));
+            if (_pb.char_index != 0 && _is_alt) {
+                _name += " (altered voice)";
+            }
+        }
         draw_text(200, 830, _name + ":");
         
         draw_set_color(c_white);
@@ -370,24 +379,53 @@ draw_set_color(c_white); draw_text(btn_add_scene_x + 12, btn_add_scene_y + 5, "+
 // --- 1.2 SCENE EDIT MODE INDICATORS (Drawn on top of Scene Window) ---
 if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     draw_set_color(make_color_rgb(255, 150, 0));
-    draw_rectangle(scene_win_x, scene_win_y - 35, scene_win_x + 180, scene_win_y - 5, false);
-    draw_set_color(c_black); draw_text(scene_win_x + 10, scene_win_y - 30, "STAGING");
+    draw_rectangle(scene_win_x, scene_win_y - 45, scene_win_x + 110, scene_win_y - 10, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(scene_win_x + 55, scene_win_y - 37, "STAGING"); draw_set_halign(fa_left);
 }
 
 if (insertion_idx != -1 && !scene_edit_mode) {
     draw_set_color(make_color_rgb(0, 150, 255));
-    draw_rectangle(scene_win_x, scene_win_y - 35, scene_win_x + 180, scene_win_y - 5, false);
-    draw_set_color(c_white); draw_text(scene_win_x + 10, scene_win_y - 30, "SPLICE MODE");
+    draw_rectangle(scene_win_x, scene_win_y - 45, scene_win_x + 150, scene_win_y - 10, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(scene_win_x + 75, scene_win_y - 37, "SPLICE MODE"); draw_set_halign(fa_left);
 }
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
 if (scene_edit_mode && scene_edit_selected_actor_idx != -1) {
-    var _fx = scene_win_x + 200; var _fy = scene_win_y - 35;
-    var _fhov = (_mx > _fx && _mx < _fx + 100 && _my > _fy && _my < _fy + 25);
-    draw_set_color(_fhov ? c_white : make_color_rgb(100, 100, 255));
-    draw_rectangle(_fx, _fy, _fx + 100, _fy + 25, false);
-    draw_set_color(_fhov ? make_color_rgb(100, 100, 255) : c_white);
-    draw_text(_fx + 25, _fy + 2, "FLIP");
+    var _scene = script_blocks[active_scene_block_idx];
+    if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
+        var _act = _scene.actors[scene_edit_selected_actor_idx];
+        var _spr = get_character_sprite(_act.char_index);
+        var _is_visible = true;
+        if (_spr != -1) {
+            var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
+            var _sc = (scene_win_h * 1.5) / 450;
+            var _cw = _csw * _sc; var _ch = _csh * _sc;
+            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+            var _ax = scene_win_x + _act.x; var _ay = scene_win_y + _act.y;
+            
+            var _v_top = max(_ay - _ch, scene_win_y);
+            var _v_bottom = min(_ay, scene_win_y + scene_win_h);
+            var _v_visible = max(0, _v_bottom - _v_top);
+            
+            var _h_left = _ax - (_cw * _face)/2;
+            var _h_right = _ax + (_cw * _face)/2;
+            if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
+            var _h_intersect_l = max(_h_left, scene_win_x);
+            var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
+            var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
+            
+            _is_visible = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
+        }
+
+        if (_is_visible) {
+            var _fx = scene_win_x + 180; var _fy = scene_win_y - 45;
+            var _fhov = (_mx > _fx && _mx < _fx + 80 && _my > _fy && _my < _fy + 35);
+            draw_set_color(_fhov ? c_white : make_color_rgb(100, 100, 255));
+            draw_rectangle(_fx, _fy, _fx + 80, _fy + 35, false);
+            draw_set_color(_fhov ? make_color_rgb(100, 100, 255) : c_white);
+            draw_set_halign(fa_center); draw_text(_fx + 40, _fy + 8, "FLIP"); draw_set_halign(fa_left);
+        }
+    }
 }
 
 // --- 1c. CHARACTER SELECTOR WINDOW ---
@@ -548,7 +586,12 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         var _is_onstage = false;
         for(var o=0; o<array_length(_onstage); o++) if (_onstage[o] == _block.char_index) _is_onstage = true;
         
-        var _char_name = string_upper(characters[_block.char_index].name);
+        var _c_ref = characters[_block.char_index];
+        var _is_v = !variable_struct_exists(_block, "type") || _block.type == "voice";
+        var _is_alt = _is_v && (variable_struct_exists(_block, "is_altered") ? _block.is_altered : (_block.voice_id != _c_ref.voice_id || _block.pitch != _c_ref.pitch || _block.speed != _c_ref.speed || _block.mode != _c_ref.mode || _block.style != _c_ref.style || _block.tweaked != _c_ref.tweaked));
+        
+        var _char_name = string_upper(_c_ref.name);
+        if (_is_alt) _char_name += " (altered voice)";
         if (!_is_onstage && _block.char_index != 0) _char_name += " (offstage)";
         
         draw_set_color(make_color_rgb(100, 100, 120)); draw_text(box_x + 50, _cur_y, _char_name + ":");
@@ -737,11 +780,22 @@ if (edit_mode) {
 
     // --- Bottom Buttons ---
     var _btn_y = _myo + _mh - 60;
+
+    // Revert (Only for local block edits)
+    if (modal_is_local_edit) {
+        var _rv_hov = (_mx > _mxo + 30 && _mx < _mxo + 150 && _my > _btn_y && _my < _btn_y + 40);
+        draw_set_color(_rv_hov ? c_white : make_color_rgb(200, 150, 50));
+        draw_rectangle(_mxo + 30, _btn_y, _mxo + 150, _btn_y + 40, false);
+        draw_set_color(_rv_hov ? make_color_rgb(200, 150, 50) : c_white); draw_text(_mxo + 50, _btn_y + 10, "REVERT");
+    }
+
     // Test
-    var _t_hov = (_mx > _mxo+30 && _mx < _mxo+150 && _my > _btn_y && _my < _btn_y+40);
-    draw_set_color(_t_hov ? c_white : make_color_rgb(50,150,200));
-    draw_rectangle(_mxo+30, _btn_y, _mxo+150, _btn_y+40, false);
-    draw_set_color(_t_hov ? make_color_rgb(50,150,200) : c_white); draw_text(_mxo+55, _btn_y+10, "TEST");
+    var _tx = modal_is_local_edit ? _mxo + 165 : _mxo + 30;
+    var _t_hov = (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40);
+    draw_set_color(_t_hov ? c_white : make_color_rgb(50, 150, 200));
+    draw_rectangle(_tx, _btn_y, _tx + 120, _btn_y + 40, false);
+    draw_set_color(_t_hov ? make_color_rgb(50, 150, 200) : c_white); draw_text(_tx + 35, _btn_y + 10, "TEST");
+
     // Save
     var _s_hov = (_mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _btn_y && _my < _btn_y+40);
     draw_set_color(_s_hov ? c_white : make_color_rgb(50,200,50));

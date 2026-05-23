@@ -291,7 +291,7 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 } else { speaking_pause_timer = 5; }
             } else {
                 var _c = characters[_b.char_index];
-                active_request_id = tts_speak(_b.text, _c.voice_id, _c.pitch, _c.speed, _c.mode, _c.style);
+                active_request_id = tts_speak(_b.text, _b.voice_id, _b.pitch, _b.speed, _b.mode, _b.style);
                 is_speaking = true;
             }
             
@@ -486,13 +486,48 @@ if (edit_mode) {
         var _toggle_y = _m_y + 580;
         if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _toggle_y && _my < _toggle_y + 25) tweak_enabled = !tweak_enabled;
 
-        // Bottom Buttons
+        // Bottom Buttons Layout
         var _btn_y = _m_y + _m_h - 60;
-        if (_mx > _m_x + 30 && _mx < _m_x + 150 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality); }
+
+        // Revert (Local Edit only) - Discard block tweaks and return to Character Globals
+        if (modal_is_local_edit && _mx > _m_x + 30 && _mx < _m_x + 150 && _my > _btn_y && _my < _btn_y + 40) {
+            var _b = script_blocks[modal_target_block_idx];
+            var _c = characters[_b.char_index];
+            modal_voice_id = _c.voice_id; modal_pitch = _c.pitch; modal_speed = _c.speed;
+            modal_effort = _c.mode; modal_quality = _c.style; tweak_enabled = _c.tweaked;
+            tts_stop();
+            return;
+        }
+
+        // Test Button (X position shifts if Revert is present)
+        var _tx = modal_is_local_edit ? _m_x + 165 : _m_x + 30;
+        if (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality); }
+        
         if (_mx > _m_x + _m_w - 280 && _mx < _m_x + _m_w - 150 && _my > _btn_y && _my < _btn_y + 40) {
             var _c = characters[selected_character_index];
-            _c.voice_id = modal_voice_id; _c.pitch = modal_pitch; _c.speed = modal_speed;
-            _c.mode = modal_effort; _c.style = modal_quality; _c.tweaked = tweak_enabled;
+            if (modal_is_local_edit) {
+                var _b = script_blocks[modal_target_block_idx];
+                _b.voice_id = modal_voice_id; _b.pitch = modal_pitch; _b.speed = modal_speed;
+                _b.mode = modal_effort; _b.style = modal_quality; _b.tweaked = tweak_enabled;
+                // Only mark as altered if it actually differs from character's current global
+                _b.is_altered = (_b.voice_id != _c.voice_id || _b.pitch != _c.pitch || _b.speed != _c.speed || _b.mode != _c.mode || _b.style != _c.style || _b.tweaked != _c.tweaked);
+            } else {
+                _c.voice_id = modal_voice_id; _c.pitch = modal_pitch; _c.speed = modal_speed;
+                _c.mode = modal_effort; _c.style = modal_quality; _c.tweaked = tweak_enabled;
+                
+                // Propagate the new "Global" settings to all blocks that are currently using the character default
+                for (var i = 0; i < array_length(script_blocks); i++) {
+                    var _block = script_blocks[i];
+                    var _is_v = !variable_struct_exists(_block, "type") || _block.type == "voice";
+                    if (_is_v && _block.char_index == selected_character_index) {
+                        if (!variable_struct_exists(_block, "is_altered") || !_block.is_altered) {
+                            _block.voice_id = _c.voice_id; _block.pitch = _c.pitch; _block.speed = _c.speed;
+                            _block.mode = _c.mode; _block.style = _c.style; _block.tweaked = _c.tweaked;
+                            _block.is_altered = false;
+                        }
+                    }
+                }
+            }
             edit_mode = false; tts_stop();
         }
         if (_mx > _m_x + _m_w - 140 && _mx < _m_x + _m_w - 30 && _my > _btn_y && _my < _btn_y + 40) { edit_mode = false; tts_stop(); }
@@ -574,7 +609,11 @@ if (insert_menu_open) {
         // Voice option
         if (_mx > insert_menu_x && _mx < insert_menu_x + _m_w && _my > insert_menu_y && _my < insert_menu_y + 35) {
             var _idx = insert_menu_above ? insert_menu_target_idx : insert_menu_target_idx + 1;
-            array_insert(script_blocks, _idx, { char_index: selected_character_index, text: "", height: 60, caret_pos: 0, selection_anchor: 0, selection_active: false });
+            var _c = characters[selected_character_index];
+            array_insert(script_blocks, _idx, { 
+                type: "voice", char_index: selected_character_index, text: "", height: 115, caret_pos: 0, selection_anchor: 0, selection_active: false,
+                voice_id: _c.voice_id, pitch: _c.pitch, speed: _c.speed, mode: _c.mode, style: _c.style, tweaked: _c.tweaked, is_altered: false
+            });
             update_all_block_heights();
             focused_block = _idx; keyboard_string = ""; _clicked_option = true;
         }
@@ -641,6 +680,16 @@ if (mouse_check_button_pressed(mb_left)) {
                 selected_character_index = i;
                 dropdown_open = false;
                 dragging_char_index = i; // Unified drag start
+
+                // Sync staging selection: focus character if they are in the scene, otherwise clear focus
+                if (scene_edit_mode && active_scene_block_idx != -1) {
+                    var _scene = script_blocks[active_scene_block_idx];
+                    var _found = -1;
+                    for (var a = 0; a < array_length(_scene.actors); a++) {
+                        if (_scene.actors[a].char_index == i) { _found = a; break; }
+                    }
+                    scene_edit_selected_actor_idx = _found;
+                }
                 return;
             }
         }
@@ -740,10 +789,32 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
 }
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
-if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && mouse_check_button_pressed(mb_left)) {
-    var _btn_x = scene_win_x + 200; var _btn_y = scene_win_y - 30;
-    if (_mx > _btn_x && _mx < _btn_x + 100 && _my > _btn_y && _my < _btn_y + 30) {
-        if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks) && mouse_check_button_pressed(mb_left)) {
+    var _btn_x = scene_win_x + 180; var _btn_y = scene_win_y - 45;
+    var _scene = script_blocks[active_scene_block_idx];
+    var _is_visible = true;
+    if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
+        var _act = _scene.actors[scene_edit_selected_actor_idx];
+        var _spr = get_character_sprite(_act.char_index);
+        if (_spr != -1) {
+            var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
+            var _sc = (scene_win_h * 1.5) / 450;
+            var _cw = _csw * _sc; var _ch = _csh * _sc;
+            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+            var _ax = scene_win_x + _act.x; var _ay = scene_win_y + _act.y;
+            var _v_top = max(_ay - _ch, scene_win_y);
+            var _v_bottom = min(_ay, scene_win_y + scene_win_h);
+            var _v_visible = max(0, _v_bottom - _v_top);
+            var _h_left = _ax - (_cw * _face)/2;
+            var _h_right = _ax + (_cw * _face)/2;
+            if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
+            var _h_intersect_l = max(_h_left, scene_win_x);
+            var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
+            var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
+            _is_visible = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
+        }
+    }
+    if (_is_visible && _mx > _btn_x && _mx < _btn_x + 80 && _my > _btn_y && _my < _btn_y + 35) {
             var _scene = script_blocks[active_scene_block_idx];
             if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
                 var _act = _scene.actors[scene_edit_selected_actor_idx];
@@ -752,7 +823,6 @@ if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && mouse_check_button
                 return;
             }
         }
-    }
 }
 
 // --- 2f. LIVE MOVE DRAGGING (When NOT in edit mode) ---
@@ -872,13 +942,13 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
 
 // --- 2g. MODE DISMISSAL (Label Click) ---
 if (insertion_idx != -1 && mouse_check_button_pressed(mb_left)) {
-    if (_mx > scene_win_x && _mx < scene_win_x + 180 && _my > scene_win_y - 30 && _my < scene_win_y) {
+    if (_mx > scene_win_x && _mx < scene_win_x + 150 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         insertion_idx = -1;
         return;
     }
 }
 if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
-    if (_mx > scene_win_x && _mx < scene_win_x + 180 && _my > scene_win_y - 30 && _my < scene_win_y) {
+    if (_mx > scene_win_x && _mx < scene_win_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         scene_edit_mode = false;
         return;
     }
@@ -953,8 +1023,12 @@ if (mouse_check_button_pressed(mb_left)) {
     
     // ADD VOICE Button
     if (!is_speaking && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h) {
+        var _c = characters[selected_character_index];
         var _idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
-        array_insert(script_blocks, _idx, { type: "voice", char_index: selected_character_index, text: "", height: 115, caret_pos: 0, selection_anchor: 0, selection_active: false });
+        array_insert(script_blocks, _idx, { 
+            type: "voice", char_index: selected_character_index, text: "", height: 115, caret_pos: 0, selection_anchor: 0, selection_active: false,
+            voice_id: _c.voice_id, pitch: _c.pitch, speed: _c.speed, mode: _c.mode, style: _c.style, tweaked: _c.tweaked, is_altered: false
+        });
         update_block_height(_idx);
         focused_block = _idx; insertion_idx = -1; keyboard_string = ""; 
         scene_edit_mode = false; 
@@ -1162,10 +1236,11 @@ if (mouse_check_button_pressed(mb_left)) {
     var _overlay_active = (scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     if (!_overlay_active && !is_speaking && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
         edit_mode = true;
+        modal_is_local_edit = false;
         scene_edit_mode = false; // Exit edit mode on edit voice
         var _c = characters[selected_character_index];
         modal_voice_id = _c.voice_id; modal_pitch = _c.pitch; modal_speed = _c.speed;
-        modal_mode = _c.mode; modal_style = _c.style; tweak_enabled = _c.tweaked;
+        modal_effort = _c.mode; modal_quality = _c.style; tweak_enabled = _c.tweaked;
         return;
     }
 }
@@ -1187,7 +1262,7 @@ if (mouse_check_button_pressed(mb_left)) {
             var _bh = _block.height;
             var _is_scene = (variable_struct_exists(_block, "type") && _block.type == "scene");
             var _is_action = (variable_struct_exists(_block, "type") && _block.type == "action");
-            var _is_voice = (variable_struct_exists(_block, "type") && _block.type == "voice");
+            var _is_voice = !_is_scene && !_is_action;
             var _box_y = (_is_scene || _is_action) ? _cy + 5 : _cy + 20;
             
             // --- 4b. INLINE BUTTONS (RIGHT STACK - Management) ---
@@ -1283,6 +1358,17 @@ if (mouse_check_button_pressed(mb_left)) {
                             }
                         }
                     }
+                }
+                else if (_is_voice) {
+                    edit_mode = true;
+                    modal_is_local_edit = true;
+                    modal_target_block_idx = i;
+                    modal_voice_id = _block.voice_id;
+                    modal_pitch = _block.pitch;
+                    modal_speed = _block.speed;
+                    modal_effort = _block.mode;
+                    modal_quality = _block.style;
+                    tweak_enabled = _block.tweaked;
                 }
                 return;
             }
@@ -1407,6 +1493,17 @@ if (!_overlay_active && !is_speaking) {
                     var _scale = (scene_win_h * 1.5) / 450; 
                     
                     selected_character_index = i;
+
+                    // Sync staging selection
+                    if (scene_edit_mode && active_scene_block_idx != -1) {
+                        var _scene = script_blocks[active_scene_block_idx];
+                        var _found = -1;
+                        for (var a = 0; a < array_length(_scene.actors); a++) {
+                            if (_scene.actors[a].char_index == i) { _found = a; break; }
+                        }
+                        scene_edit_selected_actor_idx = _found;
+                    }
+
                     dragging_char_index = i; // START DRAGGING (Unified)
                     drag_off_x = 0;
                     drag_off_y = -(_csh * _scale) / 2;
@@ -1468,11 +1565,11 @@ if (!_overlay_active && dragging_char_index != -1) {
                 // STAGING DROP: Add to scene block permanently
                 if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
                     var _scene = script_blocks[active_scene_block_idx];
-                    var _dup = false;
+                    var _dup_idx = -1;
                     for (var a = 0; a < array_length(_scene.actors); a++) {
-                        if (_scene.actors[a].char_index == dragging_char_index) { _dup = true; break; }
+                        if (_scene.actors[a].char_index == dragging_char_index) { _dup_idx = a; break; }
                     }
-                    if (!_dup) {
+                    if (_dup_idx == -1) {
                         // Auto-flip for entrance
                         var _is_left = (_mx < scene_win_x + (scene_win_w / 2));
                         _face = _is_left ? -1 : 1;
@@ -1482,6 +1579,10 @@ if (!_overlay_active && dragging_char_index != -1) {
                         var _ny = _py;
                         
                         array_push(_scene.actors, { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face });
+                        scene_edit_selected_actor_idx = array_length(_scene.actors) - 1;
+                    } else {
+                        // If character already onstage, update selection to them immediately
+                        scene_edit_selected_actor_idx = _dup_idx;
                     }
                 }
             } else {
@@ -1495,7 +1596,7 @@ if (!_overlay_active && dragging_char_index != -1) {
                 
                 if (!_onstage) {
                     var _is_left = (_mx < scene_win_x + (scene_win_w / 2));
-                    var _aname = _is_left ? "enters left and moves" : "enters right and moves";
+                    var _aname = _is_left ? "enters from left" : "enters from right";
                     
                     var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
                     array_insert(script_blocks, _insert_idx, { 
@@ -1627,6 +1728,7 @@ if (!_found_scene) {
 // STAGING ENFORCEMENT: Only allow staging if focused on a scene heading
 if (scene_edit_mode && focused_block != active_scene_block_idx) {
     scene_edit_mode = false;
+    scene_edit_selected_actor_idx = -1;
 }
 
 // Compute preview_actors

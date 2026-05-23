@@ -183,6 +183,8 @@ get_character_sprite = function(_char_index) {
 
 selected_character_index = 0;
 edit_mode = false; 
+modal_is_local_edit = false; // Tracks if we are editing a block or a character global
+modal_target_block_idx = -1;  // The specific block being edited locally
 modal_voice_id = ""; 
 tweak_enabled = false;
 modal_pitch = 50;
@@ -234,8 +236,6 @@ action_modal_slider_dragging = false;
 action_modal_wait_duration = 1.0;
 
 all_actions = [
-    { name: "enters left", desc: "Character walks in from the left side of the screen.", category: "character" },
-    { name: "enters right", desc: "Character walks in from the right side of the screen.", category: "character" },
     { name: "turns around", desc: "Character flips their horizontal facing direction.", category: "character" },
     { name: "wait", desc: "Pauses the script for a set duration of time.", category: "general" }
 ];
