@@ -20,18 +20,18 @@ room_height = 960;
 scene_win_x = 50; scene_win_y = 60; scene_win_w = 800; scene_win_h = 450; // Scene window (16:9)
 box_x = 50; box_y = 570; box_w = 1180; box_h = 370; // Main text box
 btn_play_w = 100; btn_play_h = 35; // Play Button
-btn_play_x = (box_x + box_w / 2) - (btn_play_w / 2); btn_play_y = 520; 
+btn_play_x = (box_x + box_w / 2) - (btn_play_w / 2); btn_play_y = 535; 
 
 dropdown_open = false;
 dropdown_scroll_y = 0;
 dropdown_w = 350;
 dropdown_h = 35;
-btn_edit_w        = 130;
+btn_edit_w        = 170;
 btn_edit_h        = 35;
 btn_edit_x        = box_x + box_w - btn_edit_w;
-btn_edit_y        = 520;
+btn_edit_y        = 535;
 dropdown_x        = btn_edit_x - 15 - dropdown_w;
-dropdown_y        = 520;
+dropdown_y        = 535;
 
 char_sel_x = 880; char_sel_y = 60; char_sel_w = 350; char_sel_h = 450;
 char_sel_scroll_y = 0;
@@ -39,7 +39,7 @@ btn_theater_x = 880; btn_theater_y = 15; btn_theater_w = 140; btn_theater_h = 35
 
 // --- 2b. MOVEMENT PARAMETERS STATE ---
 btn_move_params_x = btn_theater_x + btn_theater_w + 10; btn_move_params_y = 15; 
-btn_move_params_w = 160; btn_move_params_h = 35;
+btn_move_params_w = 170; btn_move_params_h = 35;
 move_modal_open = false;
 move_speed_index = 2; // Default: WALK
 move_speeds = [0.8, 1.5, 2.5, 4.5, 7.0];
@@ -439,7 +439,7 @@ speaking_index      = 0;   // Floating point index for smooth word tracking
 // --- 5. UI & LAYOUT ---
 scene_win_x = 50; scene_win_y = 60; scene_win_w = 800; scene_win_h = 450; // Scene window (16:9)
 box_x = 50; box_y = 570; box_w = 1180; box_h = 370; // Main text box (Stretched down for 4:3 ratio)
-btn_play_x = (box_x + box_w / 2) - (btn_play_w / 2); btn_play_y = 520; 
+btn_play_x = (box_x + box_w / 2) - (btn_play_w / 2); btn_play_y = 535; 
 
 // --- 6. CHARACTER SELECTION DROPDOWN ---
 dropdown_open = false;
@@ -449,9 +449,9 @@ dropdown_h = 35;
 btn_edit_w        = 130;
 btn_edit_h        = 35;
 btn_edit_x        = box_x + box_w - btn_edit_w;
-btn_edit_y        = 520;
+btn_edit_y        = 535;
 dropdown_x        = btn_edit_x - 15 - dropdown_w;
-dropdown_y        = 520;
+dropdown_y        = 535;
 
 // --- 7. TEXT SCROLLING & RENDERING ---
 text_scroll_y      = 0;

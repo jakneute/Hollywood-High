@@ -172,14 +172,32 @@ if (theater_mode) {
 
 
 // --- 1. GLOBAL BUTTONS (Shuffled Midsection) ---
-btn_add_x = box_x; btn_add_y = dropdown_y;
-btn_add_action_x = btn_add_x + 135; btn_add_action_y = dropdown_y;
-btn_add_scene_x = btn_add_action_x + 135; btn_add_scene_y = dropdown_y;
+btn_add_x = box_x; btn_add_y = btn_play_y;
+btn_add_action_x = btn_add_x + 135; btn_add_action_y = btn_play_y;
+btn_add_scene_x = btn_add_action_x + 135; btn_add_scene_y = btn_play_y;
 
 btn_play_x = (box_x + box_w / 2) - (btn_play_w / 2);
-btn_edit_x = box_x + box_w - btn_edit_w;
-dropdown_x = btn_edit_x - 15 - dropdown_w;
-dropdown_w = 350;
+
+// Repositioned Elements per Request
+dropdown_x = char_sel_x;
+dropdown_w = char_sel_w;
+dropdown_y = char_sel_y - dropdown_h - 10;
+
+btn_theater_w = 170;
+btn_theater_h = 35;
+btn_theater_x = scene_win_x + (scene_win_w / 2) - (btn_theater_w / 2);
+btn_theater_y = scene_win_y - 45;
+
+var _btn_gap = 10;
+var _half_w = (char_sel_w - _btn_gap) / 2;
+
+btn_move_params_x = char_sel_x;
+btn_move_params_w = _half_w;
+btn_move_params_y = char_sel_y + char_sel_h + 10;
+
+btn_edit_x = char_sel_x + _half_w + _btn_gap;
+btn_edit_w = _half_w;
+btn_edit_y = btn_move_params_y;
 
 btn_add_w = 125; btn_add_h = 35;
 btn_add_scene_w = 125; btn_add_scene_h = 35;
@@ -352,24 +370,24 @@ draw_set_color(c_white); draw_text(btn_add_scene_x + 12, btn_add_scene_y + 5, "+
 // --- 1.2 SCENE EDIT MODE INDICATORS (Drawn on top of Scene Window) ---
 if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     draw_set_color(make_color_rgb(255, 150, 0));
-    draw_rectangle(scene_win_x, scene_win_y - 30, scene_win_x + 180, scene_win_y, false);
-    draw_set_color(c_black); draw_text(scene_win_x + 10, scene_win_y - 25, "STAGING");
+    draw_rectangle(scene_win_x, scene_win_y - 35, scene_win_x + 180, scene_win_y - 5, false);
+    draw_set_color(c_black); draw_text(scene_win_x + 10, scene_win_y - 30, "STAGING");
 }
 
 if (insertion_idx != -1 && !scene_edit_mode) {
     draw_set_color(make_color_rgb(0, 150, 255));
-    draw_rectangle(scene_win_x, scene_win_y - 30, scene_win_x + 180, scene_win_y, false);
-    draw_set_color(c_white); draw_text(scene_win_x + 10, scene_win_y - 25, "SPLICE MODE");
+    draw_rectangle(scene_win_x, scene_win_y - 35, scene_win_x + 180, scene_win_y - 5, false);
+    draw_set_color(c_white); draw_text(scene_win_x + 10, scene_win_y - 30, "SPLICE MODE");
 }
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
 if (scene_edit_mode && scene_edit_selected_actor_idx != -1) {
-    var _fx = scene_win_x + 200; var _fy = scene_win_y - 30;
-    var _fhov = (_mx > _fx && _mx < _fx + 100 && _my > _fy && _my < _fy + 30);
+    var _fx = scene_win_x + 200; var _fy = scene_win_y - 35;
+    var _fhov = (_mx > _fx && _mx < _fx + 100 && _my > _fy && _my < _fy + 25);
     draw_set_color(_fhov ? c_white : make_color_rgb(100, 100, 255));
-    draw_rectangle(_fx, _fy, _fx + 100, _fy + 30, false);
+    draw_rectangle(_fx, _fy, _fx + 100, _fy + 25, false);
     draw_set_color(_fhov ? make_color_rgb(100, 100, 255) : c_white);
-    draw_text(_fx + 25, _fy + 5, "FLIP");
+    draw_text(_fx + 25, _fy + 2, "FLIP");
 }
 
 // --- 1c. CHARACTER SELECTOR WINDOW ---
@@ -377,6 +395,18 @@ draw_set_color(make_color_rgb(35, 35, 45));
 draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, false);
 draw_set_color(c_aqua); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, true);
 draw_set_color(c_white); draw_text(char_sel_x + 10, char_sel_y + 5, "CHARACTER SELECTOR");
+
+// --- Character Pane Scrollbar ---
+var _c_total_h = ceil(array_length(characters) / 4) * 100;
+var _c_view_h = char_sel_h - 35;
+if (_c_total_h > _c_view_h) {
+    var _sb_w = 8; var _sb_x = char_sel_x + char_sel_w - _sb_w - 4;
+    var _sb_y = char_sel_y + 35; var _sb_h = char_sel_h - 40;
+    draw_set_color(make_color_rgb(50, 50, 60)); draw_rectangle(_sb_x, _sb_y, _sb_x + _sb_w, _sb_y + _sb_h, false);
+    var _bar_h = (_c_view_h / _c_total_h) * _sb_h;
+    var _bar_y = _sb_y + (-char_sel_scroll_y / _c_total_h) * _sb_h;
+    draw_set_color(make_color_rgb(120, 120, 140)); draw_rectangle(_sb_x, _bar_y, _sb_x + _sb_w, _bar_y + _bar_h, false);
+}
 
 gpu_set_scissor(char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35);
 var _grid_x = char_sel_x + 10; var _grid_y = char_sel_y + 35;
@@ -619,7 +649,7 @@ draw_set_color(c_white); draw_text(btn_play_x + 25, btn_play_y + 8, (playing_blo
 var _thov = (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h);
 draw_set_color(_thov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150));
 draw_rectangle(btn_theater_x, btn_theater_y, btn_theater_x + btn_theater_w, btn_theater_y + btn_theater_h, false);
-draw_set_color(c_white); draw_text(btn_theater_x + 10, btn_theater_y + 8, "ENTER THEATER");
+draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_theater_x + (btn_theater_w / 2), btn_theater_y + 8, "ENTER THEATER"); draw_set_halign(fa_left);
 
 // MOVE PARAMS Button
 var _mhov = (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h);
@@ -632,7 +662,7 @@ draw_set_color(c_aqua); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + drop
 draw_set_color(c_white); draw_text(dropdown_x + 10, dropdown_y + 5, characters[selected_character_index].name);
 
 var _ev_hov = (_mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
-draw_set_color(_ev_hov ? c_white : c_gray); draw_rectangle(btn_edit_x, btn_edit_y, btn_edit_x + btn_edit_w, btn_edit_y + btn_edit_h, false);
+draw_set_color(_ev_hov ? make_color_rgb(160, 160, 160) : make_color_rgb(100, 100, 100)); draw_rectangle(btn_edit_x, btn_edit_y, btn_edit_x + btn_edit_w, btn_edit_y + btn_edit_h, false);
 draw_set_color(c_white); draw_text(btn_edit_x + 10, btn_edit_y + 5, "EDIT VOICE");
 
 // --- 6. MODALS ---
