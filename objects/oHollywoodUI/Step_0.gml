@@ -791,7 +791,7 @@ if (mouse_check_button_pressed(mb_left)) {
     var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
-        focused_block = -1;
+        if (!scene_edit_mode) focused_block = -1;
         selection_start = 0; selection_end = 0;
         var _grid_x = char_sel_x + 10;
         var _grid_y = char_sel_y + 35;
