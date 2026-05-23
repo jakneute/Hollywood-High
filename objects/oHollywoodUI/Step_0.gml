@@ -1,6 +1,65 @@
 /// @description Advanced Block Editor Logic (Fixed & Restored)
 var _mx = mouse_x; var _my = mouse_y;
 
+// --- 0. MODAL OVERLAY BLOCKING ---
+// Ensure modals capture all input and prevent background logic from running
+if (move_modal_open) {
+    var _m_w = 400; var _m_h = 420;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    
+    if (mouse_check_button_pressed(mb_left)) {
+        // Speed selection
+        for (var i = 0; i < array_length(move_speed_labels); i++) {
+            var _by = _m_y + 80 + (i * 45);
+            if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40) {
+                move_modal_temp_speed_index = i;
+            }
+        }
+        
+        // Moonwalk Toggle
+        if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 310 && _my < _m_y + 330) {
+            move_modal_temp_moonwalk = !move_modal_temp_moonwalk;
+        }
+        
+        // OK Button - Apply changes
+        if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+            if (move_modal_edit_mode && move_modal_target_index != -1) {
+                var _b = script_blocks[move_modal_target_index];
+                
+                // Update block data
+                _b.speed = move_speeds[move_modal_temp_speed_index];
+                if (_b.moonwalk != move_modal_temp_moonwalk) {
+                    if (variable_struct_exists(_b, "facing")) _b.facing *= -1;
+                    _b.moonwalk = move_modal_temp_moonwalk;
+                }
+
+                // Update visual label in script
+                var _bn = _b.action_name;
+                var _pos = string_pos(" (", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                _pos = string_pos(" [MOONWALK]", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                
+                var _lbl = move_speed_labels[move_modal_temp_speed_index];
+                if (_lbl != "WALK") _bn += " (" + _lbl + ")";
+                if (_b.moonwalk) _bn += " [MOONWALK]";
+                _b.action_name = _bn;
+                
+                move_modal_edit_mode = false;
+            } else {
+                move_speed_index = move_modal_temp_speed_index;
+                moonwalk_enabled = move_modal_temp_moonwalk;
+            }
+            move_modal_open = false;
+        }
+        
+        // Cancel Button - Discard changes
+        if (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+            move_modal_edit_mode = false;
+            move_modal_open = false;
+        }
+    }
+    return; // Block entire frame logic while modal is open
+}
+
 // --- Helper Layout Function ---
 function get_text_pos(_txt, _target_pos, _wrap_w, _line_h) {
     var _tx = 0; var _ty = 0;
@@ -158,6 +217,8 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 var _is_enter = (string_pos("enter", _aname) > 0);
                 var _is_exit = (string_pos("exit", _aname) > 0);
                 var _is_left = (string_pos("left", _aname) > 0);
+                var _spd = variable_struct_exists(_b, "speed") ? _b.speed : 2.5;
+                var _moon = variable_struct_exists(_b, "moonwalk") ? _b.moonwalk : false;
                 
                 var _act_idx = -1;
                 for (var a = 0; a < array_length(preview_actors); a++) {
@@ -171,12 +232,15 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                     if (_act_idx != -1) { speaking_pause_timer = 5; } // Conflict
                     else {
                         var _start_x = _is_left ? -(_w/2) : scene_win_w + (_w/2);
-                        char_facings[_b.char_index] = _is_left ? -1 : 1;
+                        var _base_face = _is_left ? -1 : 1;
+                        char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
+
                         var _target_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                         array_push(preview_actors, { char_index: _b.char_index, x: _start_x, y: _target_y, is_base: false, facing: char_facings[_b.char_index] });
                         action_animating = true;
                         action_anim_char_index = _b.char_index;
                         action_anim_type = "enter";
+                        action_anim_speed = _spd;
                         action_anim_target_x = variable_struct_exists(_b, "target_x") ? _b.target_x : (_is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20);
                         action_anim_target_y = variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h;
                     }
@@ -186,6 +250,7 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                         action_animating = true;
                         action_anim_char_index = _b.char_index;
                         action_anim_type = "exit";
+                        action_anim_speed = _spd;
                         
                         // Intelligently choose exit side if not specified
                         var _current_x = preview_actors[_act_idx].x;
@@ -196,7 +261,8 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                             _exit_left = (_current_x < scene_win_w / 2);
                         }
                         
-                        char_facings[_b.char_index] = _exit_left ? 1 : -1;
+                        var _base_face = _exit_left ? 1 : -1;
+                        char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                         preview_actors[_act_idx].facing = char_facings[_b.char_index];
                         
                         action_anim_target_x = _exit_left ? -(_w/2) - 50 : scene_win_w + (_w/2) + 50;
@@ -206,16 +272,20 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                     char_facings[_b.char_index] *= -1;
                     if (_act_idx != -1) preview_actors[_act_idx].facing = char_facings[_b.char_index];
                     speaking_pause_timer = 5;
+                } else if (string_pos("wait", _aname) > 0) {
+                    var _dur = variable_struct_exists(_b, "duration") ? _b.duration : 1.0;
+                    speaking_pause_timer = max(1, _dur * 60);
                 } else if (string_pos("moves", _aname) > 0) {
                     if (_act_idx != -1) {
                         action_animating = true;
                         action_anim_char_index = _b.char_index;
                         action_anim_type = "move";
+                        action_anim_speed = _spd;
                         action_anim_target_x = _b.target_x;
                         action_anim_target_y = _b.target_y;
-                        // Face target: Right is -1, Left is 1 (based on previous swap)
-                        if (action_anim_target_x > preview_actors[_act_idx].x) char_facings[_b.char_index] = -1;
-                        else if (action_anim_target_x < preview_actors[_act_idx].x) char_facings[_b.char_index] = 1;
+
+                        var _base_face = (action_anim_target_x > preview_actors[_act_idx].x) ? -1 : 1;
+                        char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                         preview_actors[_act_idx].facing = char_facings[_b.char_index];
                     } else { speaking_pause_timer = 5; }
                 } else { speaking_pause_timer = 5; }
@@ -296,6 +366,69 @@ if (scene_edit_menu_open) {
 }
 
 // --- 2. MODAL LOGIC (Edit Mode) ---
+if (move_modal_open) {
+    var _m_w = 400; var _m_h = 420;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    if (mouse_check_button_pressed(mb_left)) {
+        // Speed selection
+        for (var i = 0; i < array_length(move_speed_labels); i++) {
+            var _by = _m_y + 80 + (i * 45);
+            if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40) {
+                move_modal_temp_speed_index = i;
+            }
+        }
+        
+        // Moonwalk Toggle
+        if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 310 && _my < _m_y + 330) {
+            move_modal_temp_moonwalk = !move_modal_temp_moonwalk;
+        }
+        
+        // OK Button - Apply changes
+        if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+            if (move_modal_edit_mode && move_modal_target_index != -1) {
+                var _b = script_blocks[move_modal_target_index];
+                
+                // If moonwalk was toggled, flip the stored facing to ensure consistency
+                if (_b.moonwalk != move_modal_temp_moonwalk) {
+                    if (variable_struct_exists(_b, "facing")) _b.facing *= -1;
+                }
+                
+                _b.speed = move_speeds[move_modal_temp_speed_index];
+                _b.moonwalk = move_modal_temp_moonwalk;
+                
+                // Update the action name string to show the new speed for visual feedback
+                var _base_name = _b.action_name;
+                // Strip existing speed label if it exists
+                var _p = string_pos(" (", _base_name);
+                if (_p > 0) _base_name = string_copy(_base_name, 1, _p - 1);
+                
+                // Only add the label if it's not the default WALK speed
+                var _speed_label = move_speed_labels[move_modal_temp_speed_index];
+                if (_speed_label != "WALK") {
+                    _b.action_name = _base_name + " (" + _speed_label + ")";
+                } else {
+                    _b.action_name = _base_name;
+                }
+                
+                if (_b.moonwalk) _b.action_name += " [MOONWALK]";
+
+                move_modal_edit_mode = false;
+            } else {
+                move_speed_index = move_modal_temp_speed_index;
+                moonwalk_enabled = move_modal_temp_moonwalk;
+            }
+            move_modal_open = false;
+        }
+        
+        // Cancel Button - Discard changes
+        if (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+            move_modal_edit_mode = false;
+            move_modal_open = false;
+        }
+    }
+    return;
+}
+
 if (edit_mode) {
     var _m_w = 800; var _m_h = 700;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
@@ -381,29 +514,35 @@ if (scene_modal_open) {
                 var _by = _m_y + 60 + (i * 40) + scene_modal_scroll_y;
                 if (_my > _by && _my < _by + 35) {
                     var _data = all_scenes[i];
-                    var _new_scene = { type: "scene", name: _data.name, internal_name: _data.internal_name, actors: [], height: 80 };
-                            
-                            var _new_idx = -1;
-                            if (scene_modal_target_index == -1) {
-                                array_push(script_blocks, _new_scene);
-                                _new_idx = array_length(script_blocks) - 1;
-                            } else {
-                                array_insert(script_blocks, scene_modal_target_index, _new_scene);
-                                _new_idx = scene_modal_target_index;
-                            }
-                            
+                    var _target_idx = scene_modal_target_index;
+                    
+                    if (scene_modal_edit_mode) {
+                        var _b = script_blocks[_target_idx];
+                        _b.name = _data.name;
+                        _b.internal_name = _data.internal_name;
+                        scene_modal_edit_mode = false;
+                    } else {
+                        var _new_scene = { type: "scene", name: _data.name, internal_name: _data.internal_name, actors: [], height: 80 };
+                        if (_target_idx == -1) {
+                            array_push(script_blocks, _new_scene);
+                            _target_idx = array_length(script_blocks) - 1;
+                        } else {
+                            array_insert(script_blocks, _target_idx, _new_scene);
+                        }
+                    }
+
                     update_all_block_heights();
-                            scene_modal_open = false; 
+                    scene_modal_open = false; 
                             
-                            // Auto-enable Staging Mode for the new scene
-                            focused_block = _new_idx;
+                            // Auto-enable Staging Mode for the new/edited scene
+                            focused_block = _target_idx;
                             scene_edit_mode = true;
                             insertion_idx = -1;
-                            active_scene_block_idx = _new_idx;
-                            current_scene_sprite = get_scene_sprite(_new_scene.internal_name);
+                            active_scene_block_idx = _target_idx;
+                            current_scene_sprite = get_scene_sprite(_data.internal_name);
                             set_scene_dimensions(current_scene_sprite);
                             
-                            var _th = 0; for (var k = 0; k <= _new_idx; k++) _th += script_blocks[k].height + 20;
+                            var _th = 0; for (var k = 0; k <= _target_idx; k++) _th += script_blocks[k].height + 20;
                             block_scroll_y = min(0, (box_h - 100) - _th);
                             return;
                 }
@@ -413,6 +552,7 @@ if (scene_modal_open) {
         // Cancel Button
         var _c_y = _m_y + _m_h - 50;
         if (_mx > _m_x + 20 && _mx < _m_x + _m_w - 20 && _my > _c_y && _my < _c_y + 35) {
+            scene_modal_edit_mode = false;
             scene_modal_open = false; return;
         }
     }
@@ -485,7 +625,10 @@ if (insert_menu_open) {
 
 // --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
 if (mouse_check_button_pressed(mb_left)) {
-    if (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
+    // Block interaction if any modal is open
+    var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    
+    if (!_overlay_active && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
         var _grid_x = char_sel_x + 10;
         var _grid_y = char_sel_y + 35;
         var _item_w = 80;
@@ -711,7 +854,9 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                     target_x: _act.x, 
                     target_y: _act.y,
                     facing: _act.facing,
-                    height: 85 
+                    height: 85,
+                    speed: move_speeds[move_speed_index],
+                    moonwalk: moonwalk_enabled
                 });
                 focused_block = _insert_idx;
                 insertion_idx = -1; // Reset after commit
@@ -751,8 +896,8 @@ if (mouse_check_button_pressed(mb_left)) {
         return;
     }
 
-    // ENTER THEATER Button
-    if (!theater_mode && !is_speaking && playing_block_index == -1 && !action_modal_open && !scene_modal_open) {
+    // GLOBAL HEADER BUTTONS (Theater & Move Params)
+    if (!theater_mode && !is_speaking && playing_block_index == -1 && !action_modal_open && !scene_modal_open && !move_modal_open) {
         if (_mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h) {
             theater_mode = true;
             theater_paused = true; // Start PAUSED on entry
@@ -760,6 +905,14 @@ if (mouse_check_button_pressed(mb_left)) {
             scene_edit_mode = false;
             insertion_idx = -1;
             play_from_index(0); 
+            return;
+        }
+
+        // MOVE PARAMS Button
+        if (_mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h) {
+            move_modal_temp_speed_index = move_speed_index;
+            move_modal_temp_moonwalk = moonwalk_enabled;
+            move_modal_open = true;
             return;
         }
     }
@@ -814,7 +967,7 @@ if (mouse_check_button_pressed(mb_left)) {
 
     // ADD ACTION Button (Now also inserts at focused point)
     if (!is_speaking && _mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h) {
-        if (selected_character_index != 0) {
+        {
             action_modal_open = true;
             action_modal_target_index = (insertion_idx != -1) ? insertion_idx + 1 : -1;
             action_modal_selected_idx = -1;
@@ -874,24 +1027,26 @@ if (mouse_check_button_pressed(mb_left)) {
                 var _by = _myo + 60 + (i * 40) + scene_modal_scroll_y;
                 if (_by + 35 < _myo+60 || _by > _myo+60+_max_h) continue;
                 if (_mx > _mxo+20 && _mx < _mxo+20+_lw && _my > _by && _my < _by+35) {
-                    var _new_s = { type: "scene", name: all_scenes[i].name, internal_name: all_scenes[i].internal_name, height: 85, actors: [] };
-                    var _new_idx = -1;
-                    if (scene_modal_target_index == -1) {
-                        array_push(script_blocks, _new_s);
-                        _new_idx = array_length(script_blocks) - 1;
+                    var _data = all_scenes[i];
+                    
+                    if (scene_modal_edit_mode) {
+                        var _b = script_blocks[scene_modal_target_index];
+                        _b.name = _data.name;
+                        _b.internal_name = _data.internal_name;
+                        scene_modal_edit_mode = false;
                     } else {
-                        array_insert(script_blocks, scene_modal_target_index, _new_s);
-                        _new_idx = scene_modal_target_index;
+                        var _new_s = { type: "scene", name: _data.name, internal_name: _data.internal_name, height: 85, actors: [] };
+                        if (scene_modal_target_index == -1) {
+                            array_push(script_blocks, _new_s);
+                        } else {
+                            array_insert(script_blocks, scene_modal_target_index, _new_s);
+                        }
                     }
+                    
                     update_all_block_heights();
                     scene_modal_open = false;
-                    
-                    // Auto-enable Staging Mode for the new scene
-                    focused_block = _new_idx;
-                    scene_edit_mode = true;
-                    insertion_idx = -1;
-                    active_scene_block_idx = _new_idx;
-                    current_scene_sprite = get_scene_sprite(_new_s.internal_name);
+
+                    current_scene_sprite = get_scene_sprite(_data.internal_name);
                     set_scene_dimensions(current_scene_sprite);
                     
                     var _th = 0; for (var k = 0; k < array_length(script_blocks); k++) _th += script_blocks[k].height + 20;
@@ -900,7 +1055,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
             }
             // Cancel check
-            if (_mx > _mxo+20 && _mx < _mxo+290 && _my > _myo+400 && _my < _myo+435) { scene_modal_open = false; return; }
+            if (_mx > _mxo+20 && _mx < _mxo+290 && _my > _myo+400 && _my < _myo+435) { scene_modal_edit_mode = false; scene_modal_open = false; return; }
         }
         return; // Block all other UI interactions
     }
@@ -908,21 +1063,75 @@ if (mouse_check_button_pressed(mb_left)) {
     if (action_modal_open) {
         if (mouse_check_button_pressed(mb_left)) {
             var _mw = 600; var _mh = 400; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
+            
+            // Action selection handling
             for (var i = 0; i < array_length(all_actions); i++) {
-                var _by = _myo + 60 + (i * 45);
+                var _is_gen = (all_actions[i].category == "general");
+                var _by = _myo + 60 + (i * 45) + (_is_gen ? 25 : 0);
                 var _aname = string_lower(all_actions[i].name);
                 var _disabled = false;
-                if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
-                if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
+                
+                // Narrator cannot use character-specific actions
+                if (selected_character_index == 0 && !_is_gen) _disabled = true;
+                else if (!_is_gen) {
+                    if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
+                    if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
+                }
+                
                 if (!_disabled && _mx > _mxo+20 && _mx < _mxo+270 && _my > _by && _my < _by+40) {
                     action_modal_selected_idx = i; action_modal_locked = true; return;
                 }
             }
+            
+            // Wait Duration Controls
+            if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "wait") {
+                var _sw = 200; 
+                var _wx = _mxo + 310; // Base X for parameters area
+                var _wy = _myo + 245; // Base Y for the slider/arrows row
+
+                // Left Arrow Fine Adjust
+                if (_mx > _wx - 5 && _mx < _wx + 30 && _my > _wy - 10 && _my < _wy + 35) {
+                    action_modal_wait_duration = max(0.1, round((action_modal_wait_duration - 0.1) * 10) / 10);
+                    return;
+                }
+                // Right Arrow Fine Adjust
+                if (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35) {
+                    action_modal_wait_duration = min(10.0, round((action_modal_wait_duration + 0.1) * 10) / 10);
+                    return;
+                }
+                // Slider Track (Start Dragging)
+                if (_mx > _wx + 25 && _mx < _wx + 35 + _sw && _my > _wy - 10 && _my < _wy + 35) {
+                    action_modal_slider_dragging = true;
+                    return;
+                }
+            }
+
             // OK Button
             if (action_modal_locked && _mx > _mxo+20 && _mx < _mxo+290 && _my > _myo+350 && _my < _myo+385) {
-                var _new_a = { type: "action", char_index: selected_character_index, action_name: all_actions[action_modal_selected_idx].name, height: 85 };
-                if (action_modal_target_index == -1) array_push(script_blocks, _new_a);
-                else array_insert(script_blocks, action_modal_target_index, _new_a);
+                var _act_name = all_actions[action_modal_selected_idx].name;
+                if (_act_name == "wait") {
+                    _act_name = "WAIT " + string(action_modal_wait_duration) + " SECONDS";
+                }
+                
+                if (action_modal_edit_mode) {
+                    var _b = script_blocks[action_modal_target_index];
+                    _b.action_name = _act_name;
+                    if (all_actions[action_modal_selected_idx].name == "wait") {
+                        _b.duration = action_modal_wait_duration;
+                    }
+                    action_modal_edit_mode = false;
+                } else {
+                    var _new_a = { type: "action", char_index: selected_character_index, action_name: _act_name, height: 85 };
+                    
+                    if (all_actions[action_modal_selected_idx].name == "wait") {
+                        _new_a.duration = action_modal_wait_duration;
+                        _new_a.char_index = 0; // Force Narrator/System context for wait
+                    }
+                    
+                    if (action_modal_target_index == -1) array_push(script_blocks, _new_a);
+                    else array_insert(script_blocks, action_modal_target_index, _new_a);
+                }
+
                 update_all_block_heights();
                 action_modal_open = false;
                 
@@ -931,13 +1140,27 @@ if (mouse_check_button_pressed(mb_left)) {
                 return;
             }
             // Cancel
-            if (_mx > _mxo+310 && _mx < _mxo+580 && _my > _myo+350 && _my < _myo+385) { action_modal_open = false; return; }
+            if (_mx > _mxo+310 && _mx < _mxo+580 && _my > _myo+350 && _my < _myo+385) { action_modal_edit_mode = false; action_modal_open = false; return; }
         }
+        
+        // Continuous Slider Dragging Logic (Outside Pressed check, inside Modal check)
+        if (action_modal_slider_dragging) {
+            if (mouse_check_button(mb_left)) {
+                var _sw = 200;
+                var _track_start = _mxo + 340; 
+                var _perc = clamp((_mx - _track_start) / _sw, 0, 1);
+                action_modal_wait_duration = round((0.1 + (_perc * 9.9)) * 10) / 10;
+            } else {
+                action_modal_slider_dragging = false;
+            }
+        }
+        
         return; // Block all other UI interactions
     }
 
     // EDIT VOICE Button
-    if (!is_speaking && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
+    var _overlay_active = (scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    if (!_overlay_active && !is_speaking && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
         edit_mode = true;
         scene_edit_mode = false; // Exit edit mode on edit voice
         var _c = characters[selected_character_index];
@@ -955,7 +1178,9 @@ if (mouse_check_button_pressed(mb_left)) {
     var _wrap_w = box_w - 120; // Standardized wrap width
     
     var _found_block = focused_block;
-    if (mouse_check_button_pressed(mb_left) && _mx > box_x - 50 && _mx < box_x + box_w && _my > box_y && _my < box_y + box_h) {
+    var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    
+    if (!_overlay_active && mouse_check_button_pressed(mb_left) && _mx > box_x - 50 && _mx < box_x + box_w && _my > box_y && _my < box_y + box_h) {
         var _cy = _clip_y + block_scroll_y;
         for (var i = 0; i < array_length(script_blocks); i++) {
             var _block = script_blocks[i];
@@ -1016,7 +1241,49 @@ if (mouse_check_button_pressed(mb_left)) {
             }
             // PENCIL (EDIT)
             else if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 30 && _my < _cy + 30 + _btn_h) {
-                // Placeholder for editing logic
+                if (_is_scene) {
+                    scene_modal_open = true;
+                    scene_modal_target_index = i;
+                    scene_modal_edit_mode = true;
+                }
+                else if (_is_action && string_pos("WAIT", string_upper(_block.action_name)) > 0) {
+                    action_modal_open = true;
+                    action_modal_target_index = i;
+                    action_modal_edit_mode = true;
+                    action_modal_wait_duration = variable_struct_exists(_block, "duration") ? _block.duration : 1.0;
+                    
+                    // Automatically find and select the 'wait' action in the modal list
+                    for (var j = 0; j < array_length(all_actions); j++) {
+                        if (all_actions[j].name == "wait") {
+                            action_modal_selected_idx = j;
+                            action_modal_locked = true;
+                            break;
+                        }
+                    }
+                }
+                else if (_is_action) {
+                    var _aname_u = string_upper(_block.action_name);
+                    var _is_move = (string_pos("MOVE", _aname_u) > 0 || string_pos("ENTER", _aname_u) > 0 || string_pos("EXIT", _aname_u) > 0);
+                    
+                    if (_is_move) {
+                        move_modal_open = true;
+                        move_modal_target_index = i;
+                        move_modal_edit_mode = true;
+                        
+                        // Load current block values into temp modal state
+                        var _blk_spd = variable_struct_exists(_block, "speed") ? _block.speed : 2.5;
+                        move_modal_temp_moonwalk = variable_struct_exists(_block, "moonwalk") ? _block.moonwalk : false;
+                        
+                        // Match the speed value to the nearest index
+                        move_modal_temp_speed_index = 2; // Default Walk
+                        for (var j = 0; j < array_length(move_speeds); j++) {
+                            if (abs(move_speeds[j] - _blk_spd) < 0.01) {
+                                move_modal_temp_speed_index = j;
+                                break;
+                            }
+                        }
+                    }
+                }
                 return;
             }
             // DOWN
@@ -1113,7 +1380,9 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
 // Scroll Wheel
-if (!is_speaking && !edit_mode && !theater_mode) {
+var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+
+if (!_overlay_active && !is_speaking) {
     var _over_pane = (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h);
     
     if (_over_pane) {
@@ -1159,7 +1428,9 @@ if (!is_speaking && !edit_mode && !theater_mode) {
 }
 
 // --- UNIFIED DRAGGING FROM PANE LOGIC ---
-if (dragging_char_index != -1) {
+var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+
+if (!_overlay_active && dragging_char_index != -1) {
     if (!mouse_check_button(mb_left)) {
         var _spr_ghost = get_character_sprite(dragging_char_index);
         var _char_h = (_spr_ghost != -1) ? sprite_get_height(_spr_ghost) * ((scene_win_h * 1.5) / 450) : 100;
@@ -1233,8 +1504,10 @@ if (dragging_char_index != -1) {
                         char_index: dragging_char_index, 
                         target_x: _px, 
                         target_y: _py,
-                        facing: _is_left ? 1 : -1, // Face inwards on entry
-                        height: 85 
+                        facing: _is_left ? 1 : -1,
+                        height: 85,
+                        speed: move_speeds[move_speed_index],
+                        moonwalk: moonwalk_enabled
                     });
                     focused_block = _insert_idx;
                     insertion_idx = -1;
@@ -1378,6 +1651,7 @@ if (playing_block_index == -1) {
                     var _is_enter = (string_pos("enter", _aname) > 0);
                     var _is_exit = (string_pos("exit", _aname) > 0);
                     var _is_left = (string_pos("left", _aname) > 0);
+                    var _moon = variable_struct_exists(_b, "moonwalk") ? _b.moonwalk : false;
                     
                     if (_is_enter) {
                         var _spr = get_character_sprite(_b.char_index);
@@ -1391,19 +1665,25 @@ if (playing_block_index == -1) {
                         if (!_found) {
                             var _final_x = variable_struct_exists(_b, "target_x") ? _b.target_x : _x;
                             var _final_y = variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h;
-                            var _face = _is_left ? -1 : 1;
+                            var _base_f = _is_left ? -1 : 1;
+                            var _face = _moon ? -_base_f : _base_f;
                             array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, facing: _face });
                         } else {
                             // If already onstage, update position and handle auto-facing
                             if (variable_struct_exists(_b, "target_x")) {
-                                if (_b.target_x > preview_actors[_pa_idx].x) preview_actors[_pa_idx].facing = -1;
-                                else if (_b.target_x < preview_actors[_pa_idx].x) preview_actors[_pa_idx].facing = 1;
+                                var _base_f = (_b.target_x > preview_actors[_pa_idx].x) ? -1 : 1;
+                                preview_actors[_pa_idx].facing = _moon ? -_base_f : _base_f;
                                 preview_actors[_pa_idx].x = _b.target_x;
                                 preview_actors[_pa_idx].y = _b.target_y;
                             }
                             // Explicit side mention overrides auto-facing
-                            if (string_pos("left", _aname) > 0) preview_actors[_pa_idx].facing = -1;
-                            else if (string_pos("right", _aname) > 0) preview_actors[_pa_idx].facing = 1;
+                            if (string_pos("left", _aname) > 0) {
+                                var _base_f = -1;
+                                preview_actors[_pa_idx].facing = _moon ? -_base_f : _base_f;
+                            } else if (string_pos("right", _aname) > 0) {
+                                var _base_f = 1;
+                                preview_actors[_pa_idx].facing = _moon ? -_base_f : _base_f;
+                            }
                         }
                     } else if (_is_exit) {
                         for(var pa=0; pa<array_length(preview_actors); pa++) {
@@ -1422,8 +1702,8 @@ if (playing_block_index == -1) {
                             if (preview_actors[pa].char_index == _b.char_index) { 
                                 if (variable_struct_exists(_b, "target_x")) {
                                     // Auto-face movement direction
-                                    if (_b.target_x > preview_actors[pa].x) preview_actors[pa].facing = -1;
-                                    else if (_b.target_x < preview_actors[pa].x) preview_actors[pa].facing = 1;
+                                    var _base_f = (_b.target_x > preview_actors[pa].x) ? -1 : 1;
+                                    preview_actors[pa].facing = _moon ? -_base_f : _base_f;
                                     preview_actors[pa].x = _b.target_x;
                                     preview_actors[pa].y = _b.target_y;
                                 }

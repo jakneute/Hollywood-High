@@ -7,6 +7,8 @@ draw_clear(make_color_rgb(45, 45, 55));
 if (theater_mode) {
     draw_set_color(c_black);
     draw_rectangle(0, 0, 1280, 960, false);
+    var _bg_sc = 1;
+    var _mask_name = "";
     
     // Background & Clipping Setup (Fit-to-Screen with Subtitle Safety)
     var _max_theater_h = 810; // Threshold to avoid subtitles/controls
@@ -22,7 +24,7 @@ if (theater_mode) {
         // Calculate scale to fit within 1280 x 810
         var _sc_w = 1280 / _bw;
         var _sc_h = _max_theater_h / _sh;
-        var _bg_sc = min(_sc_w, _sc_h); 
+        _bg_sc = min(_sc_w, _sc_h); 
         
         _stage_w = _bw * _bg_sc;
         _stage_h = _sh * _bg_sc;
@@ -40,7 +42,7 @@ if (theater_mode) {
 	var _scene_block = (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) ? script_blocks[active_scene_block_idx] : -1;
 	var _mask_sprite = -1;
 	if (_scene_block != -1 && variable_struct_exists(_scene_block, "internal_name")) {
-		var _mask_name = _scene_block.internal_name + "_mask";
+		_mask_name = _scene_block.internal_name + "_mask";
 		_mask_sprite = get_scene_sprite(_mask_name);
 	}
 
@@ -197,8 +199,9 @@ gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
 if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
 	var _scene = script_blocks[active_scene_block_idx];
 	var _mask_sprite = -1;
+	var _mask_name = "";
 	if (variable_struct_exists(_scene, "internal_name")) {
-		var _mask_name = _scene.internal_name + "_mask";
+		_mask_name = _scene.internal_name + "_mask";
 		_mask_sprite = get_scene_sprite(_mask_name);
 	}
 
@@ -333,13 +336,12 @@ draw_set_color(_add_hov ? make_color_rgb(0, 220, 120) : make_color_rgb(0, 180, 1
 draw_rectangle(btn_add_x, btn_add_y, btn_add_x + btn_add_w, btn_add_y + btn_add_h, false);
 draw_set_color(c_white); draw_text(btn_add_x + 12, btn_add_y + 5, "+ VOICE");
 
-var _is_narrator = (selected_character_index == 0);
 var _act_hov = (_mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h);
-var _act_col = _is_narrator ? make_color_rgb(50, 50, 60) : make_color_rgb(180, 50, 255);
-var _act_hov_col = _is_narrator ? make_color_rgb(50, 50, 60) : make_color_rgb(220, 100, 255);
+var _act_col = make_color_rgb(180, 50, 255);
+var _act_hov_col = make_color_rgb(220, 100, 255);
 draw_set_color(_act_hov ? _act_hov_col : _act_col);
 draw_rectangle(btn_add_action_x, btn_add_action_y, btn_add_action_x + btn_add_action_w, btn_add_action_y + btn_add_action_h, false);
-draw_set_color(_is_narrator ? c_gray : c_white);
+draw_set_color(c_white);
 draw_text(btn_add_action_x + 12, btn_add_action_y + 5, "+ ACTION");
 
 var _scn_hov = (_mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h);
@@ -421,7 +423,8 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         
         if (dragging_char_index != -1) {
             var _is_left = (_mx < scene_win_x + (scene_win_w/2));
-            _face = _is_left ? -1 : 1;
+            var _base_face = _is_left ? -1 : 1;
+            _face = moonwalk_enabled ? -_base_face : _base_face;
         }
 
         var _cw = _csw * _scale;
@@ -499,7 +502,15 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         var _box_y = _cur_y + 5;
         draw_set_color(make_color_rgb(210, 220, 210));
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
-        draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, "ACTION: " + characters[_block.char_index].name + " " + _block.action_name);
+        
+        var _is_wait = (string_pos("WAIT", string_upper(_block.action_name)) > 0);
+        var _act_str = "ACTION: ";
+        if (_is_wait) {
+            _act_str += string_upper(_block.action_name);
+        } else {
+            _act_str += characters[_block.char_index].name + " " + string_upper(_block.action_name);
+        }
+        draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, _act_str);
     } else {
         var _is_focused = (focused_block == b);
         var _text_h = _block.height - 25; // Matching Create_0 logic
@@ -609,6 +620,12 @@ var _thov = (!theater_mode && !is_speaking && playing_block_index == -1 && _mx >
 draw_set_color(_thov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150));
 draw_rectangle(btn_theater_x, btn_theater_y, btn_theater_x + btn_theater_w, btn_theater_y + btn_theater_h, false);
 draw_set_color(c_white); draw_text(btn_theater_x + 10, btn_theater_y + 8, "ENTER THEATER");
+
+// MOVE PARAMS Button
+var _mhov = (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h);
+draw_set_color(_mhov ? make_color_rgb(255, 100, 0) : make_color_rgb(200, 80, 0));
+draw_rectangle(btn_move_params_x, btn_move_params_y, btn_move_params_x + btn_move_params_w, btn_move_params_y + btn_move_params_h, false);
+draw_set_color(c_white); draw_text(btn_move_params_x + 10, btn_move_params_y + 8, "MOVE PARAMS");
 
 draw_set_color(make_color_rgb(50, 50, 60)); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, false);
 draw_set_color(c_aqua); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, true);
@@ -759,12 +776,32 @@ if (action_modal_open) {
     var _mw = 600; var _mh = 400; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
     draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, false);
     draw_set_color(c_aqua); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, true);
+    
+    draw_set_color(c_aqua); draw_text(_mxo + 20, _myo + 20, "CHARACTER ACTIONS");
+    draw_line(_mxo + 20, _myo + 45, _mxo + 270, _myo + 45);
+
     for (var i = 0; i < array_length(all_actions); i++) {
-        var _by = _myo + 60 + (i * 45);
+        var _is_gen = (all_actions[i].category == "general");
+        
+        if (_is_gen && i > 0 && all_actions[i-1].category != "general") {
+            draw_set_color(c_aqua); draw_text(_mxo + 20, _myo + 60 + (i * 45), "GENERAL ACTIONS");
+            draw_line(_mxo + 20, _myo + 85 + (i * 45), _mxo + 270, _myo + 85 + (i * 45));
+        }
+
+        var _by = _myo + 60 + (i * 45) + (_is_gen ? 25 : 0);
         var _aname = string_lower(all_actions[i].name);
         var _disabled = false;
-        if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
-        if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
+        
+        // Enforce single-action focus during edit mode
+        if (action_modal_edit_mode) {
+            if (action_modal_selected_idx != i) _disabled = true;
+        } else {
+            if (selected_character_index == 0 && !_is_gen) _disabled = true;
+            else if (!_is_gen) {
+                if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
+                if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
+            }
+        }
         
         var _hov = (!_disabled && _mx > _mxo+20 && _mx < _mxo+270 && _my > _by && _my < _by+40);
         var _col = make_color_rgb(30,30,40);
@@ -783,6 +820,41 @@ if (action_modal_open) {
     if (action_modal_selected_idx != -1) {
         draw_set_color(c_white);
         draw_text_ext(_mxo+310, _myo+70, all_actions[action_modal_selected_idx].desc, 25, 260);
+        
+        if (all_actions[action_modal_selected_idx].name == "wait") {
+            var _wx = _mxo + 310; var _wy = _myo + 170;
+            var _sw = 200;
+            
+            draw_set_color(c_aqua); draw_text(_wx, _wy, "PARAMETERS");
+            draw_line(_wx, _wy + 25, _wx + 260, _wy + 25);
+            
+            draw_set_color(c_white);
+            draw_text(_wx, _wy + 40, "Wait Duration:");
+            
+            var _ty = _wy + 75;
+
+            // Arrows
+            var _l_hov = (_mx > _wx && _mx < _wx + 25 && _my > _ty && _my < _ty + 30);
+            draw_set_color(_l_hov ? c_aqua : c_gray);
+            draw_text(_wx, _ty, "<");
+
+            var _r_hov = (_mx > _wx + _sw + 40 && _mx < _wx + _sw + 65 && _my > _ty && _my < _ty + 30);
+            draw_set_color(_r_hov ? c_aqua : c_gray);
+            draw_text(_wx + _sw + 40, _ty, ">");
+
+            // Slider Track
+            draw_set_color(make_color_rgb(60, 60, 80));
+            draw_rectangle(_wx + 30, _ty + 8, _wx + 30 + _sw, _ty + 13, false);
+            
+            // Slider Handle
+            var _perc = (action_modal_wait_duration - 0.1) / 9.9;
+            var _hx = _wx + 30 + (_perc * _sw);
+            draw_set_color(c_aqua);
+            draw_circle(_hx, _ty + 10, 8, false);
+            
+            draw_set_color(c_white);
+            draw_text(_wx + 20, _wy + 115, string(action_modal_wait_duration) + " seconds");
+        }
     }
     
     // OK / Cancel Buttons
@@ -795,6 +867,45 @@ if (action_modal_open) {
     draw_set_color(_can_hov ? make_color_rgb(200,50,50) : make_color_rgb(150,30,30));
     draw_rectangle(_mxo+310, _myo+350, _mxo+580, _myo+385, false);
     draw_set_color(c_white); draw_text(_mxo+420, _myo+355, "CANCEL");
+}
+
+if (move_modal_open) {
+    draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+    var _m_w = 400; var _m_h = 420;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    draw_set_color(make_color_rgb(30, 30, 40)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
+    draw_set_color(c_aqua); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
+    draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "MOVEMENT PARAMETERS");
+    
+    for (var i = 0; i < array_length(move_speed_labels); i++) {
+        var _by = _m_y + 80 + (i * 45);
+        var _is_sel = (move_modal_temp_speed_index == i);
+        var _hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40);
+        
+        draw_set_color(_is_sel ? c_aqua : (_hov ? make_color_rgb(60,60,80) : make_color_rgb(45,45,55)));
+        draw_rectangle(_m_x + 50, _by, _m_x + 350, _by + 40, false);
+        draw_set_color(_is_sel ? c_black : c_white);
+        draw_text(_m_x + 60, _by + 10, move_speed_labels[i]);
+    }
+    
+    // Moonwalk Toggle
+    var _m_hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 310 && _my < _m_y + 345);
+    draw_set_color(_m_hov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 50, _m_y + 310, _m_x + 70, _m_y + 330, true);
+    if (move_modal_temp_moonwalk) { draw_set_color(c_orange); draw_rectangle(_m_x + 54, _m_y + 314, _m_x + 66, _m_y + 326, false); }
+    draw_set_color(c_white); draw_text(_m_x + 80, _m_y + 312, "ENABLE MOONWALK");
+    
+    // OK Button
+    var _ok_hov = (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_ok_hov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 40, _m_y + _m_h - 60, _m_x + 180, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 95, _m_y + _m_h - 50, "OK");
+    
+    // Cancel Button
+    var _can_hov = (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_can_hov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 220, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 255, _m_y + _m_h - 50, "CANCEL");
 }
 
 if (insert_menu_open) {

@@ -451,11 +451,12 @@ async function processRFFile(filePath, mode) {
                     if (isActorFile) {
                         const charRouteId = Math.floor(id / 1000);
                         const characterName = actrNames[charRouteId] || "Unknown";
-                        const actorGroupDir = path.join(actorsDir, characterName);
-                        if (!fs.existsSync(actorGroupDir)) {
-                            fs.mkdirSync(actorGroupDir, { recursive: true });
+                        
+                        const characterDir = path.join(actorsDir, characterName);
+                        if (!fs.existsSync(characterDir)) {
+                            fs.mkdirSync(characterDir, { recursive: true });
                         }
-                        outPath = path.join(actorGroupDir, `pose_${id}.png`);
+                        outPath = path.join(characterDir, `pose_${id}.png`);
                         activeRemap = colorMappings[characterName] || null;
                     } else {
                         const groupId = sceneReroutes[id] !== undefined ? sceneReroutes[id] : Math.floor(id / 10);
@@ -463,10 +464,6 @@ async function processRFFile(filePath, mode) {
 
                         // Determine the group name
                         groupName = manualSceneNames[groupId] || sceneGroupNames[groupId] || `scene_group_${groupId}`;
-                        const groupDir = path.join(scenesDir, groupName);
-                        if (!fs.existsSync(groupDir)) {
-                            fs.mkdirSync(groupDir, { recursive: true });
-                        }
 
                         // Determine the file type suffix dynamically or fall back to last digit
                         typeSuffix = sceneLabels[id] || '';
@@ -485,7 +482,7 @@ async function processRFFile(filePath, mode) {
                         }
 
                         const sceneName = `${groupName}_${typeSuffix}_${id}.png`;
-                        outPath = path.join(groupDir, sceneName);
+                        outPath = path.join(scenesDir, sceneName);
                     }
 
                     const compressedData = Buffer.alloc(dataCompressedSize);
@@ -545,13 +542,9 @@ async function processRFFile(filePath, mode) {
                         }
                     }
 
-                    let pngBuf;
-                    if (typeof image.getBufferAsync === 'function') {
-                        pngBuf = await image.getBufferAsync('image/png');
-                    } else {
-                        pngBuf = await image.getBuffer('image/png');
-                    }
-
+                    // Modern Jimp (v1+) uses getBuffer, older used getBufferAsync.
+                    // Pinning to a specific version allows you to remove this check.
+                    const pngBuf = await image.getBuffer('image/png');
                     fs.writeFileSync(outPath, pngBuf);
                     extractedCount++;
 
@@ -640,13 +633,8 @@ async function processRFFile(filePath, mode) {
                         if (upperName.startsWith("SFX")) subFolder = "SFX";
                     }
 
-                    const soundSubDir = path.join(soundsDir, subFolder);
-                    if (!fs.existsSync(soundSubDir)) {
-                        fs.mkdirSync(soundSubDir, { recursive: true });
-                    }
-
                     const soundFilename = cleanName ? `${cleanName}_${id}.wav` : `sound_${id}.wav`;
-                    const outPath = path.join(soundSubDir, soundFilename);
+                    const outPath = path.join(soundsDir, soundFilename);
 
                     writeWav(pcmData, sampleRate, sampleSize, outPath);
                     extractedCount++;

@@ -36,6 +36,20 @@ dropdown_y        = 520;
 char_sel_x = 880; char_sel_y = 60; char_sel_w = 350; char_sel_h = 450;
 char_sel_scroll_y = 0;
 btn_theater_x = 880; btn_theater_y = 15; btn_theater_w = 140; btn_theater_h = 35;
+
+// --- 2b. MOVEMENT PARAMETERS STATE ---
+btn_move_params_x = btn_theater_x + btn_theater_w + 10; btn_move_params_y = 15; 
+btn_move_params_w = 160; btn_move_params_h = 35;
+move_modal_open = false;
+move_speed_index = 2; // Default: WALK
+move_speeds = [0.8, 1.5, 2.5, 4.5, 7.0];
+move_speed_labels = ["CRAWL", "SLOW", "WALK", "RUN", "SPRINT"];
+moonwalk_enabled = false;
+move_modal_temp_speed_index = 2;
+move_modal_temp_moonwalk = false;
+move_modal_edit_mode = false;
+move_modal_target_index = -1;
+
 theater_mode = false;
 theater_paused = false;
 theater_subtitles = "";
@@ -207,6 +221,7 @@ action_modal_open = false;
 action_modal_target_index = -1;
 action_modal_selected_idx = -1;
 action_modal_locked = false;
+action_modal_edit_mode = false;
 action_modal_char_onstage = false;
 
 action_animating = false;
@@ -215,11 +230,14 @@ action_anim_target_x = 0;
 action_anim_target_y = 0;
 action_anim_speed = 2.5;
 action_anim_type = ""; 
+action_modal_slider_dragging = false;
+action_modal_wait_duration = 1.0;
 
 all_actions = [
-    { name: "enters left", desc: "Character walks in from the left side of the screen." },
-    { name: "enters right", desc: "Character walks in from the right side of the screen." },
-    { name: "turns around", desc: "Character flips their horizontal facing direction." }
+    { name: "enters left", desc: "Character walks in from the left side of the screen.", category: "character" },
+    { name: "enters right", desc: "Character walks in from the right side of the screen.", category: "character" },
+    { name: "turns around", desc: "Character flips their horizontal facing direction.", category: "character" },
+    { name: "wait", desc: "Pauses the script for a set duration of time.", category: "general" }
 ];
 
 char_facings = array_create(array_length(characters), 1);
@@ -366,6 +384,7 @@ update_all_block_heights();
 scene_modal_open = false;
 scene_modal_scroll_y = 0;
 scene_modal_target_index = -1;
+scene_modal_edit_mode = false;
 scene_modal_scroll_y = 0;
 scene_modal_target_index = -1; // -1 means add to end
 
@@ -517,6 +536,8 @@ play_from_index = function(_idx) {
                 var _is_enter = (string_pos("enter", _aname) > 0);
                 var _is_exit = (string_pos("exit", _aname) > 0);
                 var _is_left = (string_pos("left", _aname) > 0);
+                var _spd = variable_struct_exists(_b, "speed") ? _b.speed : 2.5;
+                var _moon = variable_struct_exists(_b, "moonwalk") ? _b.moonwalk : false;
                 
                 var _act_idx = -1;
                 for (var k = 0; k < array_length(preview_actors); k++) {
@@ -528,24 +549,29 @@ play_from_index = function(_idx) {
                         var _spr = get_character_sprite(_b.char_index);
                         var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 1.5) / 450) : 100;
                         var _start_x = _is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20; 
-                        
+                        var _base_face = _is_left ? -1 : 1;
+
                         var _final_x = variable_struct_exists(_b, "target_x") ? _b.target_x : _start_x;
                         var _final_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                         
-                        var _face = _is_left ? -1 : 1;
-                        char_facings[_b.char_index] = _face;
+                        char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                         array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: _face });
                     } else {
                         // If already onstage, update position and handle auto-facing
                         if (variable_struct_exists(_b, "target_x")) {
-                            if (_b.target_x > preview_actors[_act_idx].x) preview_actors[_act_idx].facing = -1;
-                            else if (_b.target_x < preview_actors[_act_idx].x) preview_actors[_act_idx].facing = 1;
+                            var _base_f = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
+                            preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
                             preview_actors[_act_idx].x = _b.target_x;
                             preview_actors[_act_idx].y = _b.target_y;
                         }
                         // Explicit side mention overrides auto-facing
-                        if (string_pos("left", _aname) > 0) preview_actors[_act_idx].facing = -1;
-                        else if (string_pos("right", _aname) > 0) preview_actors[_act_idx].facing = 1;
+                        if (string_pos("left", _aname) > 0) {
+                            var _base_f = -1;
+                            preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                        } else if (string_pos("right", _aname) > 0) {
+                            var _base_f = 1;
+                            preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                        }
                         char_facings[_b.char_index] = preview_actors[_act_idx].facing;
                     }
                 } else if (_is_exit) {
@@ -558,9 +584,8 @@ play_from_index = function(_idx) {
                 } else if (string_pos("moves", _aname) > 0) {
                     if (_act_idx != -1) {
                         if (variable_struct_exists(_b, "target_x")) {
-                            // Auto-face movement direction
-                            if (_b.target_x > preview_actors[_act_idx].x) preview_actors[_act_idx].facing = -1;
-                            else if (_b.target_x < preview_actors[_act_idx].x) preview_actors[_act_idx].facing = 1;
+                            var _base_f = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
+                            preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
                             preview_actors[_act_idx].x = _b.target_x;
                             preview_actors[_act_idx].y = _b.target_y;
                             char_facings[_b.char_index] = preview_actors[_act_idx].facing;
