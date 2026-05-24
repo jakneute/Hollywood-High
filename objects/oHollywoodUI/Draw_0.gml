@@ -1,6 +1,8 @@
 /// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
+var _overlay_active = (dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || insert_menu_open || theater_mode);
+
 draw_clear(make_color_rgb(45, 45, 55)); 
 
 //// --- 3. THEATER MODE RENDERER ---
@@ -47,6 +49,7 @@ if (theater_mode) {
 	}
 
 	var draw_theater_actors = function(_stg_w, _stg_h, _stg_x, _stg_y, target_surface = -1) {
+		gpu_set_texfilter(true);
 		for (var i = 0; i < array_length(preview_actors); i++) {
 			var _act = preview_actors[i];
 			var _spr = get_character_sprite(_act.char_index);
@@ -84,6 +87,7 @@ if (theater_mode) {
 				}
 			}
 		}
+		gpu_set_texfilter(false);
 	}
 
 	if (_mask_sprite != -1) {
@@ -203,7 +207,7 @@ btn_theater_y = scene_win_y - 45;
 
 btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
 btn_dictionary_y = btn_theater_y;
-var _d_hov = (_mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h);
+var _d_hov = (!_overlay_active && _mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h);
 draw_set_color(_d_hov ? make_color_rgb(100, 200, 255) : make_color_rgb(60, 120, 180));
 draw_rectangle(btn_dictionary_x, btn_dictionary_y, btn_dictionary_x + btn_dictionary_w, btn_dictionary_y + btn_dictionary_h, false);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_dictionary_x + (btn_dictionary_w/2), btn_dictionary_y + 8, "DICTIONARY"); draw_set_halign(fa_left);
@@ -246,6 +250,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	// --- Actor Drawing Logic ---
 	var draw_editor_actors = function(_s, target_surface = -1, _draw_outline = true, _draw_sprite = true) {
 		if (variable_struct_exists(_s, "actors")) {
+			gpu_set_texfilter(true);
 			for (var a = 0; a < array_length(preview_actors); a++) {
 				var _act = preview_actors[a];
 				
@@ -280,10 +285,15 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					
 					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
 						gpu_set_fog(true, c_yellow, 0, 1);
-						draw_sprite_ext(_spr, 0, _draw_x - 1, _draw_y, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x + 1, _draw_y, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y - 1, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y + 1, _sc * _face, _sc, 0, c_white, 1);
+						var _ow = 3; // Outline thickness
+						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y - _ow, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y + _ow, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y - _ow, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y - _ow, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y + _ow, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y + _ow, _sc * _face, _sc, 0, c_white, 1);
 						gpu_set_fog(false, c_black, 0, 0);
 					}
 
@@ -299,6 +309,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					}
 				}
 			}
+			gpu_set_texfilter(false);
 		}
 	};
 
@@ -369,12 +380,12 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 gpu_set_scissor(0, 0, 1280, 960);
 
 // --- 1. GLOBAL BUTTONS (Drawn on top of Scene Window to prevent any overlap) ---
-var _add_hov = (_mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h);
+var _add_hov = (!_overlay_active && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h);
 draw_set_color(_add_hov ? make_color_rgb(0, 220, 120) : make_color_rgb(0, 180, 100));
 draw_rectangle(btn_add_x, btn_add_y, btn_add_x + btn_add_w, btn_add_y + btn_add_h, false);
 draw_set_color(c_white); draw_text(btn_add_x + 12, btn_add_y + 5, "+ VOICE");
 
-var _act_hov = (_mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h);
+var _act_hov = (!_overlay_active && _mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h);
 var _act_col = make_color_rgb(180, 50, 255);
 var _act_hov_col = make_color_rgb(220, 100, 255);
 draw_set_color(_act_hov ? _act_hov_col : _act_col);
@@ -382,7 +393,7 @@ draw_rectangle(btn_add_action_x, btn_add_action_y, btn_add_action_x + btn_add_ac
 draw_set_color(c_white);
 draw_text(btn_add_action_x + 12, btn_add_action_y + 5, "+ ACTION");
 
-var _scn_hov = (_mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h);
+var _scn_hov = (!_overlay_active && _mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h);
 draw_set_color(_scn_hov ? make_color_rgb(0, 120, 220) : make_color_rgb(0, 100, 180));
 draw_rectangle(btn_add_scene_x, btn_add_scene_y, btn_add_scene_x + btn_add_scene_w, btn_add_scene_y + btn_add_scene_h, false);
 draw_set_color(c_white); draw_text(btn_add_scene_x + 12, btn_add_scene_y + 5, "+ SCENE");
@@ -401,7 +412,7 @@ if (insertion_idx != -1 && !scene_edit_mode) {
 }
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
-if (scene_edit_mode && scene_edit_selected_actor_idx != -1) {
+if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     var _scene = script_blocks[active_scene_block_idx];
     if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
         var _act = _scene.actors[scene_edit_selected_actor_idx];
@@ -430,7 +441,7 @@ if (scene_edit_mode && scene_edit_selected_actor_idx != -1) {
 
         if (_is_visible) {
             var _fx = scene_win_x + 180; var _fy = scene_win_y - 45;
-            var _fhov = (_mx > _fx && _mx < _fx + 80 && _my > _fy && _my < _fy + 35);
+            var _fhov = (!_overlay_active && _mx > _fx && _mx < _fx + 80 && _my > _fy && _my < _fy + 35);
             draw_set_color(_fhov ? c_white : make_color_rgb(100, 100, 255));
             draw_rectangle(_fx, _fy, _fx + 80, _fy + 35, false);
             draw_set_color(_fhov ? make_color_rgb(100, 100, 255) : c_white);
@@ -446,7 +457,7 @@ draw_set_color(c_aqua); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char
 draw_set_color(c_white); draw_text(char_sel_x + 10, char_sel_y + 5, "CHARACTER SELECTOR");
 
 // --- Character Pane Scrollbar ---
-var _c_total_h = ceil(array_length(characters) / 4) * 100;
+var _c_total_h = ceil(array_length(characters) / 3) * 135;
 var _c_view_h = char_sel_h - 35;
 if (_c_total_h > _c_view_h) {
     var _sb_w = 8; var _sb_x = char_sel_x + char_sel_w - _sb_w - 4;
@@ -459,30 +470,32 @@ if (_c_total_h > _c_view_h) {
 
 gpu_set_scissor(char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35);
 var _grid_x = char_sel_x + 10; var _grid_y = char_sel_y + 35;
-var _item_w = 80; var _item_h = 100; var _cols = 4;
+var _item_w = 105; var _item_h = 135; var _cols = 3;
 for (var i = 0; i < array_length(characters); i++) {
     var _ix = _grid_x + (i % _cols) * _item_w;
     var _iy = _grid_y + floor(i / _cols) * _item_h + char_sel_scroll_y;
     if (_iy + _item_h < char_sel_y + 30 || _iy > char_sel_y + char_sel_h) continue;
     var _is_sel = (i == selected_character_index);
-    var _hov = (_mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
+    var _hov = (!_overlay_active && _mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
     if (_hov || dragging_char_index == i) { draw_set_color(make_color_rgb(60, 60, 80)); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, false); }
     if (_is_sel) { draw_set_color(c_yellow); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, true); }
     var _spr = get_character_sprite(i);
     if (_spr != -1) {
         var _sc = (_item_h - 30) / sprite_get_height(_spr);
+        gpu_set_texfilter(true);
         draw_sprite_ext(_spr, 0, _ix + (_item_w - 5) / 2 - (sprite_get_width(_spr) * _sc) / 2, _iy + 5, _sc, _sc, 0, c_white, (dragging_char_index == i) ? 0.3 : 1.0);
+        gpu_set_texfilter(false);
     }
     draw_set_color(_is_sel ? c_yellow : c_white);
-    var _disp_name = characters[i].name; if (string_length(_disp_name) > 8) _disp_name = string_copy(_disp_name, 1, 7) + ".";
-    draw_text_transformed(_ix + 5, _iy + _item_h - 20, _disp_name, 0.8, 0.8, 0);
+    var _disp_name = characters[i].name; if (string_length(_disp_name) > 10) _disp_name = string_copy(_disp_name, 1, 9) + ".";
+    draw_text(_ix + 4, _iy + _item_h - 20, _disp_name);
 }
 gpu_set_scissor(0, 0, 1280, 960);
 if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_idx != -1) {
     var _char_id = -1;
     var _face = 1;
     if (dragging_char_index != -1) _char_id = dragging_char_index;
-    else if (dragging_actor_idx != -1) {
+    else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
         _char_id = script_blocks[active_scene_block_idx].actors[dragging_actor_idx].char_index;
         _face = script_blocks[active_scene_block_idx].actors[dragging_actor_idx].facing;
     }
@@ -497,8 +510,8 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         var _csw = sprite_get_width(_spr);
         var _scale = (scene_win_h * 1.5) / 450; 
         
-        _mx = (window_mouse_get_x() / window_get_width()) * 1280;
-        _my = (window_mouse_get_y() / window_get_height()) * 960;
+        _mx = mouse_x;
+        _my = mouse_y;
         
         if (dragging_char_index != -1) {
             var _is_left = (_mx < scene_win_x + (scene_win_w/2));
@@ -536,7 +549,9 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
         var _gx = scene_win_x + _px - (_csw * _scale * _face)/2;
         var _gy = scene_win_y + _py - (_csh * _scale);
+        gpu_set_texfilter(true);
         draw_sprite_ext(_spr, 0, _gx, _gy, _scale * _face, _scale, 0, _color, _alpha);
+        gpu_set_texfilter(false);
         gpu_set_scissor(0, 0, 1280, 960);
     }
 }
@@ -648,14 +663,14 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     var _lx = box_x + 10; var _rx = box_x + box_w - 35; var _bw = 28; var _bh = 22;
     
     // Left Hover Checks
-    var _hov_up = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
-    var _hov_ed = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
-    var _hov_dn = (_mx > _lx && _mx < _lx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
+    var _hov_up = (!_overlay_active && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
+    var _hov_ed = (!_overlay_active && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
+    var _hov_dn = (!_overlay_active && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
     
     // Right Hover Checks
-    var _hov_del = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
-    var _hov_au  = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
-    var _hov_ad  = (_mx > _rx && _mx < _rx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
+    var _hov_del = (!_overlay_active && _mx > _rx && _mx < _rx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
+    var _hov_au  = (!_overlay_active && _mx > _rx && _mx < _rx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
+    var _hov_ad  = (!_overlay_active && _mx > _rx && _mx < _rx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
 
     // Render Left Stack
     draw_set_color(_hov_up ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120));
@@ -685,7 +700,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
 
     // 4. Play From Here (Green Triangle) - Now in the GUTTER
     var _px = box_x - 30; var _py = _cur_y + 5;
-    var _phov = (_mx > _px && _mx < _px + 30 && _my > _py && _my < _py + 30);
+    var _phov = (!_overlay_active && _mx > _px && _mx < _px + 30 && _my > _py && _my < _py + 30);
     draw_set_color(_phov ? c_lime : c_green);
     draw_triangle(_px+5, _py+5, _px+5, _py+25, _px+25, _py+15, false);
 
@@ -724,7 +739,7 @@ if (_full_h > box_h - 10) {
 }
 
 // --- 5b. BOTTOM CONTROLS ---
-var _p_hov = (_mx > btn_play_x && _mx < btn_play_x + btn_play_w && _my > btn_play_y && _my < btn_play_y + btn_play_h);
+var _p_hov = (!_overlay_active && _mx > btn_play_x && _mx < btn_play_x + btn_play_w && _my > btn_play_y && _my < btn_play_y + btn_play_h);
 var _p_col = (playing_block_index != -1) ? make_color_rgb(200, 50, 50) : make_color_rgb(50, 180, 50);
 var _p_hov_col = (playing_block_index != -1) ? make_color_rgb(255, 80, 80) : make_color_rgb(80, 220, 80);
 draw_set_color(_p_hov ? _p_hov_col : _p_col);
@@ -732,13 +747,13 @@ draw_rectangle(btn_play_x, btn_play_y, btn_play_x + btn_play_w, btn_play_y + btn
 draw_set_color(c_white); draw_text(btn_play_x + 25, btn_play_y + 8, (playing_block_index != -1) ? "STOP" : "PLAY");
 
 // ENTER THEATER Button
-var _thov = (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h);
+var _thov = (!_overlay_active && !is_speaking && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h);
 draw_set_color(_thov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150));
 draw_rectangle(btn_theater_x, btn_theater_y, btn_theater_x + btn_theater_w, btn_theater_y + btn_theater_h, false);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_theater_x + (btn_theater_w / 2), btn_theater_y + 8, "ENTER THEATER"); draw_set_halign(fa_left);
 
 // MOVE PARAMS Button
-var _mhov = (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h);
+var _mhov = (!_overlay_active && !is_speaking && playing_block_index == -1 && _mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h);
 draw_set_color(_mhov ? make_color_rgb(255, 100, 0) : make_color_rgb(200, 80, 0));
 draw_rectangle(btn_move_params_x, btn_move_params_y, btn_move_params_x + btn_move_params_w, btn_move_params_y + btn_move_params_h, false);
 draw_set_color(c_white); draw_text(btn_move_params_x + 10, btn_move_params_y + 8, "MOVE PARAMS");
@@ -747,7 +762,7 @@ draw_set_color(make_color_rgb(50, 50, 60)); draw_rectangle(dropdown_x, dropdown_
 draw_set_color(c_aqua); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, true);
 draw_set_color(c_white); draw_text(dropdown_x + 10, dropdown_y + 5, characters[selected_character_index].name);
 
-var _ev_hov = (_mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
+var _ev_hov = (!_overlay_active && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
 draw_set_color(_ev_hov ? make_color_rgb(160, 160, 160) : make_color_rgb(100, 100, 100)); draw_rectangle(btn_edit_x, btn_edit_y, btn_edit_x + btn_edit_w, btn_edit_y + btn_edit_h, false);
 draw_set_color(c_white); draw_text(btn_edit_x + 10, btn_edit_y + 5, "EDIT VOICE");
 
@@ -867,7 +882,7 @@ if (edit_mode) {
         // Speed
         draw_set_color(c_white); draw_text(_mxo+50, _ctrl_y+50, "Speed:");
         draw_set_color(make_color_rgb(60,60,80)); draw_rectangle(_mxo+180, _ctrl_y+50, _mxo+480, _ctrl_y+70, false);
-        draw_set_color(make_color_rgb(100,255,100)); draw_rectangle(_mxo+180, _ctrl_y+50, _mxo+180+(modal_speed/180)*300, _ctrl_y+70, false);
+        draw_set_color(make_color_rgb(100,255,100)); draw_rectangle(_mxo+180, _ctrl_y+50, _mxo+180+(modal_speed/100)*300, _ctrl_y+70, false);
         draw_set_color(c_white); draw_text(_mxo+165, _ctrl_y+50, "<"); draw_text(_mxo+485, _ctrl_y+50, ">");
         draw_text(_mxo+520, _ctrl_y+50, string(modal_speed));
 

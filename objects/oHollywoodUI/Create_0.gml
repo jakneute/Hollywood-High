@@ -10,11 +10,24 @@ if (!variable_global_exists("win_exec_id")) {
 }
 
 // --- 1b. WINDOW SCALING ---
+window_set_min_width(640);
+window_set_min_height(480);
+window_set_max_width(display_get_width());
+window_set_max_height(display_get_height());
 window_set_size(1280, 960);
 surface_resize(application_surface, 1280, 960);
 display_set_gui_size(1280, 960);
 room_width = 1280;
 room_height = 960;
+
+// Enable views to enforce 1280x960 internal resolution while allowing window resize stretching
+view_enabled = true;
+view_visible[0] = true;
+view_xport[0] = 0;
+view_yport[0] = 0;
+view_wport[0] = 1280;
+view_hport[0] = 960;
+view_camera[0] = camera_create_view(0, 0, 1280, 960, 0, -1, -1, -1, 0, 0);
 
 // --- 2. UI & LAYOUT CONSTANTS ---
 scene_win_x = 50; scene_win_y = 60; scene_win_w = 800; scene_win_h = 450; // Scene window (16:9)
@@ -601,6 +614,7 @@ play_from_index = function(_idx) {
                 var _sa = _scene.actors[a];
                 var _face = variable_struct_exists(_sa, "facing") ? _sa.facing : 1;
                 array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face });
+                char_facings[_sa.char_index] = _face;
             }
         }
         

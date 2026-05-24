@@ -168,7 +168,7 @@ if (move_modal_open) {
 // (Now handled on-demand via update_block_height and update_all_block_heights)
 
 // --- 1. TTS SEQUENTIAL PLAYBACK & AUTO-SCROLL ---
-if (playing_block_index != -1) {
+if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
     var _b = script_blocks[playing_block_index];
     var _target_y = 0;
     for (var i = 0; i < playing_block_index; i++) _target_y += script_blocks[i].height + 20;
@@ -268,7 +268,7 @@ if (is_speaking && active_request_id != -1) {
 }
 
 // Auto-stop if current block is scene/action and it's the last block
-if (!is_speaking && !action_animating && playing_block_index != -1) {
+if (!is_speaking && !action_animating && playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
     var _lb = script_blocks[playing_block_index];
     var _lb_is_scene = (variable_struct_exists(_lb, "type") && _lb.type == "scene");
     var _lb_is_action = (variable_struct_exists(_lb, "type") && _lb.type == "action");
@@ -323,8 +323,9 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 if (variable_struct_exists(_b, "actors")) {
                     for(var a=0; a<array_length(_b.actors); a++) {
                         var _act = _b.actors[a];
-                        var _face = variable_struct_exists(_act, "facing") ? _act.facing : char_facings[_act.char_index];
+                        var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
                         array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face });
+                        char_facings[_act.char_index] = _face;
                     }
                 }
             } else if (_is_action) {
@@ -384,8 +385,10 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                         action_anim_target_y = preview_actors[_act_idx].y;
                     }
                 } else if (string_pos("turn", _aname) > 0) {
-                    char_facings[_b.char_index] *= -1;
-                    if (_act_idx != -1) preview_actors[_act_idx].facing = char_facings[_b.char_index];
+                    if (_act_idx != -1) {
+                        preview_actors[_act_idx].facing *= -1;
+                        char_facings[_b.char_index] = preview_actors[_act_idx].facing;
+                    }
                     speaking_pause_timer = 5;
                 } else if (string_pos("wait", _aname) > 0) {
                     var _dur = variable_struct_exists(_b, "duration") ? _b.duration : 1.0;
@@ -488,69 +491,6 @@ if (scene_edit_menu_open) {
     }
 }
 
-// --- 2. MODAL LOGIC (Edit Mode) ---
-if (move_modal_open) {
-    var _m_w = 400; var _m_h = 420;
-    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
-    if (mouse_check_button_pressed(mb_left)) {
-        // Speed selection
-        for (var i = 0; i < array_length(move_speed_labels); i++) {
-            var _by = _m_y + 80 + (i * 45);
-            if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40) {
-                move_modal_temp_speed_index = i;
-            }
-        }
-        
-        // Moonwalk Toggle
-        if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 310 && _my < _m_y + 330) {
-            move_modal_temp_moonwalk = !move_modal_temp_moonwalk;
-        }
-        
-        // OK Button - Apply changes
-        if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            if (move_modal_edit_mode && move_modal_target_index != -1) {
-                var _b = script_blocks[move_modal_target_index];
-                
-                // If moonwalk was toggled, flip the stored facing to ensure consistency
-                if (_b.moonwalk != move_modal_temp_moonwalk) {
-                    if (variable_struct_exists(_b, "facing")) _b.facing *= -1;
-                }
-                
-                _b.speed = move_speeds[move_modal_temp_speed_index];
-                _b.moonwalk = move_modal_temp_moonwalk;
-                
-                // Update the action name string to show the new speed for visual feedback
-                var _base_name = _b.action_name;
-                // Strip existing speed label if it exists
-                var _p = string_pos(" (", _base_name);
-                if (_p > 0) _base_name = string_copy(_base_name, 1, _p - 1);
-                
-                // Only add the label if it's not the default WALK speed
-                var _speed_label = move_speed_labels[move_modal_temp_speed_index];
-                if (_speed_label != "WALK") {
-                    _b.action_name = _base_name + " (" + _speed_label + ")";
-                } else {
-                    _b.action_name = _base_name;
-                }
-                
-                if (_b.moonwalk) _b.action_name += " [MOONWALK]";
-
-                move_modal_edit_mode = false;
-            } else {
-                move_speed_index = move_modal_temp_speed_index;
-                moonwalk_enabled = move_modal_temp_moonwalk;
-            }
-            move_modal_open = false;
-        }
-        
-        // Cancel Button - Discard changes
-        if (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            move_modal_edit_mode = false;
-            move_modal_open = false;
-        }
-    }
-    return;
-}
 
 if (edit_mode) {
     var _m_w = 800; var _m_h = 700;
@@ -580,8 +520,8 @@ if (edit_mode) {
             // Speed Fine-Tuning Arrows
             if (_my > _ctrl_y + 45 && _my < _ctrl_y + 75) {
                 if (_mx > _m_x + 150 && _mx < _m_x + 175) modal_speed = max(0, modal_speed - 5);
-                if (_mx > _m_x + 485 && _mx < _m_x + 510) modal_speed = min(180, modal_speed + 5);
-                if (_mx > _m_x + 180 && _mx < _m_x + 480) modal_speed = ((_mx - (_m_x + 180)) / 300) * 180;
+                if (_mx > _m_x + 485 && _mx < _m_x + 510) modal_speed = min(100, modal_speed + 5);
+                if (_mx > _m_x + 180 && _mx < _m_x + 480) modal_speed = ((_mx - (_m_x + 180)) / 300) * 100;
             }
             
             // Radio Buttons: Quality (Controls F0Style)
@@ -795,9 +735,9 @@ if (mouse_check_button_pressed(mb_left)) {
         selection_start = 0; selection_end = 0;
         var _grid_x = char_sel_x + 10;
         var _grid_y = char_sel_y + 35;
-        var _item_w = 80;
-        var _item_h = 100;
-        var _cols = 4;
+        var _item_w = 105;
+        var _item_h = 135;
+        var _cols = 3;
         for (var i = 0; i < array_length(characters); i++) {
             var _ix = _grid_x + (i % _cols) * _item_w;
             var _iy = _grid_y + floor(i / _cols) * _item_h + char_sel_scroll_y;
@@ -844,10 +784,10 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
                         selected_character_index = _act.char_index; // Sync global selection
                         
                         // Auto-scroll character pane
-                        var _row = floor(selected_character_index / 4);
-                        var _iy = _row * 100;
+                        var _row = floor(selected_character_index / 3);
+                        var _iy = _row * 135;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
-                        else if (_iy + 100 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 135) );
+                        else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
                         
                         drag_off_x = _mx - _ax;
                         drag_off_y = _my - _ay;
@@ -978,10 +918,10 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                         selected_character_index = _act.char_index; // Sync global selection
                         
                         // Auto-scroll character pane
-                        var _row = floor(selected_character_index / 4);
-                        var _iy = _row * 100;
+                        var _row = floor(selected_character_index / 3);
+                        var _iy = _row * 135;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
-                        else if (_iy + 100 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 135) );
+                        else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
                         
                         break; // Stop loop so we only select the topmost clicked character
                     }
@@ -1041,6 +981,10 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                 if (!_in_live) {
                     _aname = (_ax < scene_win_x + scene_win_w/2) ? "exits left" : "exits right";
                 }
+                
+                var _lbl = move_speed_labels[move_speed_index];
+                if (_lbl != "WALK") _aname += " (" + _lbl + ")";
+                if (moonwalk_enabled) _aname += " [MOONWALK]";
                 
                 array_insert(script_blocks, _insert_idx, { 
                     type: "action", 
@@ -1281,8 +1225,9 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     if (action_modal_open) {
+        var _mw = 600; var _mh = 400; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
+        
         if (mouse_check_button_pressed(mb_left)) {
-            var _mw = 600; var _mh = 400; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
             
             // Action selection handling
             for (var i = 0; i < array_length(all_actions); i++) {
@@ -1309,21 +1254,16 @@ if (mouse_check_button_pressed(mb_left)) {
                 var _wx = _mxo + 310; // Base X for parameters area
                 var _wy = _myo + 245; // Base Y for the slider/arrows row
 
-                // Left Arrow Fine Adjust
-                if (_mx > _wx - 5 && _mx < _wx + 30 && _my > _wy - 10 && _my < _wy + 35) {
-                    action_modal_wait_duration = max(0.1, round((action_modal_wait_duration - 0.1) * 10) / 10);
-                    return;
-                }
-                // Right Arrow Fine Adjust
-                if (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35) {
-                    action_modal_wait_duration = min(10.0, round((action_modal_wait_duration + 0.1) * 10) / 10);
-                    return;
-                }
-                // Slider Track (Start Dragging)
-                if (_mx > _wx + 25 && _mx < _wx + 35 + _sw && _my > _wy - 10 && _my < _wy + 35) {
-                    action_modal_slider_dragging = true;
-                    return;
-                }
+                        var _perc = (action_modal_wait_duration - 0.1) / 9.9;
+                        var _hx = _wx + 30 + (_perc * _sw);
+                        
+                        var _chk_left = (_mx > _wx - 5 && _mx < _wx + 25 && _my > _wy - 10 && _my < _wy + 35);
+                        var _chk_right = (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35);
+
+                        // Slider Handle (Start Dragging) - Give arrows priority over the handle
+                        if (!_chk_left && !_chk_right && _mx > _hx - 15 && _mx < _hx + 15 && _my > _wy - 10 && _my < _wy + 35) {
+                            action_modal_slider_dragging = true;
+                        }
             }
 
             // OK Button
@@ -1363,13 +1303,45 @@ if (mouse_check_button_pressed(mb_left)) {
             if (_mx > _mxo+310 && _mx < _mxo+580 && _my > _myo+350 && _my < _myo+385) { action_modal_edit_mode = false; action_modal_open = false; return; }
         }
         
+        // Continuous Wait Duration Arrow Adjustments
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "wait") {
+            var _sw = 200; 
+            var _wx = _mxo + 310;
+            var _wy = _myo + 245;
+            
+			var _on_left = (_mx > _wx - 5 && _mx < _wx + 25 && _my > _wy - 10 && _my < _wy + 35);
+            var _on_right = (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35);
+            
+            // Only trigger arrows if NOT dragging slider
+            if (!action_modal_slider_dragging && mouse_check_button(mb_left)) {
+                if (_on_left || _on_right) {
+                    var _do_tick = false;
+                    if (mouse_check_button_pressed(mb_left)) {
+                        _do_tick = true; arrow_repeat_timer = 20;
+                    } else {
+                        arrow_repeat_timer--;
+                        if (arrow_repeat_timer <= 0) { _do_tick = true; arrow_repeat_timer = 4; }
+                    }
+                    
+                    if (_do_tick) {
+                        if (_on_left) action_modal_wait_duration = max(0.1, action_modal_wait_duration - 0.1);
+                        if (_on_right) action_modal_wait_duration = min(10.0, action_modal_wait_duration + 0.1);
+                        action_modal_wait_duration = round(action_modal_wait_duration * 10.0) / 10.0;
+                    }
+                }
+            } else if (!mouse_check_button(mb_left)) {
+                arrow_repeat_timer = 0;
+            }
+        }
+        
         // Continuous Slider Dragging Logic (Outside Pressed check, inside Modal check)
         if (action_modal_slider_dragging) {
             if (mouse_check_button(mb_left)) {
-                var _sw = 200;
-                var _track_start = _mxo + 340; 
-                var _perc = clamp((_mx - _track_start) / _sw, 0, 1);
-                action_modal_wait_duration = round((0.1 + (_perc * 9.9)) * 10) / 10;
+                var _sw = 200.0;
+                var _track_start = _mxo + 340.0; 
+                var _perc = clamp((_mx - _track_start) / _sw, 0.0, 1.0);
+                action_modal_wait_duration = clamp(0.1 + (_perc * 9.9), 0.1, 10.0);
+                action_modal_wait_duration = round(action_modal_wait_duration * 10.0) / 10.0;
             } else {
                 action_modal_slider_dragging = false;
             }
@@ -1564,6 +1536,15 @@ if (mouse_check_button_pressed(mb_left)) {
                 // Other Blocks (Dialogue/Action) - Disable Staging
                 if (_mx > box_x + 55 && _mx < box_x + 55 + _wrap_w + 20 && _my > _box_y && _my < _box_y + (_bh - 55)) {
                     focused_block = i;
+                    
+                    if (variable_struct_exists(_block, "char_index")) {
+                        selected_character_index = _block.char_index;
+                        var _row = floor(selected_character_index / 3);
+                        var _iy_scroll = _row * 135;
+                        if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
+                        else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
+                    }
+                    
                     scene_edit_mode = false; // Always OFF
                     insertion_idx = -1;
                     
@@ -1588,6 +1569,15 @@ if (mouse_check_button_pressed(mb_left)) {
             // Main Block Focus Click
             if (_mx > box_x + 50 && _mx < box_x + box_w - 50 && _my > _cy && _my < _cy + _bh) {
                 focused_block = i;
+                
+                if (variable_struct_exists(_block, "char_index")) {
+                    selected_character_index = _block.char_index;
+                    var _row = floor(selected_character_index / 3);
+                    var _iy_scroll = _row * 135;
+                    if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
+                    else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
+                }
+                
                 insertion_idx = -1;
                 selection_start = 0; selection_end = 0; // Clear on general focus
                 if (!_is_scene && !_is_action) {
@@ -1650,7 +1640,7 @@ if (!_overlay_active && !is_speaking) {
     
     if (_over_pane) {
         // Scroll the character selector
-        var _cols = 4; var _item_h = 100;
+        var _cols = 3; var _item_h = 135;
         var _total_h = ceil(array_length(characters) / _cols) * _item_h;
         var _max_visible_h = char_sel_h - 35;
         if (mouse_wheel_up()) char_sel_scroll_y = min(0, char_sel_scroll_y + _item_h);
@@ -1662,9 +1652,9 @@ if (!_overlay_active && !is_speaking) {
         if (mouse_check_button_pressed(mb_left)) {
             var _grid_x = char_sel_x + 10; var _grid_y = char_sel_y + 35;
             for (var i = 0; i < array_length(characters); i++) {
-                var _ix = _grid_x + (i % _cols) * 80;
+                var _ix = _grid_x + (i % _cols) * 105;
                 var _iy = _grid_y + floor(i / _cols) * _item_h + char_sel_scroll_y;
-                if (_mx > _ix && _mx < _ix + 80 && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h) {
+                if (_mx > _ix && _mx < _ix + 105 && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h) {
                     var _spr = get_character_sprite(i);
                     var _csh = (_spr != -1) ? sprite_get_height(_spr) : 100;
                     var _scale = (scene_win_h * 1.5) / 450; 
@@ -1686,10 +1676,10 @@ if (!_overlay_active && !is_speaking) {
                     drag_off_y = -(_csh * _scale) / 2;
                     
                     // Auto-scroll logic
-                    var _row = floor(selected_character_index / 4);
-                    var _iy_scroll = _row * 100;
+                    var _row = floor(selected_character_index / 3);
+                    var _iy_scroll = _row * 135;
                     if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
-                    else if (_iy_scroll + 100 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 135) );
+                    else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
                     break;
                 }
             }
@@ -1774,6 +1764,10 @@ if (!_overlay_active && dragging_char_index != -1) {
                 if (!_onstage) {
                     var _is_left = (_mx < scene_win_x + (scene_win_w / 2));
                     var _aname = _is_left ? "enters from left" : "enters from right";
+                    
+                    var _lbl = move_speed_labels[move_speed_index];
+                    if (_lbl != "WALK") _aname += " (" + _lbl + ")";
+                    if (moonwalk_enabled) _aname += " [MOONWALK]";
                     
                     var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
                     array_insert(script_blocks, _insert_idx, { 
