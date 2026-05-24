@@ -23,7 +23,7 @@ To extract the assets, the original Hollywood High CD-ROM must be accessible to 
 ### Step 2: Install Dependencies
 Open your terminal (PowerShell, Command Prompt, or bash) and navigate to this folder:
 ```bash
-cd "scripts/extractor"
+cd "scripts/custom"
 ```
 
 Install the required extraction dependencies by running:

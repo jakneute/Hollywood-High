@@ -343,6 +343,108 @@ const manualSceneNames = {
     68: "pyramid",
 };
 
+const sceneSoundMapping = {
+    1519: "Art Gallery",
+    1518: "School Cafeteria",
+    1517: "Classroom_16",
+    1511: "Car",
+    1516: "Jungle",
+    1514: "Kitchen",
+    1515: "Mad Scientist's Lab",
+    1513: "Auditorium",
+    1512: "Spaceship",
+    1520: "Alien Planet",
+    1524: "Stadium",
+    1526: "Diner",
+    1521: "Car",
+    1522: "Dining Room",
+    1527: "Operating Room",
+    1528: "Talk Show",
+    1525: "Messy Room",
+    1529: "News Room",
+    1523: "Wild West Saloon",
+    1537: "Arcade",
+    1536: "Bathroom",
+    1538: "Cafe",
+    1535: "Cheerleader's Gym",
+    1539: "Living Room Day",
+    1547: "Dance Gym",
+    1541: "Garage",
+    1544: "Garage",
+    1548: "Haunted House",
+    1540: "Living Room Night",
+    1545: "Locker",
+    1549: "Movie Theater Lobby",
+    1543: "National Park",
+    1546: "The Burbs",
+    1556: "Beach",
+    1550: "Bowling Alley",
+    1557: "Fast Food Counter",
+    1555: "Classroom_60",
+    1551: "Clothing Store",
+    1558: "Orthodontist",
+    1559: "Mall",
+    1554: "Leaning Tower",
+    1552: "Pyramid",
+    1560: "Airplane",
+    1562: "Lookout Point",
+    1561: "City Street",
+    1567: "Basketball Gym",
+    17567: "Basketball Gym"
+};
+
+function formatFolderName(name) {
+    if (!name) return '';
+    
+    let formatted = name;
+    
+    // Normalize Day/Night parentheticals and clear weird punctuation from internal names
+    formatted = formatted.replace(/\s*\(\s*Day\s*\)/gi, " Day");
+    formatted = formatted.replace(/\s*\(\s*Night\s*\)/gi, " Night");
+    formatted = formatted.replace(/[();]/g, ""); // Strip any remaining rogue parentheses or semicolons
+    formatted = formatted.replace(/\s+/g, " ").trim(); // Collapse multiple spaces
+
+    formatted = formatted.replace(/\b\w/g, (char, index, str) => {
+        if (index > 0 && str[index - 1] === "'") return char.toLowerCase();
+        return char.toUpperCase();
+    });
+    
+    // Formatting typoes and normalizing specific characters
+    formatted = formatted.replace(/Cheerleaders.*?Gym/gi, "Cheerleader's Gym");
+    formatted = formatted.replace(/Fastfood.*?Counter/gi, "Fast Food Counter");
+    formatted = formatted.replace(/Burps/gi, "Burp's");
+    formatted = formatted.replace(/Livingroom/gi, "Living Room");
+    formatted = formatted.replace(/Wildwest.*?Saloon/gi, "Wild West Saloon");
+    formatted = formatted.replace(/Scientist.*?Lab/gi, "Scientist's Lab");
+
+    // Reconcile underlying internal image TOC names with the target audio folder taxonomy
+    const reconciliations = {
+        "Movie Lobby": "Movie Theater Lobby",
+        "Cafeteria": "School Cafeteria",
+        "Suburbia": "The Burbs",
+        "Make-Out Spot": "Lookout Point",
+        "Make Out Spot": "Lookout Point",
+        "Urban House #1": "City Street",
+        "Urban House": "City Street",
+        "Rushmore": "National Park",
+        "Dentist": "Orthodontist",
+        "Hospital": "Operating Room",
+        "Latenight": "Talk Show",
+        "Late Night": "Talk Show",
+        "Press Conference": "Auditorium",
+        "Gym": "Basketball Gym",
+        "Pisa": "Leaning Tower",
+        "Saloon": "Wild West Saloon"
+    };
+
+    if (reconciliations[formatted]) formatted = reconciliations[formatted];
+    if (/scientist.*?lab/i.test(formatted)) formatted = "Mad Scientist's Lab";
+    if (formatted.toLowerCase().includes("classroom_16")) formatted = "Classroom_16";
+    if (formatted.toLowerCase().includes("classroom_60")) formatted = "Classroom_60";
+
+    return formatted.trim();
+}
+
 // Load JSON color mappings safely
 const mappingPath = path.join(__dirname, 'color_mappings.json');
 if (fs.existsSync(mappingPath)) {
@@ -464,6 +566,7 @@ async function processRFFile(filePath, mode) {
 
                         // Determine the group name
                         groupName = manualSceneNames[groupId] || sceneGroupNames[groupId] || `scene_group_${groupId}`;
+                        groupName = formatFolderName(groupName);
 
                         // Determine the file type suffix dynamically or fall back to last digit
                         typeSuffix = sceneLabels[id] || '';
@@ -481,8 +584,12 @@ async function processRFFile(filePath, mode) {
                             }
                         }
 
+                        const sceneSpecificDir = path.join(scenesDir, groupName);
+                        if (!fs.existsSync(sceneSpecificDir)) {
+                            fs.mkdirSync(sceneSpecificDir, { recursive: true });
+                        }
                         const sceneName = `${groupName}_${typeSuffix}_${id}.png`;
-                        outPath = path.join(scenesDir, sceneName);
+                        outPath = path.join(sceneSpecificDir, sceneName);
                     }
 
                     const compressedData = Buffer.alloc(dataCompressedSize);
@@ -561,7 +668,7 @@ async function processRFFile(filePath, mode) {
     }
 
     // B. Handle Sound Extraction (snd tag) - Uncompressed Macintosh snd Resources
-    if (isSoundFile) {
+    if (isSoundFile || isActorFile || isSceneFile) {
         const targetTag = 'snd ';
         const typeEntry = types.find(t => t.tag === targetTag);
         if (typeEntry) {
@@ -633,8 +740,28 @@ async function processRFFile(filePath, mode) {
                         if (upperName.startsWith("SFX")) subFolder = "SFX";
                     }
 
+                    let targetDir = path.join(soundsDir, subFolder);
+                    
+                    if (isActorFile) {
+                        const charRouteId = Math.floor(id / 1000);
+                        const characterName = actrNames[charRouteId] || "Unknown";
+                        targetDir = path.join(actorsDir, characterName, 'audio');
+                    } else if (isSceneFile) {
+                        let groupName = sceneSoundMapping[id];
+                        if (!groupName) {
+                            const groupId = sceneReroutes[id] !== undefined ? sceneReroutes[id] : Math.floor(id / 10);
+                            groupName = manualSceneNames[groupId] || sceneGroupNames[groupId] || `scene_group_${groupId}`;
+                        }
+                        groupName = formatFolderName(groupName);
+                        targetDir = path.join(scenesDir, groupName);
+                    }
+                    
+                    if (!fs.existsSync(targetDir)) {
+                        fs.mkdirSync(targetDir, { recursive: true });
+                    }
+
                     const soundFilename = cleanName ? `${cleanName}_${id}.wav` : `sound_${id}.wav`;
-                    const outPath = path.join(soundsDir, soundFilename);
+                    const outPath = path.join(targetDir, soundFilename);
 
                     writeWav(pcmData, sampleRate, sampleSize, outPath);
                     extractedCount++;
@@ -667,7 +794,7 @@ async function runExtractor(drive, choice) {
 
     if (choice === '1' || choice === '2') {
         console.log('\n=========================================');
-        console.log('EXTRACTING CHARACTER SPRITES (ACTORS)');
+        console.log('EXTRACTING CHARACTER SPRITES & AUDIO (ACTORS)');
         console.log('=========================================');
         await processRFFile(`${drive}:\\ACTORS1.RF`, 'actors');
         await processRFFile(`${drive}:\\ACTORS2.RF`, 'actors');
@@ -677,7 +804,7 @@ async function runExtractor(drive, choice) {
 
     if (choice === '1' || choice === '3') {
         console.log('\n=========================================');
-        console.log('EXTRACTING BACKGROUND IMAGES (SCENES)');
+        console.log('EXTRACTING BACKGROUND IMAGES & AUDIO (SCENES)');
         console.log('=========================================');
         await processRFFile(`${drive}:\\SCENES1.RF`, 'scenes');
         await processRFFile(`${drive}:\\SCENES2.RF`, 'scenes');
@@ -693,13 +820,6 @@ async function runExtractor(drive, choice) {
         await processRFFile(`${drive}:\\SOUND3.RF`, 'sounds');
         await processRFFile(`${drive}:\\SOUND4.RF`, 'sounds');
         await processRFFile(`${drive}:\\SOUND5.RF`, 'sounds');
-        await processRFFile(`${drive}:\\ACTORS1.RF`, 'sounds');
-        await processRFFile(`${drive}:\\ACTORS2.RF`, 'sounds');
-        await processRFFile(`${drive}:\\ACTORS3.RF`, 'sounds');
-        await processRFFile(`${drive}:\\ACTORS4.RF`, 'sounds');
-        await processRFFile(`${drive}:\\SCENES1.RF`, 'sounds');
-        await processRFFile(`${drive}:\\SCENES2.RF`, 'sounds');
-        await processRFFile(`${drive}:\\SCENES3.RF`, 'sounds');
     }
 
     console.log('\n======================================================');

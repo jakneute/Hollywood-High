@@ -84,40 +84,35 @@
                 231,
                 0,
                 0
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "21": {
             "color": [
                 231,
                 159,
                 167
-            ],
-            "feature": "Color Area [rgb(231,159,167)]"
+            ]
         },
         "40": {
             "color": [
                 255,
                 255,
                 152
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "195": {
             "color": [
                 48,
                 167,
                 96
-            ],
-            "feature": "Color Area [rgb(48,167,96)]"
+            ]
         },
         "249": {
             "color": [
@@ -131,8 +126,7 @@
                 48,
                 151,
                 159
-            ],
-            "feature": "Color Area [rgb(48,151,159)]"
+            ]
         },
         "251": {
             "color": [
@@ -162,32 +156,28 @@
                 0,
                 207,
                 207
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "67": {
             "color": [
                 247,
                 151,
                 208
-            ],
-            "feature": "Color Area [rgb(247,151,208)]"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -201,16 +191,14 @@
                 160,
                 255,
                 255
-            ],
-            "feature": "Color Area [rgb(160,255,255)]"
+            ]
         },
         "193": {
             "color": [
                 47,
                 111,
                 207
-            ],
-            "feature": "Color Area [rgb(47,111,207)]"
+            ]
         },
         "249": {
             "color": [
@@ -247,48 +235,42 @@
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "12": {
             "color": [
                 247,
                 151,
                 208
-            ],
-            "feature": "Color Area [rgb(247,151,208)]"
+            ]
         },
         "13": {
             "color": [
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "73": {
             "color": [
                 143,
                 0,
                 15
-            ],
-            "feature": "Color Area [rgb(143,0,15)]"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -302,16 +284,14 @@
                 64,
                 40,
                 95
-            ],
-            "feature": "Color Area [rgb(64,40,95)]"
+            ]
         },
         "249": {
             "color": [
                 231,
                 0,
                 0
-            ],
-            "feature": "Glasses Rims (Red)"
+            ]
         }
     },
     "Charlotte": {
@@ -341,72 +321,63 @@
                 239,
                 183,
                 63
-            ],
-            "feature": "Blonde Hair / Yellow"
+            ]
         },
         "21": {
             "color": [
                 255,
                 224,
                 183
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "28": {
             "color": [
                 239,
                 159,
                 24
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "55": {
             "color": [
                 240,
                 143,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
                 255,
                 239,
                 104
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "86": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "169": {
             "color": [
                 79,
                 79,
                 79
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "249": {
             "color": [
@@ -429,8 +400,7 @@
                 0,
                 0,
                 0
-            ],
-            "feature": "Color Area [rgb(168,240,255)]"
+            ]
         },
         "2": {
             "color": [
@@ -458,16 +428,14 @@
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -504,144 +472,126 @@
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "10": {
             "color": [
                 255,
                 207,
                 48
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "15": {
             "color": [
                 239,
                 16,
                 72
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "16": {
             "color": [
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "28": {
             "color": [
                 192,
                 120,
                 23
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "29": {
             "color": [
                 239,
                 16,
                 72
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "35": {
             "color": [
                 207,
                 152,
                 8
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "73": {
             "color": [
                 183,
                 0,
                 0
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "81": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "83": {
             "color": [
                 255,
                 239,
                 104
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "112": {
             "color": [
                 184,
                 72,
                 15
-            ],
-            "feature": "Hair / Brown Tones"
+            ]
         },
         "117": {
             "color": [
                 143,
                 0,
                 15
-            ],
-            "feature": "Color Area [rgb(143,0,15)]"
+            ]
         },
         "163": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         },
         "188": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         },
         "195": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         },
         "204": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         }
     },
     "JJ": {
@@ -678,56 +628,56 @@
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
+        },
+        "20": {
+            "color": [
+                0,
+                16,
+                16
+            ]
         },
         "31": {
             "color": [
                 248,
                 16,
                 24
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "43": {
             "color": [
                 255,
                 255,
                 208
-            ],
-            "feature": "Color Area [rgb(255,255,208)]"
+            ]
         },
         "44": {
             "color": [
                 255,
                 255,
                 208
-            ],
-            "feature": "Color Area [rgb(255,255,208)]"
+            ]
         },
         "71": {
             "color": [
                 184,
                 72,
                 15
-            ],
-            "feature": "Hair / Brown Tones"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -741,8 +691,7 @@
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         }
     },
     "Bev": {
@@ -786,32 +735,28 @@
                 239,
                 16,
                 72
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "77": {
             "color": [
                 192,
                 0,
                 31
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -825,8 +770,7 @@
                 192,
                 0,
                 31
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "116": {
             "color": [
@@ -840,48 +784,42 @@
                 152,
                 8,
                 72
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "138": {
             "color": [
                 87,
                 183,
                 199
-            ],
-            "feature": "Color Area [rgb(87,183,199)]"
+            ]
         },
         "146": {
             "color": [
                 87,
                 183,
                 199
-            ],
-            "feature": "Color Area [rgb(87,183,199)]"
+            ]
         },
         "158": {
             "color": [
                 8,
                 0,
                 0
-            ],
-            "feature": "Outlines / Pupils (Black)"
+            ]
         },
         "162": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         },
         "226": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         }
     },
     "Lucille": {
@@ -904,72 +842,63 @@
                 255,
                 231,
                 63
-            ],
-            "feature": "Blonde Hair / Yellow"
+            ]
         },
         "31": {
             "color": [
                 231,
                 0,
                 0
-            ],
-            "feature": "Lips / Red Clothing"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "44": {
             "color": [
                 247,
                 151,
                 208
-            ],
-            "feature": "Color Area [rgb(247,151,208)]"
+            ]
         },
         "52": {
             "color": [
                 224,
                 63,
                 136
-            ],
-            "feature": "Color Area [rgb(224,63,136)]"
+            ]
         },
         "53": {
             "color": [
                 255,
                 231,
                 63
-            ],
-            "feature": "Blonde Hair / Yellow"
+            ]
         },
         "55": {
             "color": [
                 224,
                 63,
                 136
-            ],
-            "feature": "Color Area [rgb(224,63,136)]"
+            ]
         },
         "72": {
             "color": [
                 184,
                 160,
                 167
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "73": {
             "color": [
                 143,
                 0,
                 15
-            ],
-            "feature": "Color Area [rgb(143,0,15)]"
+            ]
         },
         "76": {
             "color": [
@@ -983,32 +912,28 @@
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "86": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "91": {
             "color": [
                 143,
                 0,
                 15
-            ],
-            "feature": "Color Area [rgb(143,0,15)]"
+            ]
         },
         "148": {
             "color": [
                 47,
                 111,
                 207
-            ],
-            "feature": "Color Area [rgb(47,111,207)]"
+            ]
         },
         "161": {
             "color": [
@@ -1038,8 +963,7 @@
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "20": {
             "color": [
@@ -1053,32 +977,28 @@
                 239,
                 183,
                 63
-            ],
-            "feature": "Blonde Hair / Yellow"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "71": {
             "color": [
                 191,
                 144,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -1092,40 +1012,35 @@
                 191,
                 144,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "111": {
             "color": [
                 87,
                 63,
                 23
-            ],
-            "feature": "Color Area [rgb(87,63,23)]"
+            ]
         },
         "118": {
             "color": [
                 111,
                 111,
                 112
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "145": {
             "color": [
                 88,
                 151,
                 152
-            ],
-            "feature": "Color Area [rgb(88,151,152)]"
+            ]
         },
         "185": {
             "color": [
                 7,
                 16,
                 8
-            ],
-            "feature": "Color Area [rgb(7,16,8)]"
+            ]
         },
         "247": {
             "color": [
@@ -1162,24 +1077,21 @@
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "13": {
             "color": [
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "16": {
             "color": [
                 255,
                 239,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "18": {
             "color": [
@@ -1193,24 +1105,21 @@
                 240,
                 183,
                 23
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -1231,16 +1140,14 @@
                 151,
                 144,
                 159
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "118": {
             "color": [
                 8,
                 0,
                 0
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "155": {
             "color": [
@@ -1254,24 +1161,21 @@
                 135,
                 207,
                 72
-            ],
-            "feature": "Color Area [rgb(135,207,72)]"
+            ]
         },
         "185": {
             "color": [
                 0,
                 0,
                 0
-            ],
-            "feature": "Outlines / Pupils (Black)"
+            ]
         },
         "196": {
             "color": [
                 7,
                 143,
                 231
-            ],
-            "feature": "Color Area [rgb(7,143,231)]"
+            ]
         }
     },
     "Matt": {
@@ -1294,16 +1198,14 @@
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "12": {
             "color": [
                 240,
                 143,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "20": {
             "color": [
@@ -1317,32 +1219,28 @@
                 255,
                 255,
                 152
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "44": {
             "color": [
                 216,
                 208,
                 208
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "71": {
             "color": [
                 191,
                 136,
                 71
-            ],
-            "feature": "Color Area [rgb(191,136,71)]"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -1356,16 +1254,14 @@
                 127,
                 136,
                 111
-            ],
-            "feature": "Color Area [rgb(127,136,111)]"
+            ]
         },
         "127": {
             "color": [
                 127,
                 136,
                 111
-            ],
-            "feature": "Color Area [rgb(127,136,111)]"
+            ]
         },
         "161": {
             "color": [
@@ -1379,8 +1275,7 @@
                 0,
                 159,
                 215
-            ],
-            "feature": "Color Area [rgb(0,159,215)]"
+            ]
         },
         "244": {
             "color": [
@@ -1410,72 +1305,63 @@
                 191,
                 144,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "48": {
             "color": [
                 216,
                 223,
                 223
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "71": {
             "color": [
                 167,
                 111,
                 31
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "87": {
             "color": [
                 143,
                 143,
                 224
-            ],
-            "feature": "Color Area [rgb(143,143,224)]"
+            ]
         },
         "194": {
             "color": [
                 32,
                 112,
                 23
-            ],
-            "feature": "Color Area [rgb(32,112,23)]"
+            ]
         },
         "228": {
             "color": [
                 0,
                 16,
                 16
-            ],
-            "feature": "Color Area [rgb(0,16,16)]"
+            ]
         }
     },
     "Susan": {
@@ -1498,32 +1384,28 @@
                 0,
                 16,
                 16
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "21": {
             "color": [
                 200,
                 208,
                 207
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "35": {
             "color": [
                 255,
                 207,
                 48
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "59": {
             "color": [
@@ -1544,24 +1426,21 @@
                 200,
                 208,
                 207
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "74": {
             "color": [
                 248,
                 191,
                 96
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
@@ -1575,8 +1454,7 @@
                 0,
                 16,
                 16
-            ],
-            "feature": "Color Area [rgb(0,16,16)]"
+            ]
         },
         "244": {
             "color": [
@@ -1606,248 +1484,217 @@
                 248,
                 248,
                 232
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "34": {
             "color": [
                 248,
                 248,
                 232
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "36": {
             "color": [
                 200,
                 208,
                 207
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "38": {
             "color": [
                 200,
                 208,
                 207
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "39": {
             "color": [
                 248,
                 248,
                 232
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "43": {
             "color": [
                 200,
                 208,
                 207
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "46": {
             "color": [
                 200,
                 208,
                 207
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "60": {
             "color": [
                 248,
                 248,
                 232
-            ],
-            "feature": "Color Area [rgb(191,136,71)]"
+            ]
         },
         "72": {
             "color": [
                 200,
                 208,
                 207
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "82": {
             "color": [
                 184,
                 160,
                 167
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "85": {
             "color": [
                 184,
                 160,
                 167
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "89": {
             "color": [
                 184,
                 160,
                 167
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "96": {
             "color": [
                 184,
                 160,
                 167
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "100": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "103": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "114": {
             "color": [
                 184,
                 160,
                 167
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "118": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "122": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "123": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "127": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "128": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "131": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         },
         "135": {
             "color": [
                 71,
                 63,
                 64
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "139": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "140": {
             "color": [
                 71,
                 63,
                 64
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "143": {
             "color": [
                 152,
                 119,
                 95
-            ],
-            "feature": "Color Area [rgb(152,119,95)]"
+            ]
         },
         "150": {
             "color": [
                 71,
                 63,
                 64
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "152": {
             "color": [
                 71,
                 63,
                 64
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "164": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         },
         "244": {
             "color": [
@@ -1877,104 +1724,91 @@
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "6": {
             "color": [
                 255,
                 224,
                 183
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "9": {
             "color": [
                 248,
                 191,
                 96
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "10": {
             "color": [
                 255,
                 207,
                 48
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "20": {
             "color": [
                 255,
                 207,
                 48
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "23": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "29": {
             "color": [
                 216,
                 63,
                 111
-            ],
-            "feature": "Color Area [rgb(216,63,111)]"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "44": {
             "color": [
                 255,
                 224,
                 183
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "51": {
             "color": [
                 255,
                 224,
                 183
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "85": {
             "color": [
                 144,
                 207,
                 112
-            ],
-            "feature": "Color Area [rgb(144,207,112)]"
+            ]
         },
         "134": {
             "color": [
                 184,
                 72,
                 15
-            ],
-            "feature": "Hair / Brown Tones"
+            ]
         },
         "253": {
             "color": [
@@ -1988,8 +1822,7 @@
                 0,
                 0,
                 0
-            ],
-            "feature": "Outlines / Pupils (Black)"
+            ]
         }
     },
     "Glenn": {
@@ -2033,56 +1866,49 @@
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "75": {
             "color": [
                 200,
                 184,
                 111
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "90": {
             "color": [
                 144,
                 119,
                 136
-            ],
-            "feature": "Color Area [rgb(144,119,136)]"
+            ]
         },
         "93": {
             "color": [
                 144,
                 119,
                 136
-            ],
-            "feature": "Color Area [rgb(144,119,136)]"
+            ]
         },
         "105": {
             "color": [
                 111,
                 0,
                 16
-            ],
-            "feature": "Color Area [rgb(111,0,16)]"
+            ]
         },
         "249": {
             "color": [
                 7,
                 143,
                 231
-            ],
-            "feature": "Color Area [rgb(7,143,231)]"
+            ]
         }
     },
     "Baby": {
@@ -2105,48 +1931,42 @@
                 0,
                 16,
                 16
-            ],
-            "feature": "Skin Tone / Golden"
+            ]
         },
         "40": {
             "color": [
                 255,
                 255,
                 152
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "76": {
             "color": [
                 255,
                 224,
                 183
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "83": {
             "color": [
                 215,
                 239,
                 248
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "106": {
             "color": [
                 215,
                 239,
                 248
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "246": {
             "color": [
@@ -2183,88 +2003,77 @@
                 207,
                 31,
                 111
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "6": {
             "color": [
                 255,
                 224,
                 183
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "9": {
             "color": [
                 167,
                 224,
                 255
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "10": {
             "color": [
                 248,
                 191,
                 96
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "11": {
             "color": [
                 248,
                 191,
                 96
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "44": {
             "color": [
                 231,
                 223,
                 224
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "143": {
             "color": [
                 63,
                 79,
                 159
-            ],
-            "feature": "Color Area [rgb(63,79,159)]"
+            ]
         },
         "213": {
             "color": [
                 24,
                 63,
                 128
-            ],
-            "feature": "Clothing / Eyes (Blue)"
+            ]
         },
         "217": {
             "color": [
                 7,
                 8,
                 95
-            ],
-            "feature": "Dark Blue / Navy"
+            ]
         },
         "235": {
             "color": [
@@ -2282,6 +2091,13 @@
         }
     },
     "Anna": {
+        "0": {
+            "color": [
+                0,
+                0,
+                0
+            ]
+        },
         "1": {
             "color": [
                 240,
@@ -2352,150 +2168,139 @@
                 0,
                 0,
                 0
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "5": {
             "color": [
                 247,
                 247,
                 239
-            ],
-            "feature": "Eye Whites / Teeth / Highlights"
+            ]
         },
         "9": {
             "color": [
                 255,
                 231,
                 63
-            ],
-            "feature": "Blonde Hair / Yellow"
+            ]
         },
         "15": {
             "color": [
                 248,
                 55,
                 23
-            ],
-            "feature": "Color Area [rgb(248,55,23)]"
+            ]
         },
         "20": {
             "color": [
                 255,
                 231,
                 63
-            ],
-            "feature": "Blonde Hair / Yellow"
+            ]
         },
         "25": {
             "color": [
                 191,
                 144,
                 104
-            ],
-            "feature": "Skin Tone"
+            ]
         },
         "29": {
             "color": [
                 248,
                 55,
                 23
-            ],
-            "feature": "Color Area [rgb(248,55,23)]"
+            ]
         },
         "31": {
             "color": [
                 248,
                 55,
                 23
-            ],
-            "feature": "Color Area [rgb(248,55,23)]"
+            ]
         },
         "40": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "44": {
             "color": [
                 192,
                 199,
                 200
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "57": {
             "color": [
                 192,
                 199,
                 200
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "80": {
             "color": [
                 247,
                 247,
                 247
-            ],
-            "feature": "Eye Whites / Teeth"
+            ]
         },
         "121": {
             "color": [
                 159,
                 167,
                 160
-            ],
-            "feature": "Grey Details"
+            ]
         },
         "130": {
             "color": [
                 48,
                 15,
                 23
-            ],
-            "feature": "Color Area [rgb(48,15,23)]"
+            ]
         },
         "134": {
             "color": [
                 48,
                 15,
                 23
-            ],
-            "feature": "Color Area [rgb(48,15,23)]"
+            ]
         },
         "178": {
             "color": [
                 48,
                 15,
                 23
-            ],
-            "feature": "Color Area [rgb(48,15,23)]"
+            ]
         },
         "188": {
             "color": [
                 64,
                 56,
                 112
-            ],
-            "feature": "Color Area [rgb(64,56,112)]"
+            ]
         },
         "201": {
             "color": [
                 48,
                 15,
                 23
-            ],
-            "feature": "Color Area [rgb(48,15,23)]"
+            ]
         },
         "235": {
             "color": [
                 247,
                 247,
                 239
+            ]
+        },
+        "244": {
+            "color": [
+                255,
+                255,
+                224
             ]
         },
         "247": {
