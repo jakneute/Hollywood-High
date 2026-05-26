@@ -6,13 +6,13 @@
 function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style) {
     if (_text == "") return;
 
-    // --- 1. PREPARE RAW TEXT FILE ---
-    var _path = game_save_id + "tts_in.txt";
+    global.tts_request_id++;
+    var _req = global.tts_request_id;
+
+    // --- 1. PREPARE UNIQUE RAW TEXT FILE ---
+    var _path = game_save_id + "talkit_text_" + string(_req) + ".txt";
     var _f = file_text_open_write(_path);
-    if (_f != -1) {
-        file_text_write_string(_f, _text);
-        file_text_close(_f);
-    }
+    if (_f != -1) { file_text_write_string(_f, _text); file_text_close(_f); }
 
     // --- 2. GET EXECUTABLE / VOICE ---
     var _v = _voice_id;
@@ -26,7 +26,6 @@ function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style) {
         // Map UI 0-100 to TalkIt 50-300 range
         var _t_pitch = floor(50 + (_pitch * 1.5)); 
         var _t_speed = floor(50 + (_speed * 2.5)); 
-        var _req = ++global.tts_request_id;
         var _done_file = working_directory + "talkit\\talkit_done_" + string(_req) + ".tmp";
         if (file_exists(_done_file)) file_delete(_done_file);
 
@@ -45,7 +44,6 @@ function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style) {
         var _b_pitch = floor((_pitch - 50) / 5); 
         var _b_speed = floor((_speed - 50) / 5); 
 
-        var _req = ++global.tts_request_id;
         var _cmd = _exe + " -k -v " + string(100) + " -n \"" + _v + "\" -p " + string(_b_pitch) + " -s " + string(_b_speed) + " -f \"" + _path + "\"";
         
         if (variable_global_exists("win_exec_id")) {

@@ -512,6 +512,7 @@ insert_menu_x = 0;
 insert_menu_y = 0;
 insert_menu_target_idx = -1;
 insert_menu_above = true;
+file_menu_open = false;
 
 o_char_surface = -1;
 o_mask_surface = -1;
@@ -751,10 +752,3 @@ get_index = function(_mx, _my) {
     
     return _best_idx;
 };
-
-// --- 7. WARM UP TTS ENGINE ---
-// Speak a silent space to initialize the engine process and prevent first-play lag
-if (array_length(all_voices) > 0) {
-    tts_speak(" ", all_voices[0].voice_id, 50, 50, 0, 0);
-    tts_stop();
-}

@@ -303,6 +303,12 @@ if (is_speaking) {
         if (file_exists(_done_file)) {
             file_delete(_done_file);
             array_delete(active_requests, _r, 1);
+            
+            var _txt_file = game_save_id + "talkit_text_" + string(_req) + ".txt";
+            if (file_exists(_txt_file)) file_delete(_txt_file);
+            
+            var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req) + ".tmp";
+            if (file_exists(_prog_file)) file_delete(_prog_file);
         } else {
             _all_done = false;
         }
@@ -789,10 +795,56 @@ if (insert_menu_open) {
     }
 }
 
+// --- 2c2. FILE MENU ---
+if (file_menu_open) {
+    if (mouse_check_button_pressed(mb_left)) {
+        var _fm_x = 10; var _fm_y = 45; var _fm_w = 150; var _fm_h = 70;
+        var _clicked_option = false;
+        
+        if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y && _my < _fm_y + 35) {
+            var _file = get_save_filename("JSON Script|*.json", "screenplay.json");
+            if (_file != "") {
+                var _save_data = { version: 1, script: script_blocks, chars: characters, dict: dictionary_list };
+                var _json = json_stringify(_save_data);
+                var _f = file_text_open_write(_file);
+                file_text_write_string(_f, _json);
+                file_text_close(_f);
+            }
+            _clicked_option = true;
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 35 && _my < _fm_y + 70) {
+            var _file = get_open_filename("JSON Script|*.json", "");
+            if (_file != "" && file_exists(_file)) {
+                var _f = file_text_open_read(_file);
+                var _json = "";
+                while (!file_text_eof(_f)) { _json += file_text_read_string(_f) + "\n"; file_text_readln(_f); }
+                file_text_close(_f);
+                try {
+                    var _loaded = json_parse(_json);
+                    if (is_array(_loaded)) script_blocks = _loaded;
+                    else if (is_struct(_loaded)) {
+                        if (variable_struct_exists(_loaded, "script")) script_blocks = _loaded.script;
+                        if (variable_struct_exists(_loaded, "chars")) characters = _loaded.chars;
+                        if (variable_struct_exists(_loaded, "dict")) dictionary_list = _loaded.dict;
+                    }
+                    update_all_block_heights();
+                    focused_block = -1; playing_block_index = -1; playing_linked_index = -1;
+                    scene_edit_mode = false; insertion_idx = -1;
+                    selection_start = 0; selection_end = 0; is_selecting = false;
+                    is_speaking = false; audio_stop_all(); tts_stop(); block_scroll_y = 0;
+                    if (array_length(script_blocks) > 0) { play_from_index(0); playing_block_index = -1; } else { preview_actors = []; current_scene_sprite = -1; }
+                } catch(e) { show_message("Error loading script file! Invalid format."); }
+            }
+            _clicked_option = true;
+        }
+        file_menu_open = false;
+        if (_clicked_option) return;
+    }
+}
+
 // --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
 if (mouse_check_button_pressed(mb_left)) {
     // Block interaction if any modal is open
-    _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
         if (!scene_edit_mode) focused_block = -1;
@@ -1073,14 +1125,15 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
 }
 
 // --- 2g. MODE DISMISSAL (Label Click) ---
+var _ind_x = max(scene_win_x, 110);
 if (insertion_idx != -1 && mouse_check_button_pressed(mb_left)) {
-    if (_mx > scene_win_x && _mx < scene_win_x + 150 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
+    if (_mx > _ind_x && _mx < _ind_x + 150 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         insertion_idx = -1;
         return;
     }
 }
 if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
-    if (_mx > scene_win_x && _mx < scene_win_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
+    if (_mx > _ind_x && _mx < _ind_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         scene_edit_mode = false;
         return;
     }
@@ -1088,6 +1141,13 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
 
 if (mouse_check_button_pressed(mb_left)) {
     // PLAY Button
+    
+    // FILE MENU TOGGLE
+    if (!file_menu_open && _mx > 10 && _mx < 90 && _my > 10 && _my < 45) {
+        file_menu_open = true;
+        return;
+    }
+    
     if (_mx > btn_play_x && _mx < btn_play_x + btn_play_w && _my > btn_play_y && _my < btn_play_y + btn_play_h) {
         focused_block = -1;
         selection_start = 0; selection_end = 0;
@@ -1436,7 +1496,7 @@ if (mouse_check_button_pressed(mb_left)) {
     var _wrap_w = box_w - 120; // Standardized wrap width
     
     var _found_block = focused_block;
-    _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && mouse_check_button_pressed(mb_left) && _mx > box_x - 50 && _mx < box_x + box_w && _my > box_y && _my < box_y + box_h) {
         var _cy = _clip_y + block_scroll_y;
@@ -1759,7 +1819,7 @@ if (is_selecting && focused_block != -1) {
 }
 
 // Scroll Wheel
-_overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+_overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
 
 if (!_overlay_active && !is_speaking) {
     var _over_pane = (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h);
@@ -1818,7 +1878,7 @@ if (!_overlay_active && !is_speaking) {
 }
 
 // --- UNIFIED DRAGGING FROM PANE LOGIC ---
-_overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+_overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
 
 if (!_overlay_active && dragging_char_index != -1) {
     if (!mouse_check_button(mb_left)) {

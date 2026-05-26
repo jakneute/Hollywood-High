@@ -1,7 +1,7 @@
 /// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
-var _overlay_active = (dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || insert_menu_open || theater_mode);
+var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || insert_menu_open || theater_mode);
 
 draw_clear(make_color_rgb(45, 45, 55)); 
 
@@ -243,6 +243,15 @@ btn_add_w = 125; btn_add_h = 35;
 btn_add_scene_w = 125; btn_add_scene_h = 35;
 btn_add_action_w = 125; btn_add_action_h = 35;
 
+// --- FILE MENU BUTTON ---
+var _fm_btn_x = 10; var _fm_btn_y = 10; var _fm_btn_w = 80; var _fm_btn_h = 35;
+var _fm_hov = (!_overlay_active && _mx > _fm_btn_x && _mx < _fm_btn_x + _fm_btn_w && _my > _fm_btn_y && _my < _fm_btn_y + _fm_btn_h);
+draw_set_color((_fm_hov || file_menu_open) ? make_color_rgb(100, 100, 120) : make_color_rgb(60, 60, 80));
+draw_rectangle(_fm_btn_x, _fm_btn_y, _fm_btn_x + _fm_btn_w, _fm_btn_y + _fm_btn_h, false);
+draw_set_color(c_white); draw_set_halign(fa_center);
+draw_text(_fm_btn_x + (_fm_btn_w / 2), _fm_btn_y + 8, "FILE");
+draw_set_halign(fa_left);
+
 // --- 1b. SCENE WINDOW ---
 draw_set_color(c_black);
 draw_rectangle(scene_win_x - 2, scene_win_y - 2, scene_win_x + scene_win_w + 2, scene_win_y + scene_win_h + 2, false);
@@ -414,16 +423,17 @@ draw_rectangle(btn_add_scene_x, btn_add_scene_y, btn_add_scene_x + btn_add_scene
 draw_set_color(c_white); draw_text(btn_add_scene_x + 12, btn_add_scene_y + 5, "+ SCENE");
 
 // --- 1.2 SCENE EDIT MODE INDICATORS (Drawn on top of Scene Window) ---
+var _ind_x = max(scene_win_x, 110);
 if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     draw_set_color(make_color_rgb(255, 150, 0));
-    draw_rectangle(scene_win_x, scene_win_y - 45, scene_win_x + 110, scene_win_y - 10, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(scene_win_x + 55, scene_win_y - 37, "STAGING"); draw_set_halign(fa_left);
+    draw_rectangle(_ind_x, scene_win_y - 45, _ind_x + 110, scene_win_y - 10, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ind_x + 55, scene_win_y - 37, "STAGING"); draw_set_halign(fa_left);
 }
 
 if (insertion_idx != -1 && !scene_edit_mode) {
     draw_set_color(make_color_rgb(0, 150, 255));
-    draw_rectangle(scene_win_x, scene_win_y - 45, scene_win_x + 150, scene_win_y - 10, false);
-    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(scene_win_x + 75, scene_win_y - 37, "SPLICE MODE"); draw_set_halign(fa_left);
+    draw_rectangle(_ind_x, scene_win_y - 45, _ind_x + 150, scene_win_y - 10, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_ind_x + 75, scene_win_y - 37, "SPLICE MODE"); draw_set_halign(fa_left);
 }
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
@@ -462,6 +472,18 @@ if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block
             draw_set_color(_fhov ? make_color_rgb(100, 100, 255) : c_white);
             draw_set_halign(fa_center); draw_text(_fx + 40, _fy + 8, "FLIP"); draw_set_halign(fa_left);
         }
+    }
+}
+
+if (file_menu_open) {
+    var _fm_x = 10; var _fm_y = 45; var _fm_w = 150; var _fm_h = 70;
+    draw_set_color(make_color_rgb(30, 30, 40)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, false);
+    draw_set_color(c_aqua); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, true);
+    var _opts = ["SAVE SCRIPT", "LOAD SCRIPT"];
+    for (var i = 0; i < 2; i++) {
+        var _hov = (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + (i * 35) && _my < _fm_y + ((i + 1) * 35));
+        if (_hov) { draw_set_color(make_color_rgb(60, 60, 100)); draw_rectangle(_fm_x + 1, _fm_y + (i * 35) + 1, _fm_x + _fm_w - 1, _fm_y + ((i + 1) * 35) - 1, false); }
+        draw_set_color(c_white); draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _opts[i]);
     }
 }
 
@@ -628,6 +650,24 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         
         var _is_onstage = false;
         for(var o=0; o<array_length(_onstage); o++) if (_onstage[o] == _block.char_index) _is_onstage = true;
+        
+        var _chain_start = b;
+        while (_chain_start > 0 && variable_struct_exists(script_blocks[_chain_start-1], "linked") && script_blocks[_chain_start-1].linked) _chain_start--;
+        var _chain_end = b;
+        while (_chain_end < array_length(script_blocks) - 1 && variable_struct_exists(script_blocks[_chain_end], "linked") && script_blocks[_chain_end].linked) _chain_end++;
+        
+        if (_chain_start != _chain_end) {
+            for (var _k = _chain_start; _k <= _chain_end; _k++) {
+                var _cb = script_blocks[_k];
+                if (variable_struct_exists(_cb, "type") && _cb.type == "action" && _cb.char_index == _block.char_index) {
+                    var _caname = string_lower(_cb.action_name);
+                    if (string_pos("enter", _caname) > 0 || string_pos("exit", _caname) > 0) {
+                        _is_onstage = true;
+                        break;
+                    }
+                }
+            }
+        }
         
         var _c_ref = characters[_block.char_index];
         var _is_v = !variable_struct_exists(_block, "type") || _block.type == "voice";

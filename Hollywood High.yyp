@@ -174,13 +174,13 @@
   "name":"Hollywood High",
   "resources":[
     {"id":{"name":"oHollywoodUI","path":"objects/oHollywoodUI/oHollywoodUI.yy",},},
-    {"id":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
+    {"id":{"name":"MainWindow","path":"rooms/MainWindow/MainWindow.yy",},},
     {"id":{"name":"scr_tts","path":"scripts/scr_tts/scr_tts.yy",},},
   ],
   "resourceType":"GMProject",
   "resourceVersion":"2.0",
   "RoomOrderNodes":[
-    {"roomId":{"name":"Room1","path":"rooms/Room1/Room1.yy",},},
+    {"roomId":{"name":"MainWindow","path":"rooms/MainWindow/MainWindow.yy",},},
   ],
   "templateType":"game",
   "TextureGroups":[
