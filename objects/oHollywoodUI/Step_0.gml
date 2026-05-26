@@ -237,7 +237,6 @@ if (playing_block_index != -1 && playing_block_index < array_length(script_block
     }
 } else {
     theater_subtitle_scroll_y = 0;
-
 }
 
 // --- 1.1 ACTION ANIMATOR ---
@@ -533,8 +532,8 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 }
             }
         }
-        }
     }
+}
 
 // --- 1b. SCENE CONTEXT TRACKING
 
@@ -763,25 +762,24 @@ if (insert_menu_open) {
             var _is_onstage = false;
             var _limit = (action_modal_target_index == -1) ? array_length(script_blocks) : action_modal_target_index;
             for (var k = 0; k < _limit; k++) {
-		    var _b = script_blocks[k];
-		    if (variable_struct_exists(_b, "type")) {
-		        if (_b.type == "scene") {
-		            _is_onstage = false;
-		            if (variable_struct_exists(_b, "actors")) {
-		                for (var a = 0; a < array_length(_b.actors); a++) {
-		                    if (_b.actors[a].char_index == selected_character_index) {
-		                        _is_onstage = true; break;
-		                    }
-		                }
-		            }
-		        }
-        else if (_b.type == "action" && _b.char_index == selected_character_index) {
-            var _aname = string_lower(_b.action_name);
-            if (string_pos("enter", _aname) > 0) _is_onstage = true;
-            else if (string_pos("exit", _aname) > 0) _is_onstage = false;
-        }
-    }
-}
+                var _b = script_blocks[k];
+                if (variable_struct_exists(_b, "type")) {
+                    if (_b.type == "scene") {
+                        _is_onstage = false;
+                        if (variable_struct_exists(_b, "actors")) {
+                            for (var a = 0; a < array_length(_b.actors); a++) {
+                                if (_b.actors[a].char_index == selected_character_index) {
+                                    _is_onstage = true; break;
+                                }
+                            }
+                        }
+                    } else if (_b.type == "action" && _b.char_index == selected_character_index) {
+                        var _aname = string_lower(_b.action_name);
+                        if (string_pos("enter", _aname) > 0) _is_onstage = true;
+                        else if (string_pos("exit", _aname) > 0) _is_onstage = false;
+                    }
+                }
+            }
             action_modal_char_onstage = _is_onstage;
             
             action_modal_open = true; 
@@ -1160,17 +1158,17 @@ if (mouse_check_button_pressed(mb_left)) {
         return;
     }
 
-        // DICTIONARY Button
-        // Force coordinate update to match visual placement exactly
-        btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
-        btn_dictionary_y = scene_win_y - 45;
+    // DICTIONARY Button
+    // Force coordinate update to match visual placement exactly
+    btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
+    btn_dictionary_y = scene_win_y - 45;
 
-        if (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h) {
-            dictionary_open = true;
-            dictionary_scroll_y = 0;
-            focused_block = -1; // Clear any text focus when opening modal
-            return;
-        }
+    if (!theater_mode && !is_speaking && playing_block_index == -1 && _mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h) {
+        dictionary_open = true;
+        dictionary_scroll_y = 0;
+        focused_block = -1; // Clear any text focus when opening modal
+        return;
+    }
 
     // GLOBAL HEADER BUTTONS (Theater & Move Params)
     if (!theater_mode && !is_speaking && playing_block_index == -1 && !action_modal_open && !scene_modal_open && !move_modal_open) {
@@ -1432,7 +1430,7 @@ if (mouse_check_button_pressed(mb_left)) {
             var _wx = _mxo + 310;
             var _wy = _myo + 245;
             
-			var _on_left = (_mx > _wx - 5 && _mx < _wx + 25 && _my > _wy - 10 && _my < _wy + 35);
+            var _on_left = (_mx > _wx - 5 && _mx < _wx + 25 && _my > _wy - 10 && _my < _wy + 35);
             var _on_right = (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35);
             
             // Only trigger arrows if NOT dragging slider
@@ -1995,79 +1993,79 @@ else block_scroll_y = clamp(block_scroll_y, -( (_full_script_h + _scroll_buffer)
 if (!is_speaking && focused_block >= 0) {
     var _b = script_blocks[focused_block];
     if (variable_struct_exists(_b, "caret_pos")) {
-    var _ctrl = keyboard_check(vk_control);
-    var _repeat_key = -1;
-    if (keyboard_check(vk_left)) _repeat_key = vk_left;
-    else if (keyboard_check(vk_right)) _repeat_key = vk_right;
-    else if (keyboard_check(vk_up)) _repeat_key = vk_up;
-    else if (keyboard_check(vk_down)) _repeat_key = vk_down;
-    else if (keyboard_check(vk_backspace)) _repeat_key = vk_backspace;
-    else if (keyboard_check(vk_delete)) _repeat_key = vk_delete;
-    
-    var _do_action = false;
-    if (_repeat_key != -1) {
-        if (keyboard_check_pressed(_repeat_key)) { _do_action = true; key_repeat_timer = 25; }
-        else { key_repeat_timer--; if (key_repeat_timer <= 0) { _do_action = true; key_repeat_timer = 2; } }
-    }
-
-    if (string_length(keyboard_string) > 0) {
-        if (selection_start != selection_end) {
-            var _s = min(selection_start, selection_end);
-            var _e = max(selection_start, selection_end);
-            _b.text = string_delete(_b.text, _s + 1, _e - _s);
-            _b.caret_pos = _s;
-            selection_start = _s; selection_end = _s;
+        var _ctrl = keyboard_check(vk_control);
+        var _repeat_key = -1;
+        if (keyboard_check(vk_left)) _repeat_key = vk_left;
+        else if (keyboard_check(vk_right)) _repeat_key = vk_right;
+        else if (keyboard_check(vk_up)) _repeat_key = vk_up;
+        else if (keyboard_check(vk_down)) _repeat_key = vk_down;
+        else if (keyboard_check(vk_backspace)) _repeat_key = vk_backspace;
+        else if (keyboard_check(vk_delete)) _repeat_key = vk_delete;
+        
+        var _do_action = false;
+        if (_repeat_key != -1) {
+            if (keyboard_check_pressed(_repeat_key)) { _do_action = true; key_repeat_timer = 25; }
+            else { key_repeat_timer--; if (key_repeat_timer <= 0) { _do_action = true; key_repeat_timer = 2; } }
         }
-        _b.text = string_insert(keyboard_string, _b.text, _b.caret_pos + 1);
-        _b.caret_pos += string_length(keyboard_string);
-        update_block_height(focused_block);
-        keyboard_string = "";
-    }
-    
-    if (_do_action) {
-        if ((_repeat_key == vk_backspace || _repeat_key == vk_delete) && selection_start != selection_end) {
-            var _s = min(selection_start, selection_end);
-            var _e = max(selection_start, selection_end);
-            _b.text = string_delete(_b.text, _s + 1, _e - _s);
-            _b.caret_pos = _s;
-            selection_start = _s; selection_end = _s;
+
+        if (string_length(keyboard_string) > 0) {
+            if (selection_start != selection_end) {
+                var _s = min(selection_start, selection_end);
+                var _e = max(selection_start, selection_end);
+                _b.text = string_delete(_b.text, _s + 1, _e - _s);
+                _b.caret_pos = _s;
+                selection_start = _s; selection_end = _s;
+            }
+            _b.text = string_insert(keyboard_string, _b.text, _b.caret_pos + 1);
+            _b.caret_pos += string_length(keyboard_string);
             update_block_height(focused_block);
-            _do_action = false; // Consume the keypress
+            keyboard_string = "";
         }
         
-        // _wrap_w is already defined as box_w - 120 for consistency with Draw event
-        if (_repeat_key == vk_left) _b.caret_pos = max(0, _b.caret_pos - 1);
-        if (_repeat_key == vk_right) _b.caret_pos = min(string_length(_b.text), _b.caret_pos + 1);
-        if (_repeat_key == vk_up || _repeat_key == vk_down) {
-            var _cur_p = get_text_pos(_b.text, _b.caret_pos, _wrap_w, 28);
-            var _target_y = _cur_p.y + (_repeat_key == vk_up ? -28 : 28);
-            
-            // Calculate the last character's position to define vertical bounds
-            var _last_p = get_text_pos(_b.text, string_length(_b.text), _wrap_w, 28);
-            
-            if (_target_y < 0) {
-                _b.caret_pos = 0;
-            } else if (_target_y > _last_p.y) {
-                _b.caret_pos = string_length(_b.text);
-            } else {
-                var _best_p = _b.caret_pos; var _min_dx = 999999;
-                var _found_on_line = false;
-                for (var c = 0; c <= string_length(_b.text); c++) {
-                    var _pos = get_text_pos(_b.text, c, _wrap_w, 28);
-                    if (_pos.y == _target_y) {
-                        var _dx = abs(_cur_p.x - _pos.x);
-                        if (_dx < _min_dx) { _min_dx = _dx; _best_p = c; _found_on_line = true; }
-                    }
-                }
-                if (_found_on_line) _b.caret_pos = _best_p;
+        if (_do_action) {
+            if ((_repeat_key == vk_backspace || _repeat_key == vk_delete) && selection_start != selection_end) {
+                var _s = min(selection_start, selection_end);
+                var _e = max(selection_start, selection_end);
+                _b.text = string_delete(_b.text, _s + 1, _e - _s);
+                _b.caret_pos = _s;
+                selection_start = _s; selection_end = _s;
+                update_block_height(focused_block);
+                _do_action = false; // Consume the keypress
             }
+            
+            // _wrap_w is already defined as box_w - 120 for consistency with Draw event
+            if (_repeat_key == vk_left) _b.caret_pos = max(0, _b.caret_pos - 1);
+            if (_repeat_key == vk_right) _b.caret_pos = min(string_length(_b.text), _b.caret_pos + 1);
+            if (_repeat_key == vk_up || _repeat_key == vk_down) {
+                var _cur_p = get_text_pos(_b.text, _b.caret_pos, _wrap_w, 28);
+                var _target_y = _cur_p.y + (_repeat_key == vk_up ? -28 : 28);
+                
+                // Calculate the last character's position to define vertical bounds
+                var _last_p = get_text_pos(_b.text, string_length(_b.text), _wrap_w, 28);
+                
+                if (_target_y < 0) {
+                    _b.caret_pos = 0;
+                } else if (_target_y > _last_p.y) {
+                    _b.caret_pos = string_length(_b.text);
+                } else {
+                    var _best_p = _b.caret_pos; var _min_dx = 999999;
+                    var _found_on_line = false;
+                    for (var c = 0; c <= string_length(_b.text); c++) {
+                        var _pos = get_text_pos(_b.text, c, _wrap_w, 28);
+                        if (_pos.y == _target_y) {
+                            var _dx = abs(_cur_p.x - _pos.x);
+                            if (_dx < _min_dx) { _min_dx = _dx; _best_p = c; _found_on_line = true; }
+                        }
+                    }
+                    if (_found_on_line) _b.caret_pos = _best_p;
+                }
+            }
+            if (_repeat_key == vk_backspace && _b.caret_pos > 0) { _b.text = string_delete(_b.text, _b.caret_pos, 1); _b.caret_pos--; update_block_height(focused_block); }
+            if (_repeat_key == vk_delete && _b.caret_pos < string_length(_b.text)) { _b.text = string_delete(_b.text, _b.caret_pos + 1, 1); update_block_height(focused_block); }
         }
-        if (_repeat_key == vk_backspace && _b.caret_pos > 0) { _b.text = string_delete(_b.text, _b.caret_pos, 1); _b.caret_pos--; update_block_height(focused_block); }
-        if (_repeat_key == vk_delete && _b.caret_pos < string_length(_b.text)) { _b.text = string_delete(_b.text, _b.caret_pos + 1, 1); update_block_height(focused_block); }
-    }
-    if (keyboard_check_pressed(vk_home)) _b.caret_pos = 0;
-    if (keyboard_check_pressed(vk_end)) _b.caret_pos = string_length(_b.text);
-    if (keyboard_check_pressed(vk_enter)) { _b.text = string_insert("\n", _b.text, _b.caret_pos + 1); _b.caret_pos++; update_block_height(focused_block); }
+        if (keyboard_check_pressed(vk_home)) _b.caret_pos = 0;
+        if (keyboard_check_pressed(vk_end)) _b.caret_pos = string_length(_b.text);
+        if (keyboard_check_pressed(vk_enter)) { _b.text = string_insert("\n", _b.text, _b.caret_pos + 1); _b.caret_pos++; update_block_height(focused_block); }
     }
 }
 

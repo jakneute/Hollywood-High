@@ -39,7 +39,7 @@ dropdown_open = false;
 dropdown_scroll_y = 0;
 dropdown_w = 350;
 dropdown_h = 35;
-btn_edit_w        = 170;
+btn_edit_w        = 130;
 btn_edit_h        = 35;
 btn_edit_x        = box_x + box_w - btn_edit_w;
 btn_edit_y        = 535;
@@ -475,8 +475,6 @@ scene_modal_open = false;
 scene_modal_scroll_y = 0;
 scene_modal_target_index = -1;
 scene_modal_edit_mode = false;
-scene_modal_scroll_y = 0;
-scene_modal_target_index = -1; // -1 means add to end
 
 // --- 3bb. SCENE EDITING STATE ---
 scene_edit_mode = false;
@@ -498,7 +496,6 @@ scene_edit_menu_y = 0;
 scene_edit_menu_char_idx = -1;
 scene_edit_menu_actor_idx = -1;
 scene_edit_selected_actor_idx = -1; // New: Persistent selection for static buttons
-scene_edit_menu_actor_idx = -1; // -1 if placing new, >=0 if moving existing
 scene_edit_menu_pending_x = 0;
 scene_edit_menu_pending_y = 0;
 scene_edit_menu_pending_face = 1;
@@ -527,23 +524,6 @@ speaking_word_start = -1;  // Starting index of the word currently being spoken
 speaking_word_len   = 0;   // Length of the active word highlight
 speaking_index      = 0;   // Floating point index for smooth word tracking
 
-// --- 5. UI & LAYOUT ---
-scene_win_x = 50; scene_win_y = 60; scene_win_w = 800; scene_win_h = 450; // Scene window (16:9)
-box_x = 50; box_y = 570; box_w = 1180; box_h = 370; // Main text box (Stretched down for 4:3 ratio)
-btn_play_x = (box_x + box_w / 2) - (btn_play_w / 2); btn_play_y = 535; 
-
-// --- 6. CHARACTER SELECTION DROPDOWN ---
-dropdown_open = false;
-dropdown_scroll_y = 0;
-dropdown_w = 350;
-dropdown_h = 35;
-btn_edit_w        = 130;
-btn_edit_h        = 35;
-btn_edit_x        = box_x + box_w - btn_edit_w;
-btn_edit_y        = 535;
-dropdown_x        = btn_edit_x - 15 - dropdown_w;
-dropdown_y        = 535;
-
 // --- 7. TEXT SCROLLING & RENDERING ---
 text_scroll_y      = 0;
 text_surface       = -1; // Surface used for clipping the text area
@@ -552,42 +532,6 @@ click_count        = 0;  // For double-click detection
 click_timer        = 0;
 repeat_timer       = 0;  // Keyboard repeat speed
 repeat_key         = vk_nokey;
-
-// --- 8. CHARACTER SELECTOR & CONTROLLER LAYOUT ---
-char_sel_x = 880; char_sel_y = 60; char_sel_w = 350; char_sel_h = 450;
-char_sel_scroll_y = 0;
-
-ctrl_x = 880; ctrl_y = char_sel_y + char_sel_h + 20; ctrl_w = 350; ctrl_h = 150;
-slider_x = ctrl_x + 30; 
-slider_w = 25; slider_h = 100; // Scaled down sliders to fit
-pitch_y = ctrl_y + 40;
-speed_y = ctrl_y + 160;
-
-radio_x = ctrl_x + 100;
-effort_y = ctrl_y + 40;
-quality_y = ctrl_y + 140;
-
-// --- 8. CORE ENGINE METHODS ---
-
-/**
- * Recalculates the height for a specific block.
- * Standardizes calculation to avoid redundancy in Step event.
- */
-update_block_height = function(_idx) {
-    if (_idx < 0 || _idx >= array_length(script_blocks)) return;
-    var _b = script_blocks[_idx];
-    var _wrap_w = box_w - 120;
-    
-    var _is_scene = (variable_struct_exists(_b, "type") && _b.type == "scene");
-    var _is_action = (variable_struct_exists(_b, "type") && _b.type == "action");
-    
-    if (_is_scene || _is_action) {
-        _b.height = 85; 
-    } else {
-        var _txt_h = string_height_ext(_b.text, 28, _wrap_w);
-        _b.height = 25 + max(70, _txt_h + 16);
-    }
-};
 
 /**
  * Starts playback from a specific block, calculating proper scene state.
