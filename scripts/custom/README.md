@@ -8,6 +8,7 @@ This utility allows you to extract the original high-fidelity graphics and sound
 1. **Character Sprites (Actors)**: All 22 characters and their full pose sets, exported as transparent `.png` files with perfectly corrected character palette shading, outlines, and eye colors mapped from `character_color_mappings.json`.
 2. **Backgrounds (Scenes)**: Full-size backgrounds exported as `.png` files.
 3. **Dialogue & Sound Effects (Sounds)**: Original uncompressed Mac audio formats converted to standard mono 16-bit `.wav` files at their native sampling rates, with dynamic filename labeling matched from the CD-ROM's Table of Contents.
+4. **Generic Assets (Main)**: Extracts source code, text scripts, UI graphics, and any other untyped binary formats from `MAIN.RF` dynamically into folders based on their Mac resource tag (e.g. `TEXT`, `scpt`, `PICT`).
 
 ---
 

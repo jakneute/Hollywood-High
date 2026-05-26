@@ -166,6 +166,261 @@ if (move_modal_open) {
     return; // Block entire frame logic while modal is open
 }
 
+if (action_modal_open) {
+    var _mw = 900; var _mh = 550; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
+    
+    if (mouse_check_button_pressed(mb_left)) {
+        
+        // Action selection handling
+        for (var i = 0; i < array_length(all_actions); i++) {
+            var _is_gen = (all_actions[i].category == "general");
+            var _by = _myo + 60 + (i * 45) + (_is_gen ? 25 : 0);
+            var _aname = string_lower(all_actions[i].name);
+            var _disabled = false;
+            
+            // Enforce single-action focus during edit mode
+            if (action_modal_edit_mode) {
+                if (action_modal_selected_idx != i) _disabled = true;
+            } else {
+                if (selected_character_index == 0 && !_is_gen) _disabled = true;
+                else if (!_is_gen) {
+                    if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
+                    if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
+                }
+            }
+            
+            if (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40) {
+                action_modal_selected_idx = i; action_modal_locked = true; 
+                if (all_actions[i].name == "play sfx") {
+                    refresh_sfx_folders();
+                    action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1;
+                }
+                return;
+            }
+        }
+        
+        // Wait Duration Controls
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "wait") {
+            var _sw = 400; 
+            var _wx = _mxo + 320; // Base X for parameters area
+            var _wy = _myo + 250; // Base Y for the slider/arrows row
+
+            var _perc = (action_modal_wait_duration - 0.1) / 9.9;
+            var _hx = _wx + 30 + (_perc * _sw);
+            
+            var _chk_left = (_mx > _wx - 5 && _mx < _wx + 25 && _my > _wy - 10 && _my < _wy + 35);
+            var _chk_right = (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35);
+
+            // Slider Handle (Start Dragging) - Give arrows priority over the handle
+            if (!_chk_left && !_chk_right && _mx > _hx - 15 && _mx < _hx + 15 && _my > _wy - 10 && _my < _wy + 35) {
+                action_modal_slider_dragging = true;
+            }
+        }
+
+        // SFX Browser Controls
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
+            var _wx = _mxo + 300; var _wy = _myo + 130;
+            var _fx = _mxo + 280; var _fy = _wy + 65; var _fw = 230; var _fh = 215;
+            var _lx = _mxo + 550; var _ly = _wy + 65; var _lw = 320; var _lh = 215;
+
+            // Click Folder
+            if (_mx > _fx + 10 && _mx < _fx + 230 && _my > _fy && _my < _fy + _fh) {
+                for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
+                    var _by = _fy + (f * 30) - action_modal_sfx_scroll_y;
+                    if (_my > _by && _my < _by + 30) {
+                        action_modal_sfx_folder_idx = f; refresh_sfx_files(action_modal_sfx_folders[f]); action_modal_sfx_file_idx = -1; action_modal_sfx_files_scroll_y = 0;
+                    }
+                }
+            }
+            
+            // Click File
+            if (_mx > _lx - 10 && _mx < _lx + 300 && _my > _ly && _my < _ly + _lh) {
+                for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
+                    var _by = _ly + (f * 30) - action_modal_sfx_files_scroll_y;
+                    if (_my > _by && _my < _by + 30) {
+                        action_modal_sfx_file_idx = f;
+                    }
+                }
+            }
+
+            // Test SFX Button
+            var _tx = _mxo + _mw - 150; var _ty = _myo + _mh - 120;
+            if (_mx > _tx && _mx < _tx + 120 && _my > _ty && _my < _ty + 35) {
+                if (action_modal_sfx_folder_idx != -1 && action_modal_sfx_file_idx != -1) {
+                    var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
+                    var _file = action_modal_sfx_files[action_modal_sfx_file_idx];
+                    var _snd_path = sfx_base_path + _folder + "/" + _file;
+                    if (file_exists(_snd_path)) {
+                        if (test_sfx_sound != -1) { audio_free_buffer_sound(test_sfx_sound); test_sfx_sound = -1; }
+                        if (test_sfx_buffer != -1) { buffer_delete(test_sfx_buffer); test_sfx_buffer = -1; }
+                        var _tmp_buf = buffer_load(_snd_path);
+                        if (_tmp_buf != -1) {
+                            var _sz = buffer_get_size(_tmp_buf);
+                            test_sfx_buffer = buffer_create(_sz, buffer_fixed, 1);
+                            buffer_copy(_tmp_buf, 0, _sz, test_sfx_buffer, 0);
+                            buffer_delete(_tmp_buf);
+                            
+                            buffer_seek(test_sfx_buffer, buffer_seek_start, 22); var _chan = buffer_read(test_sfx_buffer, buffer_u16);
+                            buffer_seek(test_sfx_buffer, buffer_seek_start, 24); var _rate = buffer_read(test_sfx_buffer, buffer_u32);
+                            buffer_seek(test_sfx_buffer, buffer_seek_start, 34); var _bits = buffer_read(test_sfx_buffer, buffer_u16);
+                            var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
+                            var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
+                            
+                            test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+                            if (test_sfx_sound != -1) audio_play_sound(test_sfx_sound, 1, false);
+                        }
+                    }
+                }
+            }
+        }
+
+        // OK Button
+        if (action_modal_locked && _mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _myo+_mh-50 && _my < _myo+_mh-15) {
+            var _act_name = all_actions[action_modal_selected_idx].name;
+            var _can_proceed = true;
+            var _sfx_path = "";
+            
+            if (_act_name == "wait") {
+                _act_name = "WAIT " + string(action_modal_wait_duration) + " SECONDS";
+            } else if (_act_name == "play sfx") {
+                if (action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) _can_proceed = false;
+                else {
+                    var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
+                    var _sfx_file = action_modal_sfx_files[action_modal_sfx_file_idx];
+                    _sfx_path = "sounds/sfx/" + _folder + "/" + _sfx_file;
+                    _act_name = "Play SFX: " + string_replace(string_upper(_sfx_file), ".WAV", "");
+                }
+            }
+            
+            if (_can_proceed) {
+                if (action_modal_edit_mode) {
+                var _b = script_blocks[action_modal_target_index];
+                _b.action_name = _act_name;
+                if (all_actions[action_modal_selected_idx].name == "wait") _b.duration = action_modal_wait_duration;
+                else if (all_actions[action_modal_selected_idx].name == "play sfx") _b.sfx_path = _sfx_path;
+                action_modal_edit_mode = false;
+            } else {
+                var _new_a = { type: "action", char_index: selected_character_index, action_name: _act_name, height: 85 };
+                
+                if (all_actions[action_modal_selected_idx].name == "wait") {
+                    _new_a.duration = action_modal_wait_duration;
+                    _new_a.char_index = 0; // Force Narrator/System context for wait
+                } else if (all_actions[action_modal_selected_idx].name == "play sfx") {
+                    _new_a.sfx_path = _sfx_path;
+                    _new_a.char_index = 0; // General action
+                }
+                
+                if (action_modal_target_index == -1) array_push(script_blocks, _new_a);
+                else array_insert(script_blocks, action_modal_target_index, _new_a);
+            }
+
+            update_all_block_heights();
+            action_modal_open = false;
+            
+            var _th = 0; for (var k = 0; k < array_length(script_blocks); k++) _th += script_blocks[k].height + 20;
+            block_scroll_y = min(0, (box_h - 40) - _th);
+            return;
+        }
+        }
+        // Cancel
+        if (_mx > _mxo+_mw-130 && _mx < _mxo+_mw-20 && _my > _myo+_mh-50 && _my < _myo+_mh-15) { action_modal_edit_mode = false; action_modal_open = false; return; }
+    }
+    
+    if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
+        var _wx = _mxo + 300; var _wy = _myo + 130;
+        var _fx = _mxo + 280; var _fy = _wy + 65; var _fw = 230; var _fh = 215;
+        var _lx = _mxo + 550; var _ly = _wy + 65; var _lw = 320; var _lh = 215;
+        
+        // Mouse Wheel Logic (Precise Hitboxes)
+        if (_mx > _fx + 10 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) {
+            if (mouse_wheel_up()) action_modal_sfx_scroll_y -= 60;
+            if (mouse_wheel_down()) action_modal_sfx_scroll_y += 60;
+        }
+        if (_mx > _lx - 10 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) {
+            if (mouse_wheel_up()) action_modal_sfx_files_scroll_y -= 60;
+            if (mouse_wheel_down()) action_modal_sfx_files_scroll_y += 60;
+        }
+        
+        var _max_s = max(0, (array_length(action_modal_sfx_folders) * 30) - _fh);
+        action_modal_sfx_scroll_y = clamp(action_modal_sfx_scroll_y, 0, _max_s);
+        
+        var _max_f = max(0, (array_length(action_modal_sfx_files) * 30) - _lh);
+        action_modal_sfx_files_scroll_y = clamp(action_modal_sfx_files_scroll_y, 0, _max_f);
+        
+        // Interactive Scrollbar Dragging
+        if (mouse_check_button_pressed(mb_left)) {
+            // Folder scrollbar track: _fx + 232 to _fx + 240
+            if (_max_s > 0 && _mx > _fx + 232 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) {
+                action_modal_sfx_dragging_folder = true;
+            }
+            // File scrollbar track: _lx + 302 to _lx + 310
+            if (_max_f > 0 && _mx > _lx + 302 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) {
+                action_modal_sfx_dragging_file = true;
+            }
+        }
+        
+        if (action_modal_sfx_dragging_folder) {
+            if (mouse_check_button(mb_left)) {
+                var _perc = clamp((_my - _fy) / _fh, 0, 1);
+                action_modal_sfx_scroll_y = _perc * _max_s;
+            } else action_modal_sfx_dragging_folder = false;
+        }
+        
+        if (action_modal_sfx_dragging_file) {
+            if (mouse_check_button(mb_left)) {
+                var _perc = clamp((_my - _ly) / _lh, 0, 1);
+                action_modal_sfx_files_scroll_y = _perc * _max_f;
+            } else action_modal_sfx_dragging_file = false;
+        }
+    }
+    
+    // Continuous Wait Duration Arrow Adjustments
+    if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "wait") {
+        var _sw = 400; 
+        var _wx = _mxo + 320;
+        var _wy = _myo + 250;
+        
+        var _on_left = (_mx > _wx - 5 && _mx < _wx + 25 && _my > _wy - 10 && _my < _wy + 35);
+        var _on_right = (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35);
+        
+        // Only trigger arrows if NOT dragging slider
+        if (!action_modal_slider_dragging && mouse_check_button(mb_left)) {
+            if (_on_left || _on_right) {
+                var _do_tick = false;
+                if (mouse_check_button_pressed(mb_left)) {
+                    _do_tick = true; arrow_repeat_timer = 20;
+                } else {
+                    arrow_repeat_timer--;
+                    if (arrow_repeat_timer <= 0) { _do_tick = true; arrow_repeat_timer = 4; }
+                }
+                
+                if (_do_tick) {
+                    if (_on_left) action_modal_wait_duration = max(0.1, action_modal_wait_duration - 0.1);
+                    if (_on_right) action_modal_wait_duration = min(10.0, action_modal_wait_duration + 0.1);
+                    action_modal_wait_duration = round(action_modal_wait_duration * 10.0) / 10.0;
+                }
+            }
+        } else if (!mouse_check_button(mb_left)) {
+            arrow_repeat_timer = 0;
+        }
+    }
+    
+    // Continuous Slider Dragging Logic (Outside Pressed check, inside Modal check)
+    if (action_modal_slider_dragging) {
+        if (mouse_check_button(mb_left)) {
+            var _sw = 400.0;
+            var _track_start = _mxo + 350.0; 
+            var _perc = clamp((_mx - _track_start) / _sw, 0.0, 1.0);
+            action_modal_wait_duration = clamp(0.1 + (_perc * 9.9), 0.1, 10.0);
+            action_modal_wait_duration = round(action_modal_wait_duration * 10.0) / 10.0;
+        } else {
+            action_modal_slider_dragging = false;
+        }
+    }
+    
+    return; // Block all other UI interactions
+}
+
 // --- 0. SCRIPT HEIGHT CALCULATION ---
 // (Now handled on-demand via update_block_height and update_all_block_heights)
 
@@ -315,7 +570,7 @@ if (is_speaking) {
 
     if (_all_done) {
         if (playing_block_index != -1 && playing_block_index < array_length(script_blocks) - 1) {
-            is_speaking = false; speaking_pause_timer = 15; 
+            is_speaking = false; speaking_pause_timer = max(speaking_pause_timer, 15); 
         } else {
             is_speaking = false; last_played_block_index = playing_block_index; 
             tts_stop();
@@ -350,8 +605,14 @@ if (variable_instance_exists(id, "warmup_requests")) {
     }
 }
 
+// Global Parallel Timer Decrement
+if (playing_block_index != -1 && !theater_paused && speaking_pause_timer > 0) {
+    speaking_pause_timer--;
+}
+
 // Auto-stop if current block is scene/action and it's the last block
 if (!is_speaking && !action_animating && playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
+    if (speaking_pause_timer <= 0 && speaking_pause_timer != -1) {
     var _lb_idx = (playing_linked_index != -1) ? playing_linked_index : playing_block_index;
     var _lb = script_blocks[_lb_idx];
     var _lb_is_scene = (variable_struct_exists(_lb, "type") && _lb.type == "scene");
@@ -366,20 +627,20 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && playing_bl
             playing_block_index = -1;
         }
     }
+    }
 }
 
 // Sequence Advance
 if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_paused) {
-    if (speaking_pause_timer > 0) {
-        speaking_pause_timer--;
-    } else {
-        // If speaking_pause_timer == 0, we need to advance. 
+    if (speaking_pause_timer <= 0 || speaking_pause_timer == -1) {
+        // If speaking_pause_timer <= 0, we need to advance. 
         // If speaking_pause_timer == -1, we stay on current index (first play).
-        if (speaking_pause_timer == 0) {
+        if (speaking_pause_timer <= 0 && speaking_pause_timer != -1) {
             var _next_idx = (playing_linked_index != -1) ? playing_linked_index + 1 : playing_block_index + 1;
             if (_next_idx < array_length(script_blocks)) {
                 playing_block_index = _next_idx;
                 playing_linked_index = -1;
+                speaking_pause_timer = 0; // Reset safely
             } else {
                 if (theater_mode) {
                     theater_subtitles = ""; theater_active_char = -1;
@@ -499,6 +760,33 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 } else if (string_pos("wait", _aname) > 0) {
                     var _dur = variable_struct_exists(_b, "duration") ? _b.duration : 1.0;
                     speaking_pause_timer = max(speaking_pause_timer, max(1, _dur * 60));
+                } else if (string_pos("play sfx", _aname) > 0) {
+                    if (variable_struct_exists(_b, "sfx_path")) {
+                        var _path = working_directory + _b.sfx_path;
+                        if (file_exists(_path)) {
+                            if (variable_struct_exists(_b, "last_sound") && _b.last_sound != -1) { audio_free_buffer_sound(_b.last_sound); _b.last_sound = -1; }
+                            if (variable_struct_exists(_b, "last_buffer") && _b.last_buffer != -1) { buffer_delete(_b.last_buffer); _b.last_buffer = -1; }
+                            var _tmp_buf = buffer_load(_path);
+                            if (_tmp_buf != -1) {
+                                var _sz = buffer_get_size(_tmp_buf);
+                                _b.last_buffer = buffer_create(_sz, buffer_fixed, 1);
+                                buffer_copy(_tmp_buf, 0, _sz, _b.last_buffer, 0);
+                                buffer_delete(_tmp_buf);
+                                
+                                buffer_seek(_b.last_buffer, buffer_seek_start, 22); var _chan = buffer_read(_b.last_buffer, buffer_u16);
+                                buffer_seek(_b.last_buffer, buffer_seek_start, 24); var _rate = buffer_read(_b.last_buffer, buffer_u32);
+                                buffer_seek(_b.last_buffer, buffer_seek_start, 34); var _bits = buffer_read(_b.last_buffer, buffer_u16);
+                                var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
+                                var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
+                                
+                                _b.last_sound = audio_create_buffer_sound(_b.last_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+                                if (_b.last_sound != -1) {
+                                    audio_play_sound(_b.last_sound, 1, false);
+                                    speaking_pause_timer = max(speaking_pause_timer, ceil(audio_sound_length(_b.last_sound) * 60));
+                                } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                            } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                        } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                    } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                 } else if (string_pos("moves", _aname) > 0) {
                     if (_act_idx != -1) {
                         action_animating = true;
@@ -751,66 +1039,6 @@ if (scene_modal_open) {
     return;
 }
 
-// --- 2c. INSERTION CONTEXT MENU ---
-if (insert_menu_open) {
-    var _m_w = 120; var _m_h = 70;
-    if (mouse_check_button_pressed(mb_left)) {
-        var _clicked_option = false;
-        // Voice option
-        if (_mx > insert_menu_x && _mx < insert_menu_x + _m_w && _my > insert_menu_y && _my < insert_menu_y + 35) {
-            var _idx = insert_menu_above ? insert_menu_target_idx : insert_menu_target_idx + 1;
-            var _c = characters[selected_character_index];
-            array_insert(script_blocks, _idx, { 
-                type: "voice", char_index: selected_character_index, text: "", height: 115, caret_pos: 0, selection_anchor: 0, selection_active: false,
-                voice_id: _c.voice_id, pitch: _c.pitch, speed: _c.speed, mode: _c.mode, style: _c.style, tweaked: _c.tweaked, is_altered: false
-            });
-            update_all_block_heights();
-            focused_block = _idx; keyboard_string = ""; _clicked_option = true;
-        }
-        // Scene option
-        else if (_mx > insert_menu_x && _mx < insert_menu_x + _m_w && _my > insert_menu_y + 35 && _my < insert_menu_y + 70) {
-            scene_modal_target_index = insert_menu_above ? insert_menu_target_idx : insert_menu_target_idx + 1;
-            scene_modal_open = true; _clicked_option = true;
-        }
-        // Action option
-        else if (selected_character_index != 0 && _mx > insert_menu_x && _mx < insert_menu_x + _m_w && _my > insert_menu_y + 70 && _my < insert_menu_y + 105) {
-            action_modal_target_index = insert_menu_above ? insert_menu_target_idx : insert_menu_target_idx + 1;
-            
-            // Calculate onstage context for the selected character
-            var _is_onstage = false;
-            var _limit = (action_modal_target_index == -1) ? array_length(script_blocks) : action_modal_target_index;
-            for (var k = 0; k < _limit; k++) {
-                var _b = script_blocks[k];
-                if (variable_struct_exists(_b, "type")) {
-                    if (_b.type == "scene") {
-                        _is_onstage = false;
-                        if (variable_struct_exists(_b, "actors")) {
-                            for (var a = 0; a < array_length(_b.actors); a++) {
-                                if (_b.actors[a].char_index == selected_character_index) {
-                                    _is_onstage = true; break;
-                                }
-                            }
-                        }
-                    } else if (_b.type == "action" && _b.char_index == selected_character_index) {
-                        var _aname = string_lower(_b.action_name);
-                        if (string_pos("enter", _aname) > 0) _is_onstage = true;
-                        else if (string_pos("exit", _aname) > 0) _is_onstage = false;
-                    }
-                }
-            }
-            action_modal_char_onstage = _is_onstage;
-            
-            action_modal_open = true; 
-            action_modal_selected_idx = -1;
-            action_modal_locked = false;
-            _clicked_option = true;
-        }
-        
-        insert_menu_open = false;
-        if (_clicked_option) return;
-    }
-}
-
 // --- 2c2. FILE MENU ---
 if (file_menu_open) {
     if (mouse_check_button_pressed(mb_left)) {
@@ -875,7 +1103,7 @@ if (file_menu_open) {
 // --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
 if (mouse_check_button_pressed(mb_left)) {
     // Block interaction if any modal is open
-    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
         if (!scene_edit_mode) focused_block = -1;
@@ -1381,7 +1609,7 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     if (action_modal_open) {
-        var _mw = 600; var _mh = 400; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
+        var _mw = 900; var _mh = 550; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
         
         if (mouse_check_button_pressed(mb_left)) {
             
@@ -1399,16 +1627,21 @@ if (mouse_check_button_pressed(mb_left)) {
                     if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
                 }
                 
-                if (!_disabled && _mx > _mxo+20 && _mx < _mxo+270 && _my > _by && _my < _by+40) {
-                    action_modal_selected_idx = i; action_modal_locked = true; return;
+                if (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40) {
+                    action_modal_selected_idx = i; action_modal_locked = true; 
+                    if (all_actions[i].name == "play sfx") {
+                        refresh_sfx_folders();
+                        action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1;
+                    }
+                    return;
                 }
             }
             
             // Wait Duration Controls
             if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "wait") {
-                var _sw = 200; 
-                var _wx = _mxo + 310; // Base X for parameters area
-                var _wy = _myo + 245; // Base Y for the slider/arrows row
+                var _sw = 400; 
+                var _wx = _mxo + 320; // Base X for parameters area
+                var _wy = _myo + 250; // Base Y for the slider/arrows row
 
                         var _perc = (action_modal_wait_duration - 0.1) / 9.9;
                         var _hx = _wx + 30 + (_perc * _sw);
@@ -1422,19 +1655,87 @@ if (mouse_check_button_pressed(mb_left)) {
                         }
             }
 
-            // OK Button
-            if (action_modal_locked && _mx > _mxo+20 && _mx < _mxo+290 && _my > _myo+350 && _my < _myo+385) {
-                var _act_name = all_actions[action_modal_selected_idx].name;
-                if (_act_name == "wait") {
-                    _act_name = "WAIT " + string(action_modal_wait_duration) + " SECONDS";
+            // SFX Browser Controls
+            if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
+                var _wx = _mxo + 300; var _wy = _myo + 130;
+                var _fx = _mxo + 280; var _fy = _wy + 65; var _fw = 230; var _fh = 215;
+                var _lx = _mxo + 550; var _ly = _wy + 65; var _lw = 320; var _lh = 215;
+
+                // Click Folder
+                if (_mx > _fx + 10 && _mx < _fx + 230 && _my > _fy && _my < _fy + _fh) {
+                    for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
+                        var _by = _fy + (f * 30) - action_modal_sfx_scroll_y;
+                        if (_my > _by && _my < _by + 30) {
+                            action_modal_sfx_folder_idx = f; refresh_sfx_files(action_modal_sfx_folders[f]); action_modal_sfx_file_idx = -1; action_modal_sfx_files_scroll_y = 0;
+                        }
+                    }
                 }
                 
-                if (action_modal_edit_mode) {
+                // Click File
+                if (_mx > _lx - 10 && _mx < _lx + 300 && _my > _ly && _my < _ly + _lh) {
+                    for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
+                        var _by = _ly + (f * 30) - action_modal_sfx_files_scroll_y;
+                        if (_my > _by && _my < _by + 30) {
+                            action_modal_sfx_file_idx = f;
+                        }
+                    }
+                }
+
+                // Test SFX Button
+                var _tx = _mxo + _mw - 150; var _ty = _myo + _mh - 120;
+                if (_mx > _tx && _mx < _tx + 120 && _my > _ty && _my < _ty + 35) {
+                    if (action_modal_sfx_folder_idx != -1 && action_modal_sfx_file_idx != -1) {
+                        var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
+                        var _file = action_modal_sfx_files[action_modal_sfx_file_idx];
+                        var _snd_path = sfx_base_path + _folder + "/" + _file;
+                        if (file_exists(_snd_path)) {
+                            if (test_sfx_sound != -1) { audio_free_buffer_sound(test_sfx_sound); test_sfx_sound = -1; }
+                            if (test_sfx_buffer != -1) { buffer_delete(test_sfx_buffer); test_sfx_buffer = -1; }
+                            var _tmp_buf = buffer_load(_snd_path);
+                            if (_tmp_buf != -1) {
+                                var _sz = buffer_get_size(_tmp_buf);
+                                test_sfx_buffer = buffer_create(_sz, buffer_fixed, 1);
+                                buffer_copy(_tmp_buf, 0, _sz, test_sfx_buffer, 0);
+                                buffer_delete(_tmp_buf);
+                                
+                                buffer_seek(test_sfx_buffer, buffer_seek_start, 22); var _chan = buffer_read(test_sfx_buffer, buffer_u16);
+                                buffer_seek(test_sfx_buffer, buffer_seek_start, 24); var _rate = buffer_read(test_sfx_buffer, buffer_u32);
+                                buffer_seek(test_sfx_buffer, buffer_seek_start, 34); var _bits = buffer_read(test_sfx_buffer, buffer_u16);
+                                var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
+                                var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
+                                
+                                test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+                                if (test_sfx_sound != -1) audio_play_sound(test_sfx_sound, 1, false);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // OK Button
+            if (action_modal_locked && _mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _myo+_mh-50 && _my < _myo+_mh-15) {
+                var _act_name = all_actions[action_modal_selected_idx].name;
+                var _can_proceed = true;
+                var _sfx_path = "";
+                
+                if (_act_name == "wait") {
+                    _act_name = "WAIT " + string(action_modal_wait_duration) + " SECONDS";
+                } else if (_act_name == "play sfx") {
+                    if (action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) _can_proceed = false;
+                    else {
+                        var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
+                        var _sfx_file = action_modal_sfx_files[action_modal_sfx_file_idx];
+                        _sfx_path = "sounds/sfx/" + _folder + "/" + _sfx_file;
+                        _act_name = "Play SFX: " + string_replace(string_upper(_sfx_file), ".WAV", "");
+                    }
+                }
+                
+                if (_can_proceed) {
+                    if (action_modal_edit_mode) {
                     var _b = script_blocks[action_modal_target_index];
                     _b.action_name = _act_name;
-                    if (all_actions[action_modal_selected_idx].name == "wait") {
-                        _b.duration = action_modal_wait_duration;
-                    }
+                    if (all_actions[action_modal_selected_idx].name == "wait") _b.duration = action_modal_wait_duration;
+                    else if (all_actions[action_modal_selected_idx].name == "play sfx") _b.sfx_path = _sfx_path;
                     action_modal_edit_mode = false;
                 } else {
                     var _new_a = { type: "action", char_index: selected_character_index, action_name: _act_name, height: 85 };
@@ -1442,6 +1743,9 @@ if (mouse_check_button_pressed(mb_left)) {
                     if (all_actions[action_modal_selected_idx].name == "wait") {
                         _new_a.duration = action_modal_wait_duration;
                         _new_a.char_index = 0; // Force Narrator/System context for wait
+                    } else if (all_actions[action_modal_selected_idx].name == "play sfx") {
+                        _new_a.sfx_path = _sfx_path;
+                        _new_a.char_index = 0; // General action
                     }
                     
                     if (action_modal_target_index == -1) array_push(script_blocks, _new_a);
@@ -1455,15 +1759,64 @@ if (mouse_check_button_pressed(mb_left)) {
                 block_scroll_y = min(0, (box_h - 40) - _th);
                 return;
             }
+            }
             // Cancel
-            if (_mx > _mxo+310 && _mx < _mxo+580 && _my > _myo+350 && _my < _myo+385) { action_modal_edit_mode = false; action_modal_open = false; return; }
+            if (_mx > _mxo+_mw-130 && _mx < _mxo+_mw-20 && _my > _myo+_mh-50 && _my < _myo+_mh-15) { action_modal_edit_mode = false; action_modal_open = false; return; }
+        }
+        
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
+            var _wx = _mxo + 300; var _wy = _myo + 130;
+            var _fx = _mxo + 280; var _fy = _wy + 65; var _fw = 230; var _fh = 215;
+            var _lx = _mxo + 550; var _ly = _wy + 65; var _lw = 320; var _lh = 215;
+            
+            // Mouse Wheel Logic (Precise Hitboxes)
+            if (_mx > _fx + 10 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) {
+                if (mouse_wheel_up()) action_modal_sfx_scroll_y -= 60;
+                if (mouse_wheel_down()) action_modal_sfx_scroll_y += 60;
+            }
+            if (_mx > _lx - 10 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) {
+                if (mouse_wheel_up()) action_modal_sfx_files_scroll_y -= 60;
+                if (mouse_wheel_down()) action_modal_sfx_files_scroll_y += 60;
+            }
+            
+            var _max_s = max(0, (array_length(action_modal_sfx_folders) * 30) - _fh);
+            action_modal_sfx_scroll_y = clamp(action_modal_sfx_scroll_y, 0, _max_s);
+            
+            var _max_f = max(0, (array_length(action_modal_sfx_files) * 30) - _lh);
+            action_modal_sfx_files_scroll_y = clamp(action_modal_sfx_files_scroll_y, 0, _max_f);
+            
+            // Interactive Scrollbar Dragging
+            if (mouse_check_button_pressed(mb_left)) {
+                // Folder scrollbar track: _fx + 232 to _fx + 240
+                if (_max_s > 0 && _mx > _fx + 232 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) {
+                    action_modal_sfx_dragging_folder = true;
+                }
+                // File scrollbar track: _lx + 302 to _lx + 310
+                if (_max_f > 0 && _mx > _lx + 302 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) {
+                    action_modal_sfx_dragging_file = true;
+                }
+            }
+            
+            if (action_modal_sfx_dragging_folder) {
+                if (mouse_check_button(mb_left)) {
+                    var _perc = clamp((_my - _fy) / _fh, 0, 1);
+                    action_modal_sfx_scroll_y = _perc * _max_s;
+                } else action_modal_sfx_dragging_folder = false;
+            }
+            
+            if (action_modal_sfx_dragging_file) {
+                if (mouse_check_button(mb_left)) {
+                    var _perc = clamp((_my - _ly) / _lh, 0, 1);
+                    action_modal_sfx_files_scroll_y = _perc * _max_f;
+                } else action_modal_sfx_dragging_file = false;
+            }
         }
         
         // Continuous Wait Duration Arrow Adjustments
         if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "wait") {
-            var _sw = 200; 
-            var _wx = _mxo + 310;
-            var _wy = _myo + 245;
+            var _sw = 400; 
+            var _wx = _mxo + 320;
+            var _wy = _myo + 250;
             
             var _on_left = (_mx > _wx - 5 && _mx < _wx + 25 && _my > _wy - 10 && _my < _wy + 35);
             var _on_right = (_mx > _wx + _sw + 35 && _mx < _wx + _sw + 75 && _my > _wy - 10 && _my < _wy + 35);
@@ -1493,8 +1846,8 @@ if (mouse_check_button_pressed(mb_left)) {
         // Continuous Slider Dragging Logic (Outside Pressed check, inside Modal check)
         if (action_modal_slider_dragging) {
             if (mouse_check_button(mb_left)) {
-                var _sw = 200.0;
-                var _track_start = _mxo + 340.0; 
+                var _sw = 400.0;
+                var _track_start = _mxo + 350.0; 
                 var _perc = clamp((_mx - _track_start) / _sw, 0.0, 1.0);
                 action_modal_wait_duration = clamp(0.1 + (_perc * 9.9), 0.1, 10.0);
                 action_modal_wait_duration = round(action_modal_wait_duration * 10.0) / 10.0;
@@ -1507,7 +1860,7 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     // EDIT VOICE Button
-    _overlay_active = (scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (scene_modal_open || action_modal_open || theater_mode || move_modal_open);
     if (!_overlay_active && !is_speaking && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
         focused_block = -1;
         selection_start = 0; selection_end = 0;
@@ -1529,7 +1882,7 @@ if (mouse_check_button_pressed(mb_left)) {
     var _wrap_w = box_w - 120; // Standardized wrap width
     
     var _found_block = focused_block;
-    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && mouse_check_button_pressed(mb_left) && _mx > box_x - 50 && _mx < box_x + box_w && _my > box_y && _my < box_y + box_h) {
         var _cy = _clip_y + block_scroll_y;
@@ -1564,20 +1917,6 @@ if (mouse_check_button_pressed(mb_left)) {
                 if (focused_block >= array_length(script_blocks)) focused_block = array_length(script_blocks) - 1;
                 return;
             }
-            // 2. Insert Up (^+) - Anchored to _cy + 35
-            else if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 35 && _my < _cy + 35 + _btn_h) {
-                insert_menu_open = true; 
-                insert_menu_x = min(_mx, 1280 - 130); 
-                insert_menu_y = min(_my, 800 - 80);
-                insert_menu_target_idx = i; insert_menu_above = true; return;
-            }
-            // 3. Insert Down (v+) - Anchored to _cy + 65
-            else if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 65 && _my < _cy + 65 + _btn_h) {
-                insert_menu_open = true; 
-                insert_menu_x = min(_mx, 1280 - 130); 
-                insert_menu_y = min(_my, 800 - 80);
-                insert_menu_target_idx = i; insert_menu_above = false; return;
-            }
 
             // --- 4c. RESEQUENCE BUTTONS (LEFT STACK) ---
             var _lx = box_x + 15;
@@ -1602,18 +1941,44 @@ if (mouse_check_button_pressed(mb_left)) {
                     scene_modal_target_index = i;
                     scene_modal_edit_mode = true;
                 }
-                else if (_is_action && string_pos("WAIT", string_upper(_block.action_name)) > 0) {
+                else if (_is_action && (string_pos("WAIT", string_upper(_block.action_name)) > 0 || string_pos("PLAY SFX", string_upper(_block.action_name)) > 0)) {
                     action_modal_open = true;
                     action_modal_target_index = i;
                     action_modal_edit_mode = true;
-                    action_modal_wait_duration = variable_struct_exists(_block, "duration") ? _block.duration : 1.0;
                     
-                    // Automatically find and select the 'wait' action in the modal list
+                    var _is_wait = string_pos("WAIT", string_upper(_block.action_name)) > 0;
+                    if (_is_wait) action_modal_wait_duration = variable_struct_exists(_block, "duration") ? _block.duration : 1.0;
+                    
+                    // Automatically find and select the action in the modal list
                     for (var j = 0; j < array_length(all_actions); j++) {
-                        if (all_actions[j].name == "wait") {
+                        if ((_is_wait && all_actions[j].name == "wait") || (!_is_wait && all_actions[j].name == "play sfx")) {
                             action_modal_selected_idx = j;
                             action_modal_locked = true;
                             break;
+                        }
+                    }
+
+                    if (!_is_wait) {
+                        refresh_sfx_folders();
+                        action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1;
+                        action_modal_sfx_scroll_y = 0; action_modal_sfx_files_scroll_y = 0;
+                        if (variable_struct_exists(_block, "sfx_path") && _block.sfx_path != "") {
+                            var _sub = string_replace(_block.sfx_path, "sounds/sfx/", "");
+                            var _slash = string_pos("/", _sub);
+                            if (_slash > 0) {
+                                var _fld = string_copy(_sub, 1, _slash - 1);
+                                var _fil = string_copy(_sub, _slash + 1, string_length(_sub) - _slash);
+                                for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
+                                    if (action_modal_sfx_folders[f] == _fld) {
+                                        action_modal_sfx_folder_idx = f;
+                                        refresh_sfx_files(_fld);
+                                        for (var k = 0; k < array_length(action_modal_sfx_files); k++) {
+                                            if (action_modal_sfx_files[k] == _fil) { action_modal_sfx_file_idx = k; break; }
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1760,14 +2125,29 @@ if (mouse_check_button_pressed(mb_left)) {
                 // Link Check
                 var _b1 = script_blocks[i];
                 var _b2 = script_blocks[i+1];
-                var _is_move1 = (variable_struct_exists(_b1, "type") && _b1.type == "action" && (string_pos("enter", string_lower(_b1.action_name)) > 0 || string_pos("exit", string_lower(_b1.action_name)) > 0 || string_pos("move", string_lower(_b1.action_name)) > 0));
-                var _is_voice1 = (!variable_struct_exists(_b1, "type") || _b1.type == "voice");
-                var _is_move2 = (variable_struct_exists(_b2, "type") && _b2.type == "action" && (string_pos("enter", string_lower(_b2.action_name)) > 0 || string_pos("exit", string_lower(_b2.action_name)) > 0 || string_pos("move", string_lower(_b2.action_name)) > 0));
-                var _is_voice2 = (!variable_struct_exists(_b2, "type") || _b2.type == "voice");
-                var _diff_voice = (_is_voice1 && _is_voice2 && real(_b1.char_index) != real(_b2.char_index));
-                var _diff_move = (_is_move1 && _is_move2 && real(_b1.char_index) != real(_b2.char_index));
-                
-                var _base_valid = ((_is_move1 && _is_voice2) || (_is_voice1 && _is_move2) || _diff_voice || _diff_move);
+
+                var get_link_type = function(_block) {
+                    if (variable_struct_exists(_block, "type") && _block.type == "action") {
+                        var _aname = string_lower(_block.action_name);
+                        if (string_pos("play sfx", _aname) > 0) return "sfx";
+                        if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
+                    } else if (!variable_struct_exists(_block, "type") || _block.type == "voice") {
+                        return "voice";
+                    }
+                    return "other";
+                }
+                var _b1_type = get_link_type(_b1);
+                var _b2_type = get_link_type(_b2);
+
+                var _diff_char = (variable_struct_exists(_b1, "char_index") && variable_struct_exists(_b2, "char_index") && real(_b1.char_index) != real(_b2.char_index));
+
+                var _base_valid = false;
+                if ((_b1_type == "move" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "move")) _base_valid = true;
+                else if ((_b1_type == "move" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "move")) _base_valid = true;
+                else if ((_b1_type == "voice" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "voice")) _base_valid = true;
+                else if (_b1_type == "move" && _b2_type == "move" && _diff_char) _base_valid = true;
+                else if (_b1_type == "voice" && _b2_type == "voice" && _diff_char) _base_valid = true;
+
                 var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
                 var _chain_valid = true;
                 
@@ -1777,25 +2157,26 @@ if (mouse_check_button_pressed(mb_left)) {
                     var _end_idx = i + 1;
                     while (_end_idx < array_length(script_blocks) - 1 && variable_struct_exists(script_blocks[_end_idx], "linked") && script_blocks[_end_idx].linked) _end_idx++;
                     
+                    var _sfx_in_chain = 0;
                     for (var k = _start_idx; k < _end_idx; k++) {
                         var _bk = script_blocks[k];
                         var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
-                        var _k_is_v = (!variable_struct_exists(_bk, "type") || _bk.type == "voice");
-                        var _k_is_m = (variable_struct_exists(_bk, "type") && _bk.type == "action" && (string_pos("enter", string_lower(_bk.action_name)) > 0 || string_pos("exit", string_lower(_bk.action_name)) > 0 || string_pos("move", string_lower(_bk.action_name)) > 0));
+                        var _bk_type = get_link_type(_bk);
+                        if (_bk_type == "sfx") _sfx_in_chain++;
                         
-                        if (_k_is_v || _k_is_m) {
+                        if (_bk_type == "voice" || _bk_type == "move") {
                             for (var j = k + 1; j <= _end_idx; j++) {
                                 var _bj = script_blocks[j];
                                 if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
-                                    var _j_is_v = (!variable_struct_exists(_bj, "type") || _bj.type == "voice");
-                                    var _j_is_m = (variable_struct_exists(_bj, "type") && _bj.type == "action" && (string_pos("enter", string_lower(_bj.action_name)) > 0 || string_pos("exit", string_lower(_bj.action_name)) > 0 || string_pos("move", string_lower(_bj.action_name)) > 0));
-                                    if (_k_is_v && _j_is_v) { _chain_valid = false; break; }
-                                    if (_k_is_m && _j_is_m) { _chain_valid = false; break; }
+                                    var _bj_type = get_link_type(_bj);
+                                    if (_bk_type == "voice" && _bj_type == "voice") { _chain_valid = false; break; }
+                                    if (_bk_type == "move" && _bj_type == "move") { _chain_valid = false; break; }
                                 }
                             }
                         }
                         if (!_chain_valid) break;
                     }
+                    if (_sfx_in_chain > 1) _chain_valid = false;
                 }
                 
                 if ((_base_valid && _chain_valid) || _is_linked) {
@@ -1852,7 +2233,7 @@ if (is_selecting && focused_block != -1) {
 }
 
 // Scroll Wheel
-_overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+_overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open);
 
 if (!_overlay_active && !is_speaking) {
     var _over_pane = (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h);
@@ -1911,7 +2292,7 @@ if (!_overlay_active && !is_speaking) {
 }
 
 // --- UNIFIED DRAGGING FROM PANE LOGIC ---
-_overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+_overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open);
 
 if (!_overlay_active && dragging_char_index != -1) {
     if (!mouse_check_button(mb_left)) {

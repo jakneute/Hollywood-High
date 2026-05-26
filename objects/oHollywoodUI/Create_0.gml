@@ -325,16 +325,65 @@ active_animations = [];
 action_modal_slider_dragging = false;
 action_modal_wait_duration = 1.0;
 
+// --- SFX Browser State ---
+action_modal_sfx_folders = [];
+action_modal_sfx_files = [];
+action_modal_sfx_folder_idx = -1;
+action_modal_sfx_file_idx = -1;
+action_modal_sfx_scroll_y = 0;
+action_modal_sfx_files_scroll_y = 0;
+action_modal_sfx_dragging_folder = false;
+action_modal_sfx_dragging_file = false;
+test_sfx_sound = -1;
+test_sfx_buffer = -1;
+sfx_base_path = working_directory + "sounds/sfx/";
+
+refresh_sfx_folders = function() {
+    action_modal_sfx_folders = [];
+    var _file = file_find_first(sfx_base_path + "*", fa_directory);
+    while (_file != "") {
+        if (_file != "." && _file != ".." && directory_exists(sfx_base_path + _file)) array_push(action_modal_sfx_folders, _file);
+        _file = file_find_next();
+    }
+    file_find_close();
+    array_sort(action_modal_sfx_folders, function(a, b) {
+        var _la = string_lower(a); var _lb = string_lower(b);
+        if (_la < _lb) return -1;
+        if (_la > _lb) return 1;
+        return 0;
+    });
+}
+
+refresh_sfx_files = function(_folder) {
+    action_modal_sfx_files = [];
+    var _path = sfx_base_path + _folder + "/";
+    var _file = file_find_first(_path + "*.wav", 0);
+    while (_file != "") {
+        array_push(action_modal_sfx_files, _file);
+        _file = file_find_next();
+    }
+    file_find_close();
+    array_sort(action_modal_sfx_files, function(a, b) {
+        var _la = string_lower(a); var _lb = string_lower(b);
+        if (_la < _lb) return -1;
+        if (_la > _lb) return 1;
+        return 0;
+    });
+}
+
 all_actions = [
     { name: "turns around", desc: "Character flips their horizontal facing direction.", category: "character" },
-    { name: "wait", desc: "Pauses the script for a set duration of time.", category: "general" }
+    { name: "wait", desc: "Pauses the script for a set duration of time.", category: "general" },
+    { name: "play sfx", desc: "Plays a sound effect from the library.", category: "general" }
 ];
 
 char_facings = array_create(array_length(characters), 1);
 
 array_sort(all_scenes, function(a, b) {
-    if (a.internal_name < b.internal_name) return -1;
-    if (a.internal_name > b.internal_name) return 1;
+    var _la = string_lower(a.internal_name);
+    var _lb = string_lower(b.internal_name);
+    if (_la < _lb) return -1;
+    if (_la > _lb) return 1;
     return 0;
 });
 
@@ -503,12 +552,6 @@ scene_edit_menu_orig_x = 0; // For cancel
 scene_edit_menu_orig_y = 0;
 scene_edit_menu_orig_face = 1;
 
-// --- 3c. INSERTION CONTEXT MENU ---
-insert_menu_open = false;
-insert_menu_x = 0;
-insert_menu_y = 0;
-insert_menu_target_idx = -1;
-insert_menu_above = true;
 file_menu_open = false;
 
 o_char_surface = -1;

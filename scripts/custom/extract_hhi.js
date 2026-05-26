@@ -8,8 +8,9 @@ const baseOutDir = path.join(__dirname, 'extracted_assets');
 const actorsDir = path.join(baseOutDir, 'actors');
 const scenesDir = path.join(baseOutDir, 'scenes');
 const soundsDir = path.join(baseOutDir, 'sounds');
+const mainDir = path.join(baseOutDir, 'main');
 
-[baseOutDir, actorsDir, scenesDir, soundsDir].forEach(dir => {
+[baseOutDir, actorsDir, scenesDir, soundsDir, mainDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
@@ -464,6 +465,7 @@ async function processRFFile(filePath, mode) {
     const isActorFile = mode === 'actors';
     const isSceneFile = mode === 'scenes';
     const isSoundFile = mode === 'sounds';
+    const isMainFile = mode === 'main';
     if (!fs.existsSync(filePath)) {
         console.log(`Skipping missing file: ${filePath}`);
         return;
@@ -504,7 +506,7 @@ async function processRFFile(filePath, mode) {
     }
 
     // A. Handle Image Extraction (Im08 tag)
-    if (isActorFile || isSceneFile) {
+    if (isActorFile || isSceneFile || isMainFile) {
         const targetTag = 'Im08';
         const typeEntry = types.find(t => t.tag === targetTag);
         if (typeEntry) {
@@ -560,7 +562,7 @@ async function processRFFile(filePath, mode) {
                         }
                         outPath = path.join(characterDir, `pose_${id}.png`);
                         activeRemap = colorMappings[characterName] || null;
-                    } else {
+                    } else if (isSceneFile) {
                         const groupId = sceneReroutes[id] !== undefined ? sceneReroutes[id] : Math.floor(id / 10);
                         const lastDigit = id % 10;
 
@@ -590,6 +592,13 @@ async function processRFFile(filePath, mode) {
                         }
                         const sceneName = `${groupName}_${typeSuffix}_${id}.png`;
                         outPath = path.join(sceneSpecificDir, sceneName);
+                    } else if (isMainFile) {
+                        const outImgDir = path.join(mainDir, 'images');
+                        if (!fs.existsSync(outImgDir)) {
+                            fs.mkdirSync(outImgDir, { recursive: true });
+                        }
+                        const cleanName = sanitizeFilename(getString(nameOff)) || `image_${id}`;
+                        outPath = path.join(outImgDir, `${cleanName}.png`);
                     }
 
                     const compressedData = Buffer.alloc(dataCompressedSize);
@@ -630,7 +639,7 @@ async function processRFFile(filePath, mode) {
                                     const dataIdx = (destY * canvasWidth + destX) * 4;
                                     
                                     // True transparency routing: backgrounds/walkmasks render index 0 & 255 as solid colors
-									const isTransparent = (isActorFile || typeSuffix === 'foreground' || typeSuffix === 'mask') && 
+									const isTransparent = (isActorFile || isMainFile || typeSuffix === 'foreground' || typeSuffix === 'mask') && 
 														  paletteIdx === 255;
                                     
                                     if (isTransparent) {
@@ -668,15 +677,13 @@ async function processRFFile(filePath, mode) {
     }
 
     // B. Handle Sound Extraction (snd tag) - Uncompressed Macintosh snd Resources
-    if (isSoundFile || isActorFile || isSceneFile) {
+    if (isSoundFile || isActorFile || isSceneFile || isMainFile) {
         const targetTag = 'snd ';
         const typeEntry = types.find(t => t.tag === targetTag);
         if (typeEntry) {
             const actualStart = 30 + typeEntry.typeOffset;
             const entrySize = 12;
             let extractedCount = 0;
-
-            const rfFileName = path.basename(filePath, path.extname(filePath));
 
             for (let i = 0; i < typeEntry.count; i++) {
                 const entryOffset = actualStart + i * entrySize;
@@ -724,23 +731,7 @@ async function processRFFile(filePath, mode) {
                     const name = getString(nameOff);
                     const cleanName = sanitizeFilename(name);
 
-                    // Determine intelligent sub-folder organization
-                    let subFolder = rfFileName; 
-                    if (cleanName) {
-                        const upperName = cleanName.toUpperCase();
-                        // 1. Check for character name matches
-                        for (const key in actrNames) {
-                            const characterName = actrNames[key];
-                            if (upperName.startsWith(characterName.toUpperCase())) {
-                                subFolder = characterName;
-                                break;
-                            }
-                        }
-                        // 2. Check for general SFX
-                        if (upperName.startsWith("SFX")) subFolder = "SFX";
-                    }
-
-                    let targetDir = path.join(soundsDir, subFolder);
+                    let targetDir = soundsDir;
                     
                     if (isActorFile) {
                         const charRouteId = Math.floor(id / 1000);
@@ -754,6 +745,8 @@ async function processRFFile(filePath, mode) {
                         }
                         groupName = formatFolderName(groupName);
                         targetDir = path.join(scenesDir, groupName);
+                    } else if (isMainFile) {
+                        targetDir = path.join(mainDir, 'sounds');
                     }
                     
                     if (!fs.existsSync(targetDir)) {
@@ -775,6 +768,58 @@ async function processRFFile(filePath, mode) {
                 }
             }
             console.log(`  Finished sound extraction for ${filePath}: Extracted ${extractedCount} items successfully.`);
+        }
+    }
+
+    // C. Handle Generic Extraction for Main Files
+    if (isMainFile) {
+        for (const typeEntry of types) {
+            if (typeEntry.tag === 'Im08' || typeEntry.tag === 'snd ') continue; // Handled natively above
+
+            const actualStart = 30 + typeEntry.typeOffset;
+            const entrySize = 12;
+            let extractedCount = 0;
+            const safeTag = sanitizeFilename(typeEntry.tag.trim()) || 'UNKNOWN';
+            const targetDir = path.join(mainDir, safeTag);
+
+            for (let i = 0; i < typeEntry.count; i++) {
+                const entryOffset = actualStart + i * entrySize;
+                const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
+                const nameOff = chunk.readUInt16BE(0);
+                const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
+                const id = chunk.readUInt16BE(10);
+
+                const dataOffset = 256 + relativeOffset;
+                if (dataOffset >= tocOffset || dataOffset < 256) continue;
+
+                try {
+                    const sizeBuf = Buffer.alloc(4);
+                    fs.readSync(fd, sizeBuf, 0, 4, dataOffset);
+                    const dataSize = sizeBuf.readUInt32BE(0);
+
+                    if (dataSize <= 0 || dataSize > 50000000) continue; // Skip abnormally large or zero-length
+
+                    const rawData = Buffer.alloc(dataSize);
+                    fs.readSync(fd, rawData, 0, dataSize, dataOffset + 4);
+
+                    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+
+                    const name = getString(nameOff);
+                    const cleanName = sanitizeFilename(name) || `${safeTag}_${id}`;
+                    
+                    let ext = '.bin';
+                    if (['TEXT', 'STR ', 'STR#', 'scpt'].includes(typeEntry.tag)) ext = '.txt';
+
+                    const outPath = path.join(targetDir, `${cleanName}${ext}`);
+                    fs.writeFileSync(outPath, rawData);
+                    extractedCount++;
+                } catch (err) {
+                    console.error(`Error processing ${typeEntry.tag} ID ${id} in ${filePath}:`, err.message);
+                }
+            }
+            if (extractedCount > 0) {
+                console.log(`  Finished generic extraction for ${typeEntry.tag}: Extracted ${extractedCount} items successfully.`);
+            }
         }
     }
 
@@ -822,6 +867,13 @@ async function runExtractor(drive, choice) {
         await processRFFile(`${drive}:\\SOUND5.RF`, 'sounds');
     }
 
+    if (choice === '1' || choice === '5') {
+        console.log('\n=========================================');
+        console.log('EXTRACTING GENERIC ASSETS (MAIN)');
+        console.log('=========================================');
+        await processRFFile(`${drive}:\\MAIN.RF`, 'main');
+    }
+
     console.log('\n======================================================');
     console.log(`Extraction complete! All assets placed in:\n${baseOutDir}`);
     console.log('======================================================');
@@ -835,14 +887,15 @@ const rl = readline.createInterface({
 rl.question('Drive letter for Hollywood High CD-ROM (e.g., J): ', (driveLetter) => {
     driveLetter = driveLetter.trim().toUpperCase() || 'J';
     console.log('\nWhat would you like to extract?');
-    console.log('  1. Everything (actors, scenes, sounds)');
+    console.log('  1. Everything (actors, scenes, sounds, main)');
     console.log('  2. Actors only');
     console.log('  3. Scenes only');
     console.log('  4. Sounds only');
-    rl.question('Choice [1-4]: ', (choice) => {
+    console.log('  5. Main assets only');
+    rl.question('Choice [1-5]: ', (choice) => {
         choice = choice.trim();
         rl.close();
-        if (!['1','2','3','4'].includes(choice)) {
+        if (!['1','2','3','4','5'].includes(choice)) {
             console.error('Invalid choice.');
             process.exit(1);
         }
