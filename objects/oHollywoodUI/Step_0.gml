@@ -818,23 +818,38 @@ if (file_menu_open) {
         var _clicked_option = false;
         
         if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y && _my < _fm_y + 35) {
-            var _file = get_save_filename("JSON Script|*.json", "screenplay.json");
+            var _file = get_save_filename("Hollywood High Script|*.hhi", "screenplay.hhi");
             if (_file != "") {
                 var _save_data = { version: 1, script: script_blocks, chars: characters, dict: dictionary_list };
                 var _json = json_stringify(_save_data);
-                var _f = file_text_open_write(_file);
-                file_text_write_string(_f, _json);
-                file_text_close(_f);
+                
+                // Create a buffer from the JSON string
+                var _buffer = buffer_create(string_byte_length(_json) + 1, buffer_fixed, 1);
+                buffer_write(_buffer, buffer_string, _json);
+                buffer_seek(_buffer, buffer_seek_start, 0); // Rewind buffer before compression
+                
+                // Compress the buffer
+                var _compressed_buffer = buffer_compress(_buffer, 0, buffer_get_size(_buffer));
+                
+                // Save the compressed buffer to a binary file
+                buffer_save(_compressed_buffer, _file);
+                
+                // Clean up memory
+                buffer_delete(_buffer);
+                buffer_delete(_compressed_buffer);
             }
             _clicked_option = true;
         } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 35 && _my < _fm_y + 70) {
-            var _file = get_open_filename("JSON Script|*.json", "");
+            var _file = get_open_filename("Hollywood High Script|*.hhi", "");
             if (_file != "" && file_exists(_file)) {
-                var _f = file_text_open_read(_file);
-                var _json = "";
-                while (!file_text_eof(_f)) { _json += file_text_read_string(_f) + "\n"; file_text_readln(_f); }
-                file_text_close(_f);
                 try {
+                    // Load the binary file into a buffer, decompress it, and read the JSON string
+                    var _buffer = buffer_load(_file);
+                    var _decompressed_buffer = buffer_decompress(_buffer);
+                    var _json = buffer_read(_decompressed_buffer, buffer_string);
+                    buffer_delete(_buffer);
+                    buffer_delete(_decompressed_buffer);
+
                     var _loaded = json_parse(_json);
                     if (is_array(_loaded)) script_blocks = _loaded;
                     else if (is_struct(_loaded)) {
@@ -847,7 +862,7 @@ if (file_menu_open) {
                     scene_edit_mode = false; insertion_idx = -1;
                     selection_start = 0; selection_end = 0; is_selecting = false;
                     is_speaking = false; audio_stop_all(); tts_stop(); block_scroll_y = 0;
-                    if (array_length(script_blocks) > 0) { play_from_index(0); playing_block_index = -1; } else { preview_actors = []; current_scene_sprite = -1; }
+                    if (array_length(script_blocks) > 0) { play_from_index(0); playing_block_index = -1; } else { preview_actors = []; current_scene_sprite = -1; set_scene_dimensions(-1); }
                 } catch(e) { show_message("Error loading script file! Invalid format."); }
             }
             _clicked_option = true;
