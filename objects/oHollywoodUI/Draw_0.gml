@@ -465,12 +465,13 @@ if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block
         }
 
         if (_is_visible) {
-            var _fx = scene_win_x + 180; var _fy = scene_win_y - 45;
-            var _fhov = (!_overlay_active && _mx > _fx && _mx < _fx + 80 && _my > _fy && _my < _fy + 35);
+            var _fw = 120; var _fh = 20;
+            var _fx = scene_win_x + (scene_win_w / 2) - (_fw / 2); var _fy = scene_win_y + scene_win_h + 4;
+            var _fhov = (!_overlay_active && _mx > _fx && _mx < _fx + _fw && _my > _fy && _my < _fy + _fh);
             draw_set_color(_fhov ? c_white : make_color_rgb(100, 100, 255));
-            draw_rectangle(_fx, _fy, _fx + 80, _fy + 35, false);
+            draw_rectangle(_fx, _fy, _fx + _fw, _fy + _fh, false);
             draw_set_color(_fhov ? make_color_rgb(100, 100, 255) : c_white);
-            draw_set_halign(fa_center); draw_text(_fx + 40, _fy + 8, "FLIP"); draw_set_halign(fa_left);
+            draw_set_halign(fa_center); draw_text(_fx + (_fw / 2), _fy + 3, "FLIP FACING"); draw_set_halign(fa_left);
         }
     }
 }

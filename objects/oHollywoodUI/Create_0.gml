@@ -533,6 +533,15 @@ click_timer        = 0;
 repeat_timer       = 0;  // Keyboard repeat speed
 repeat_key         = vk_nokey;
 
+// --- 8. WARM UP TTS ENGINE ---
+// PowerShell and the .NET host have a noticeable delay on their first run.
+// We trigger a silent dummy request here (".") so the OS caches the executable
+// and JIT-compiles the libraries, preventing a pause on the first actual playback.
+warmup_requests = [];
+if (array_length(all_voices) > 0) {
+    array_push(warmup_requests, tts_speak(".", all_voices[0].voice_id, 50, 50, 0, 0));
+}
+
 /**
  * Starts playback from a specific block, calculating proper scene state.
  */

@@ -332,6 +332,24 @@ if (is_speaking) {
     }
 }
 
+// --- CLEANUP WARMUP REQUESTS ---
+if (variable_instance_exists(id, "warmup_requests")) {
+    for (var _r = array_length(warmup_requests) - 1; _r >= 0; _r--) {
+        var _req = warmup_requests[_r];
+        var _done_file = working_directory + "talkit\\talkit_done_" + string(_req) + ".tmp";
+        if (file_exists(_done_file)) {
+            file_delete(_done_file);
+            array_delete(warmup_requests, _r, 1);
+            
+            var _txt_file = game_save_id + "talkit_text_" + string(_req) + ".txt";
+            if (file_exists(_txt_file)) file_delete(_txt_file);
+            
+            var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req) + ".tmp";
+            if (file_exists(_prog_file)) file_delete(_prog_file);
+        }
+    }
+}
+
 // Auto-stop if current block is scene/action and it's the last block
 if (!is_speaking && !action_animating && playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
     var _lb_idx = (playing_linked_index != -1) ? playing_linked_index : playing_block_index;
@@ -969,8 +987,10 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
 if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks) && mouse_check_button_pressed(mb_left)) {
-    var _btn_x = scene_win_x + 180; var _btn_y = scene_win_y - 45;
     _scene = script_blocks[active_scene_block_idx];
+    var _btn_w = 120; var _btn_h = 20;
+    var _btn_x = scene_win_x + (scene_win_w / 2) - (_btn_w / 2);
+    var _btn_y = scene_win_y + scene_win_h + 4;
     var _is_visible = true;
     if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
         var _act = _scene.actors[scene_edit_selected_actor_idx];
@@ -993,7 +1013,7 @@ if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block
             _is_visible = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
         }
     }
-    if (_is_visible && _mx > _btn_x && _mx < _btn_x + 80 && _my > _btn_y && _my < _btn_y + 35) {
+    if (_is_visible && _mx > _btn_x && _mx < _btn_x + _btn_w && _my > _btn_y && _my < _btn_y + _btn_h) {
             if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
                 var _act = _scene.actors[scene_edit_selected_actor_idx];
                 if (!variable_struct_exists(_act, "facing")) _act.facing = 1;
