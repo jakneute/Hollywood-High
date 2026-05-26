@@ -66,8 +66,8 @@ btn_move_params_x = btn_theater_x + btn_theater_w + 10; btn_move_params_y = 15;
 btn_move_params_w = 170; btn_move_params_h = 35;
 move_modal_open = false;
 move_speed_index = 2; // Default: WALK
-move_speeds = [0.8, 1.5, 2.5, 4.5, 7.0];
-move_speed_labels = ["CRAWL", "SLOW", "WALK", "RUN", "SPRINT"];
+move_speeds = [0.6, 1.25, 1.9, 3.1, 5.6];
+move_speed_labels = ["CRAWL", "SLOW", "WALK", "JOG", "RUN"];
 moonwalk_enabled = false;
 move_modal_temp_speed_index = 2;
 move_modal_temp_moonwalk = false;
@@ -97,6 +97,7 @@ script_blocks = [];
 
 focused_block = -1;           // Index of the block currently being typed in
 playing_block_index = -1;    // Index of the block currently being spoken
+playing_linked_index = -1;   // Index of secondary linked block being spoken
 block_scroll_y = 0;          // Global scroll position for the list
 preview_actors = [];         // Dynamically calculated actors for the current block
 
@@ -111,7 +112,7 @@ dragging_preview_idx = -1;
 drag_preview_x = 0;
 drag_preview_y = 0;
 drag_preview_char = -1;
-active_request_id = -1;      // What the Step event is waiting for
+active_requests = [];        // Array of all active TTS request IDs
 keyboard_string  = "";      // GameMaker built-in for text capture
 caret_pos        = 0;      // Current cursor index in the string
 key_repeat_timer = 0;        // Timer for repeating keys
@@ -318,8 +319,9 @@ action_animating = false;
 action_anim_char_index = -1;
 action_anim_target_x = 0;
 action_anim_target_y = 0;
-action_anim_speed = 2.5;
+action_anim_speed = 1.9;
 action_anim_type = ""; 
+active_animations = [];
 action_modal_slider_dragging = false;
 action_modal_wait_duration = 1.0;
 
@@ -626,7 +628,7 @@ play_from_index = function(_idx) {
                 var _is_enter = (string_pos("enter", _aname) > 0);
                 var _is_exit = (string_pos("exit", _aname) > 0);
                 var _is_left = (string_pos("left", _aname) > 0);
-                var _spd = variable_struct_exists(_b, "speed") ? _b.speed : 2.5;
+                var _spd = variable_struct_exists(_b, "speed") ? _b.speed : 1.5;
                 var _moon = variable_struct_exists(_b, "moonwalk") ? _b.moonwalk : false;
                 
                 var _act_idx = -1;
@@ -645,7 +647,7 @@ play_from_index = function(_idx) {
                         var _final_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                         
                         char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
-                        array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: _face });
+                        array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index] });
                     } else {
                         // If already onstage, update position and handle auto-facing
                         if (variable_struct_exists(_b, "target_x")) {
@@ -688,9 +690,12 @@ play_from_index = function(_idx) {
     
     // 4. Start playback
     playing_block_index = _idx;
+    playing_linked_index = -1;
     is_speaking = false;
     speaking_pause_timer = -1; // Special flag to start current index immediately
+    active_requests = [];
     action_animating = false;
+    active_animations = [];
     audio_stop_all();
     tts_stop();
 };

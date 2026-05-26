@@ -1,5 +1,7 @@
 /// @description Advanced Block Editor Logic (Fixed & Restored)
 var _mx = mouse_x; var _my = mouse_y;
+var _overlay_active = false;
+var _scene = -1;
 
 // --- 0. MODAL OVERLAY BLOCKING ---
 // Ensure modals capture all input and prevent background logic from running
@@ -169,24 +171,39 @@ if (move_modal_open) {
 
 // --- 1. TTS SEQUENTIAL PLAYBACK & AUTO-SCROLL ---
 if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
-    var _b = script_blocks[playing_block_index];
+    var _scroll_idx = playing_block_index;
+    var _b = script_blocks[_scroll_idx];
+    
+    if (!variable_struct_exists(_b, "text") && playing_linked_index != -1) {
+        for (var _i = playing_block_index; _i <= playing_linked_index; _i++) {
+            if (_i < array_length(script_blocks) && variable_struct_exists(script_blocks[_i], "text")) {
+                _scroll_idx = _i;
+                _b = script_blocks[_scroll_idx];
+                break;
+            }
+        }
+    }
+    
     var _target_y = 0;
-    for (var i = 0; i < playing_block_index; i++) _target_y += script_blocks[i].height + 20;
+    for (var i = 0; i < _scroll_idx; i++) _target_y += script_blocks[i].height + 20;
     
     var _is_scene = (variable_struct_exists(_b, "type") && _b.type == "scene");
     var _header_offset = _is_scene ? 0 : 30; // Center on the name label/scene header
     var _char_progress_y = 0;
     
-    if (is_speaking && string_length(_b.text) > 0) {
+    if (is_speaking && variable_struct_exists(_b, "text") && string_length(_b.text) > 0) {
         // 1. Check for Accurate Progress Pulse from TTS Bridge
-        var _prog_file = working_directory + "talkit\\talkit_prog_" + string(active_request_id) + ".tmp";
-        if (file_exists(_prog_file)) {
-            var _f = file_text_open_read(_prog_file);
-            if (_f != -1) {
-                var _perc = file_text_read_real(_f);
-                file_text_close(_f);
-                // Re-sync visual index: allow estimation to move past pulse, but use pulse as a floor
-                if (_perc > 0) speaking_index = max(speaking_index, _perc * string_length(_b.text));
+        var _req_to_check = variable_struct_exists(_b, "tts_req") ? _b.tts_req : -1;
+        if (_req_to_check != -1) {
+            var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req_to_check) + ".tmp";
+            if (file_exists(_prog_file)) {
+                var _f = file_text_open_read(_prog_file);
+                if (_f != -1) {
+                    var _perc = file_text_read_real(_f);
+                    file_text_close(_f);
+                    // Re-sync visual index: allow estimation to move past pulse, but use pulse as a floor
+                    if (_perc > 0) speaking_index = max(speaking_index, _perc * string_length(_b.text));
+                }
             }
         }
 
@@ -208,13 +225,15 @@ if (playing_block_index != -1 && playing_block_index < array_length(script_block
     // --- Theater Subtitle Auto-Scroll ---
     if (theater_mode && is_speaking && !theater_paused) {
         // Subtitles use 32px line height and 880px wrap width (from Draw_0.gml)
-        var _p = get_text_pos(_b.text, floor(speaking_index), 880, 32);
-        var _target_sub_scroll = 0;
-        // If the current line is the 4th or lower (y >= 96), scroll up
-        if (_p.y >= 96) {
-            _target_sub_scroll = -(_p.y - 64); // Keeps the current line as the 3rd visible line
+        if (variable_struct_exists(_b, "text")) {
+            var _p = get_text_pos(_b.text, floor(speaking_index), 880, 32);
+            var _target_sub_scroll = 0;
+            // If the current line is the 4th or lower (y >= 96), scroll up
+            if (_p.y >= 96) {
+                _target_sub_scroll = -(_p.y - 64); // Keeps the current line as the 3rd visible line
+            }
+            theater_subtitle_scroll_y += (_target_sub_scroll - theater_subtitle_scroll_y) * 0.1;
         }
-        theater_subtitle_scroll_y += (_target_sub_scroll - theater_subtitle_scroll_y) * 0.1;
     }
 } else {
     theater_subtitle_scroll_y = 0;
@@ -223,37 +242,78 @@ if (playing_block_index != -1 && playing_block_index < array_length(script_block
 
 // --- 1.1 ACTION ANIMATOR ---
 if (action_animating) {
-    var _act_idx = -1;
-    for (var a = 0; a < array_length(preview_actors); a++) {
-        if (preview_actors[a].char_index == action_anim_char_index) { _act_idx = a; break; }
-    }
-    
-    if (_act_idx != -1) {
-        var _act = preview_actors[_act_idx];
-        var _dist = point_distance(_act.x, _act.y, action_anim_target_x, action_anim_target_y);
-        
-        if (_dist > action_anim_speed) {
-            var _dir = point_direction(_act.x, _act.y, action_anim_target_x, action_anim_target_y);
-            _act.x += lengthdir_x(action_anim_speed, _dir);
-            _act.y += lengthdir_y(action_anim_speed, _dir);
-        } else {
-            _act.x = action_anim_target_x;
-            _act.y = action_anim_target_y;
-            action_animating = false;
-            speaking_pause_timer = 5;
-            if (action_anim_type == "exit") array_delete(preview_actors, _act_idx, 1);
+    for (var _ai = array_length(active_animations) - 1; _ai >= 0; _ai--) {
+        var _anim = active_animations[_ai];
+        var _act_idx = -1;
+        for (var a = 0; a < array_length(preview_actors); a++) {
+            if (preview_actors[a].char_index == _anim.char_index) { _act_idx = a; break; }
         }
-    } else { action_animating = false; }
+        
+        if (_act_idx != -1) {
+            var _act = preview_actors[_act_idx];
+            var _dist = point_distance(_act.x, _act.y, _anim.target_x, _anim.target_y);
+            
+            if (!variable_struct_exists(_act, "bounce_timer")) _act.bounce_timer = 0;
+            if (!variable_struct_exists(_act, "y_offset")) _act.y_offset = 0;
+            if (!variable_struct_exists(_anim, "cur_speed")) _anim.cur_speed = 0;
+            
+            var _target_speed = _anim.speed;
+            var _decel_dist = _anim.speed * 12; // Start slowing down when close
+            if (_dist < _decel_dist) {
+                _target_speed = max(0.2, _anim.speed * (_dist / _decel_dist));
+            }
+            
+            _anim.cur_speed += (_target_speed - _anim.cur_speed) * 0.2; // Inertia ease
+            
+            if (_dist > _anim.cur_speed) {
+                var _dir = point_direction(_act.x, _act.y, _anim.target_x, _anim.target_y);
+                var _dx = lengthdir_x(_anim.cur_speed, _dir);
+                var _dy = lengthdir_y(_anim.cur_speed, _dir);
+                _act.x += _dx;
+                _act.y += _dy;
+                
+                var _h_speed = abs(_dx);
+                if (_h_speed > 0.2) {
+                    _act.bounce_timer += _h_speed * 0.07; 
+                    var _bob_amp = clamp(_h_speed * 0.8, 0, 4);
+                    _act.y_offset = -round(abs(sin(_act.bounce_timer)) * _bob_amp);
+                } else {
+                    _act.y_offset = 0;
+                    _act.bounce_timer = 0;
+                }
+            } else {
+                _act.x = _anim.target_x;
+                _act.y = _anim.target_y;
+                _act.y_offset = 0;
+                _act.bounce_timer = 0;
+                speaking_pause_timer = max(speaking_pause_timer, 5);
+                if (_anim.type == "exit") array_delete(preview_actors, _act_idx, 1);
+                array_delete(active_animations, _ai, 1);
+            }
+        } else { array_delete(active_animations, _ai, 1); }
+    }
+    if (array_length(active_animations) == 0) action_animating = false;
 }
 
-if (is_speaking && active_request_id != -1) {
-    var _done_file = working_directory + "talkit\\talkit_done_" + string(active_request_id) + ".tmp";
-    if (file_exists(_done_file)) {
+if (is_speaking) {
+    var _all_done = true;
+    for (var _r = array_length(active_requests) - 1; _r >= 0; _r--) {
+        var _req = active_requests[_r];
+        var _done_file = working_directory + "talkit\\talkit_done_" + string(_req) + ".tmp";
+        if (file_exists(_done_file)) {
+            file_delete(_done_file);
+            array_delete(active_requests, _r, 1);
+        } else {
+            _all_done = false;
+        }
+    }
+
+    if (_all_done) {
         if (playing_block_index != -1 && playing_block_index < array_length(script_blocks) - 1) {
-            is_speaking = false; speaking_pause_timer = 15; file_delete(_done_file);
+            is_speaking = false; speaking_pause_timer = 15; 
         } else {
             is_speaking = false; last_played_block_index = playing_block_index; 
-            file_delete(_done_file); tts_stop();
+            tts_stop();
             
             if (theater_mode) {
                 theater_subtitles = ""; theater_active_char = -1;
@@ -269,10 +329,11 @@ if (is_speaking && active_request_id != -1) {
 
 // Auto-stop if current block is scene/action and it's the last block
 if (!is_speaking && !action_animating && playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
-    var _lb = script_blocks[playing_block_index];
+    var _lb_idx = (playing_linked_index != -1) ? playing_linked_index : playing_block_index;
+    var _lb = script_blocks[_lb_idx];
     var _lb_is_scene = (variable_struct_exists(_lb, "type") && _lb.type == "scene");
     var _lb_is_action = (variable_struct_exists(_lb, "type") && _lb.type == "action");
-    if ((_lb_is_scene || _lb_is_action) && playing_block_index >= array_length(script_blocks) - 1) {
+    if ((_lb_is_scene || _lb_is_action) && _lb_idx >= array_length(script_blocks) - 1) {
         if (theater_mode) {
             theater_subtitles = ""; theater_active_char = -1;
             theater_paused = true;
@@ -292,16 +353,20 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
         // If speaking_pause_timer == 0, we need to advance. 
         // If speaking_pause_timer == -1, we stay on current index (first play).
         if (speaking_pause_timer == 0) {
-            if (playing_block_index < array_length(script_blocks) - 1) {
-                playing_block_index++;
+            var _next_idx = (playing_linked_index != -1) ? playing_linked_index + 1 : playing_block_index + 1;
+            if (_next_idx < array_length(script_blocks)) {
+                playing_block_index = _next_idx;
+                playing_linked_index = -1;
             } else {
                 if (theater_mode) {
                     theater_subtitles = ""; theater_active_char = -1;
                     theater_paused = true;
                     play_from_index(0); // Rewind
                     playing_block_index = -1;
+                    playing_linked_index = -1;
                 } else {
                     playing_block_index = -1;
+                    playing_linked_index = -1;
                     theater_paused = false; 
                 }
                 return;
@@ -309,14 +374,28 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
         }
         if (speaking_pause_timer == -1) speaking_pause_timer = 0;
 
-        var _b = script_blocks[playing_block_index];
-        var _is_scene = (variable_struct_exists(_b, "type") && _b.type == "scene");
-        var _is_action = (variable_struct_exists(_b, "type") && _b.type == "action");
+        var _blocks_to_start = [script_blocks[playing_block_index]];
+        var _curr_link_idx = playing_block_index;
+        while (_curr_link_idx < array_length(script_blocks) - 1 && variable_struct_exists(script_blocks[_curr_link_idx], "linked") && script_blocks[_curr_link_idx].linked) {
+            _curr_link_idx++;
+            array_push(_blocks_to_start, script_blocks[_curr_link_idx]);
+        }
+        playing_linked_index = (_curr_link_idx > playing_block_index) ? _curr_link_idx : -1;
+            
+        theater_active_char = -1; 
+        if (theater_mode) theater_subtitles = ""; 
+        
+        active_requests = [];
+
+        for (var _idx_b = 0; _idx_b < array_length(_blocks_to_start); _idx_b++) {
+            var _b = _blocks_to_start[_idx_b];
+            var _is_scene = (variable_struct_exists(_b, "type") && _b.type == "scene");
+            var _is_action = (variable_struct_exists(_b, "type") && _b.type == "action");
             
             if (_is_scene) {
                 current_scene_sprite = get_scene_sprite(_b.internal_name);
                 set_scene_dimensions(current_scene_sprite);
-                speaking_pause_timer = 60; // Give scene 1 second to breathe
+                speaking_pause_timer = max(speaking_pause_timer, 60); // Give scene 1 second to breathe
                 
                 active_scene_block_idx = playing_block_index;
                 preview_actors = [];
@@ -333,7 +412,7 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 var _is_enter = (string_pos("enter", _aname) > 0);
                 var _is_exit = (string_pos("exit", _aname) > 0);
                 var _is_left = (string_pos("left", _aname) > 0);
-                var _spd = variable_struct_exists(_b, "speed") ? _b.speed : 2.5;
+                var _spd = variable_struct_exists(_b, "speed") ? _b.speed : 1.9;
                 var _moon = variable_struct_exists(_b, "moonwalk") ? _b.moonwalk : false;
                 
                 var _act_idx = -1;
@@ -345,7 +424,7 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                 var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 1.5) / 450) : 100;
                 
                 if (_is_enter) {
-                    if (_act_idx != -1) { speaking_pause_timer = 5; } // Conflict
+                    if (_act_idx != -1) { speaking_pause_timer = max(speaking_pause_timer, 5); } // Conflict
                     else {
                         var _start_x = _is_left ? -(_w/2) : scene_win_w + (_w/2);
                         var _base_face = _is_left ? -1 : 1;
@@ -354,19 +433,18 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                         var _target_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                         array_push(preview_actors, { char_index: _b.char_index, x: _start_x, y: _target_y, is_base: false, facing: char_facings[_b.char_index] });
                         action_animating = true;
-                        action_anim_char_index = _b.char_index;
-                        action_anim_type = "enter";
-                        action_anim_speed = _spd;
-                        action_anim_target_x = variable_struct_exists(_b, "target_x") ? _b.target_x : (_is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20);
-                        action_anim_target_y = variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h;
+                        array_push(active_animations, {
+                            char_index: _b.char_index,
+                            type: "enter",
+                            speed: _spd,
+                            target_x: variable_struct_exists(_b, "target_x") ? _b.target_x : (_is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20),
+                            target_y: variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h
+                        });
                     }
                 } else if (_is_exit) {
-                    if (_act_idx == -1) { speaking_pause_timer = 5; } // Conflict
+                    if (_act_idx == -1) { speaking_pause_timer = max(speaking_pause_timer, 5); } // Conflict
                     else {
                         action_animating = true;
-                        action_anim_char_index = _b.char_index;
-                        action_anim_type = "exit";
-                        action_anim_speed = _spd;
                         
                         // Intelligently choose exit side if not specified
                         var _current_x = preview_actors[_act_idx].x;
@@ -381,88 +459,74 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                         char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                         preview_actors[_act_idx].facing = char_facings[_b.char_index];
                         
-                        action_anim_target_x = _exit_left ? -(_w/2) - 50 : scene_win_w + (_w/2) + 50;
-                        action_anim_target_y = preview_actors[_act_idx].y;
+                        array_push(active_animations, {
+                            char_index: _b.char_index,
+                            type: "exit",
+                            speed: _spd,
+                            target_x: _exit_left ? -(_w/2) - 50 : scene_win_w + (_w/2) + 50,
+                            target_y: preview_actors[_act_idx].y
+                        });
                     }
                 } else if (string_pos("turn", _aname) > 0) {
                     if (_act_idx != -1) {
                         preview_actors[_act_idx].facing *= -1;
                         char_facings[_b.char_index] = preview_actors[_act_idx].facing;
                     }
-                    speaking_pause_timer = 5;
+                    speaking_pause_timer = max(speaking_pause_timer, 5);
                 } else if (string_pos("wait", _aname) > 0) {
                     var _dur = variable_struct_exists(_b, "duration") ? _b.duration : 1.0;
-                    speaking_pause_timer = max(1, _dur * 60);
+                    speaking_pause_timer = max(speaking_pause_timer, max(1, _dur * 60));
                 } else if (string_pos("moves", _aname) > 0) {
                     if (_act_idx != -1) {
                         action_animating = true;
-                        action_anim_char_index = _b.char_index;
-                        action_anim_type = "move";
-                        action_anim_speed = _spd;
-                        action_anim_target_x = _b.target_x;
-                        action_anim_target_y = _b.target_y;
-
-                        var _base_face = (action_anim_target_x > preview_actors[_act_idx].x) ? -1 : 1;
+                        var _base_face = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
                         char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                         preview_actors[_act_idx].facing = char_facings[_b.char_index];
-                    } else { speaking_pause_timer = 5; }
-                } else { speaking_pause_timer = 5; }
+                        array_push(active_animations, {
+                            char_index: _b.char_index,
+                            type: "move",
+                            speed: _spd,
+                            target_x: _b.target_x,
+                            target_y: _b.target_y
+                        });
+                    } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
             } else {
+                var _is_empty = true;
+                for (var _e_idx = 1; _e_idx <= string_length(_b.text); _e_idx++) {
+                    if (string_char_at(_b.text, _e_idx) != " " && string_char_at(_b.text, _e_idx) != "\n" && string_char_at(_b.text, _e_idx) != "\r") {
+                        _is_empty = false; break;
+                    }
+                }
+                
                 var _c = characters[_b.char_index];
                 var _phonetic_text = apply_dictionary(_b.text);
-                active_request_id = tts_speak(_phonetic_text, _b.voice_id, _b.pitch, _b.speed, _b.mode, _b.style);
-                is_speaking = true;
-                speaking_index = 0; // Reset progress for the new line
                 
-                // Calculate Timing Ratio: (Written Length / Phonetic Length)
-                // This stretches the visual progress to match expanded dictionary pronunciations
-                var _v_len = max(1, string_length(_b.text));
-                var _p_len = max(1, string_length(_phonetic_text));
-                speaking_phonetic_ratio = _v_len / _p_len;
+                if (_is_empty) {
+                    _b.tts_req = -1;
+                } else {
+                    var _req = tts_speak(_phonetic_text, _b.voice_id, _b.pitch, _b.speed, _b.mode, _b.style);
+                    _b.tts_req = _req;
+                    array_push(active_requests, _req);
+                    if (!is_speaking) {
+                        is_speaking = true;
+                        speaking_index = 0; // Reset progress for the primary line
+                        var _v_len = max(1, string_length(_b.text));
+                        var _p_len = max(1, string_length(_phonetic_text));
+                        speaking_phonetic_ratio = _v_len / _p_len;
+                    }
+                }
             }
             
-            // Update Talking State
-            if (_is_scene || _is_action) { 
-                theater_active_char = -1; 
-                if (theater_mode) theater_subtitles = ""; 
-            } else { 
-                theater_active_char = _b.char_index; 
-                if (theater_mode) theater_subtitles = _b.text; 
-            }
-        }
-    }
-
-    // --- 4. ANIMATION ENGINE ---
-    if (action_animating) {
-        var _spd = action_anim_speed;
-        var _done = true;
-        for (var i = 0; i < array_length(preview_actors); i++) {
-            if (preview_actors[i].char_index == action_anim_char_index) {
-                _done = false;
-                var _dx = action_anim_target_x - preview_actors[i].x;
-                var _dy = action_anim_target_y - preview_actors[i].y;
-                var _dist = point_distance(preview_actors[i].x, preview_actors[i].y, action_anim_target_x, action_anim_target_y);
-                
-                if (_dist < _spd) {
-                    preview_actors[i].x = action_anim_target_x;
-                    preview_actors[i].y = action_anim_target_y;
-                    _done = true;
+            if (!(_is_scene || _is_action) && _b.tts_req != -1) { 
+                if (theater_active_char == -1) {
+                    theater_active_char = _b.char_index; 
+                    if (theater_mode) theater_subtitles = _b.text; 
                 } else {
-                    var _dir = point_direction(preview_actors[i].x, preview_actors[i].y, action_anim_target_x, action_anim_target_y);
-                    preview_actors[i].x += lengthdir_x(_spd, _dir);
-                    preview_actors[i].y += lengthdir_y(_spd, _dir);
+                    if (theater_mode) theater_subtitles += "\n" + string_upper(characters[_b.char_index].name) + ": " + _b.text; 
                 }
-                break;
             }
         }
-        
-        if (_done) {
-            action_animating = false;
-            if (action_anim_type == "exit") {
-                for (var i = 0; i < array_length(preview_actors); i++) {
-                    if (preview_actors[i].char_index == action_anim_char_index) { array_delete(preview_actors, i, 1); break; }
-                }
-            }
         }
     }
 
@@ -474,7 +538,7 @@ if (scene_edit_menu_open) {
         var _mw = 100; var _mh = 35;
         var _bx = scene_edit_menu_x; var _by = scene_edit_menu_y;
         if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
-            var _scene = script_blocks[active_scene_block_idx];
+            _scene = script_blocks[active_scene_block_idx];
             
             // FLIP Button
             if (_mx > _bx && _mx < _bx + _mw && _my > _by && _my < _by + _mh) {
@@ -728,7 +792,7 @@ if (insert_menu_open) {
 // --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
 if (mouse_check_button_pressed(mb_left)) {
     // Block interaction if any modal is open
-    var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
         if (!scene_edit_mode) focused_block = -1;
@@ -763,7 +827,7 @@ if (mouse_check_button_pressed(mb_left)) {
 
 // --- 2e. IN-SCENE DRAGGING & DROPPING ---
 if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
-    var _scene = script_blocks[active_scene_block_idx];
+    _scene = script_blocks[active_scene_block_idx];
     
     // Start dragging actor already in scene / or just Click to open menu
     if (mouse_check_button_pressed(mb_left)) {
@@ -856,7 +920,7 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
 if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks) && mouse_check_button_pressed(mb_left)) {
     var _btn_x = scene_win_x + 180; var _btn_y = scene_win_y - 45;
-    var _scene = script_blocks[active_scene_block_idx];
+    _scene = script_blocks[active_scene_block_idx];
     var _is_visible = true;
     if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
         var _act = _scene.actors[scene_edit_selected_actor_idx];
@@ -880,7 +944,6 @@ if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block
         }
     }
     if (_is_visible && _mx > _btn_x && _mx < _btn_x + 80 && _my > _btn_y && _my < _btn_y + 35) {
-            var _scene = script_blocks[active_scene_block_idx];
             if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
                 var _act = _scene.actors[scene_edit_selected_actor_idx];
                 if (!variable_struct_exists(_act, "facing")) _act.facing = 1;
@@ -1351,7 +1414,7 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     // EDIT VOICE Button
-    var _overlay_active = (scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     if (!_overlay_active && !is_speaking && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
         focused_block = -1;
         selection_start = 0; selection_end = 0;
@@ -1373,7 +1436,7 @@ if (mouse_check_button_pressed(mb_left)) {
     var _wrap_w = box_w - 120; // Standardized wrap width
     
     var _found_block = focused_block;
-    var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+    _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
     
     if (!_overlay_active && mouse_check_button_pressed(mb_left) && _mx > box_x - 50 && _mx < box_x + box_w && _my > box_y && _my < box_y + box_h) {
         var _cy = _clip_y + block_scroll_y;
@@ -1402,6 +1465,7 @@ if (mouse_check_button_pressed(mb_left)) {
 
             // 1. Delete (X) - Anchored to _cy + 5
             if (_mx > _bx && _mx < _bx + _bw && _my > _cy + 5 && _my < _cy + 5 + _btn_h) {
+                if (i > 0 && variable_struct_exists(script_blocks[i-1], "linked")) script_blocks[i-1].linked = false;
                 array_delete(script_blocks, i, 1);
                 update_all_block_heights();
                 if (focused_block >= array_length(script_blocks)) focused_block = array_length(script_blocks) - 1;
@@ -1427,6 +1491,10 @@ if (mouse_check_button_pressed(mb_left)) {
             // UP
             if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 5 && _my < _cy + 5 + _btn_h) {
                 if (i > 0) {
+                    if (variable_struct_exists(script_blocks[i], "linked")) script_blocks[i].linked = false;
+                    if (variable_struct_exists(script_blocks[i-1], "linked")) script_blocks[i-1].linked = false;
+                    if (i > 1 && variable_struct_exists(script_blocks[i-2], "linked")) script_blocks[i-2].linked = false;
+
                     var _h = script_blocks[i-1].height + 25;
                     var _temp = script_blocks[i]; script_blocks[i] = script_blocks[i-1]; script_blocks[i-1] = _temp;
                     block_scroll_y += _h; // Shift scroll to keep block under mouse
@@ -1466,7 +1534,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         move_modal_edit_mode = true;
                         
                         // Load current block values into temp modal state
-                        var _blk_spd = variable_struct_exists(_block, "speed") ? _block.speed : 2.5;
+                        var _blk_spd = variable_struct_exists(_block, "speed") ? _block.speed : 1.9;
                         move_modal_temp_moonwalk = variable_struct_exists(_block, "moonwalk") ? _block.moonwalk : false;
                         
                         // Match the speed value to the nearest index
@@ -1495,6 +1563,10 @@ if (mouse_check_button_pressed(mb_left)) {
             // DOWN
             else if (_mx > _lx && _mx < _lx + _bw && _my > _cy + 65 && _my < _cy + 65 + _btn_h) {
                 if (i < array_length(script_blocks) - 1) {
+                    if (variable_struct_exists(script_blocks[i], "linked")) script_blocks[i].linked = false;
+                    if (variable_struct_exists(script_blocks[i+1], "linked")) script_blocks[i+1].linked = false;
+                    if (i > 0 && variable_struct_exists(script_blocks[i-1], "linked")) script_blocks[i-1].linked = false;
+
                     var _h = script_blocks[i+1].height + 25;
                     var _temp = script_blocks[i]; script_blocks[i] = script_blocks[i+1]; script_blocks[i+1] = _temp;
                     block_scroll_y -= _h; // Shift scroll to keep block under mouse
@@ -1590,7 +1662,61 @@ if (mouse_check_button_pressed(mb_left)) {
             // --- 4d. GAP CLICK (Between blocks) ---
             if (i < array_length(script_blocks) - 1) {
                 var _gap_y = _cy + _bh;
-                if (_my > _gap_y && _my < _gap_y + 20 && _mx > box_x && _mx < box_x + box_w) {
+                var _plus_center_x = box_x + (box_w / 2);
+                
+                // Link Check
+                var _b1 = script_blocks[i];
+                var _b2 = script_blocks[i+1];
+                var _is_move1 = (variable_struct_exists(_b1, "type") && _b1.type == "action" && (string_pos("enter", string_lower(_b1.action_name)) > 0 || string_pos("exit", string_lower(_b1.action_name)) > 0 || string_pos("move", string_lower(_b1.action_name)) > 0));
+                var _is_voice1 = (!variable_struct_exists(_b1, "type") || _b1.type == "voice");
+                var _is_move2 = (variable_struct_exists(_b2, "type") && _b2.type == "action" && (string_pos("enter", string_lower(_b2.action_name)) > 0 || string_pos("exit", string_lower(_b2.action_name)) > 0 || string_pos("move", string_lower(_b2.action_name)) > 0));
+                var _is_voice2 = (!variable_struct_exists(_b2, "type") || _b2.type == "voice");
+                var _diff_voice = (_is_voice1 && _is_voice2 && real(_b1.char_index) != real(_b2.char_index));
+                var _diff_move = (_is_move1 && _is_move2 && real(_b1.char_index) != real(_b2.char_index));
+                
+                var _base_valid = ((_is_move1 && _is_voice2) || (_is_voice1 && _is_move2) || _diff_voice || _diff_move);
+                var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
+                var _chain_valid = true;
+                
+                if (_base_valid && !_is_linked) {
+                    var _start_idx = i;
+                    while (_start_idx > 0 && variable_struct_exists(script_blocks[_start_idx-1], "linked") && script_blocks[_start_idx-1].linked) _start_idx--;
+                    var _end_idx = i + 1;
+                    while (_end_idx < array_length(script_blocks) - 1 && variable_struct_exists(script_blocks[_end_idx], "linked") && script_blocks[_end_idx].linked) _end_idx++;
+                    
+                    for (var k = _start_idx; k < _end_idx; k++) {
+                        var _bk = script_blocks[k];
+                        var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
+                        var _k_is_v = (!variable_struct_exists(_bk, "type") || _bk.type == "voice");
+                        var _k_is_m = (variable_struct_exists(_bk, "type") && _bk.type == "action" && (string_pos("enter", string_lower(_bk.action_name)) > 0 || string_pos("exit", string_lower(_bk.action_name)) > 0 || string_pos("move", string_lower(_bk.action_name)) > 0));
+                        
+                        if (_k_is_v || _k_is_m) {
+                            for (var j = k + 1; j <= _end_idx; j++) {
+                                var _bj = script_blocks[j];
+                                if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
+                                    var _j_is_v = (!variable_struct_exists(_bj, "type") || _bj.type == "voice");
+                                    var _j_is_m = (variable_struct_exists(_bj, "type") && _bj.type == "action" && (string_pos("enter", string_lower(_bj.action_name)) > 0 || string_pos("exit", string_lower(_bj.action_name)) > 0 || string_pos("move", string_lower(_bj.action_name)) > 0));
+                                    if (_k_is_v && _j_is_v) { _chain_valid = false; break; }
+                                    if (_k_is_m && _j_is_m) { _chain_valid = false; break; }
+                                }
+                            }
+                        }
+                        if (!_chain_valid) break;
+                    }
+                }
+                
+                if ((_base_valid && _chain_valid) || _is_linked) {
+                    var _link_x = box_x + 90;
+                    if (_my > _gap_y && _my < _gap_y + 20 && _mx > _link_x - 15 && _mx < _link_x + 60) {
+                        if (variable_struct_exists(_b1, "linked")) _b1.linked = !_b1.linked;
+                        else _b1.linked = true;
+                        
+                        if (_b1.linked && insertion_idx == i) insertion_idx = -1;
+                        return;
+                    }
+                }
+
+                if (!_is_linked && _my > _gap_y && _my < _gap_y + 20 && _mx > _plus_center_x - 20 && _mx < _plus_center_x + 20) {
                     if (insertion_idx == i) insertion_idx = -1; // Toggle Off
                     else {
                         insertion_idx = i; // Toggle On
@@ -1633,7 +1759,7 @@ if (is_selecting && focused_block != -1) {
 }
 
 // Scroll Wheel
-var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+_overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
 
 if (!_overlay_active && !is_speaking) {
     var _over_pane = (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h);
@@ -1692,7 +1818,7 @@ if (!_overlay_active && !is_speaking) {
 }
 
 // --- UNIFIED DRAGGING FROM PANE LOGIC ---
-var _overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
+_overlay_active = (edit_mode || scene_modal_open || action_modal_open || insert_menu_open || theater_mode || move_modal_open);
 
 if (!_overlay_active && dragging_char_index != -1) {
     if (!mouse_check_button(mb_left)) {

@@ -62,23 +62,28 @@ if (theater_mode) {
 				var _ay = (_act.y / scene_win_h) * _stg_h;
 				
 				var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+				var _y_off = variable_struct_exists(_act, "y_offset") ? (_act.y_offset / scene_win_h) * _stg_h : 0;
 				
 				var _draw_x = (target_surface == -1) ? (_stg_x + _ax - (_csw * _asc * _face / 2)) : (_ax - (_csw * _asc * _face / 2));
-				var _draw_y = (target_surface == -1) ? (_stg_y + _ay - (_csh * _asc)) : (_ay - (_csh * _asc));
+				var _draw_y = (target_surface == -1) ? (_stg_y + _ay - (_csh * _asc) + _y_off) : (_ay - (_csh * _asc) + _y_off);
 				
-				if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-					var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
-					if (_pulse > 0) {
-						gpu_set_blendmode(bm_add);
-						draw_sprite_ext(_spr, 0, _draw_x - (_csw*_asc*0.04), _draw_y - (_csh*_asc*0.08), _asc * _face * 1.08, _asc * 1.08, 0, c_yellow, _pulse * 0.6);
-						gpu_set_blendmode(bm_normal);
-					}
+				var _char_is_speaking = false;
+				if (playing_block_index != -1 && is_speaking) {
+                    var _end_idx = max(playing_block_index, playing_linked_index);
+                    for (var _pi = playing_block_index; _pi <= _end_idx; _pi++) {
+                        if (_pi < array_length(script_blocks)) {
+                            var _cb = script_blocks[_pi];
+                            if ((!variable_struct_exists(_cb, "type") || _cb.type == "voice") && real(_cb.char_index) == real(_act.char_index)) {
+                                _char_is_speaking = true; break;
+                            }
+                        }
+                    }
 				}
 				
 				draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_white, 1);
-				
-				if (talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-					var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
+
+				if (talking_glow_enabled && _char_is_speaking) {
+					var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
 					if (_pulse > 0) {
 						gpu_set_blendmode(bm_add);
 						draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_yellow, _pulse);
@@ -148,12 +153,23 @@ if (theater_mode) {
         draw_set_color(c_yellow);
         var _name = (theater_active_char != -1) ? string_upper(characters[theater_active_char].name) : "";
         if (theater_active_char != -1 && playing_block_index != -1) {
-            var _pb = script_blocks[playing_block_index];
+            var _pb = -1;
+            var _end_idx = max(playing_block_index, playing_linked_index);
+            for (var _i = playing_block_index; _i <= _end_idx; _i++) {
+                if (_i < array_length(script_blocks)) {
+                    var _cb = script_blocks[_i];
+                    if ((!variable_struct_exists(_cb, "type") || _cb.type == "voice") && real(_cb.char_index) == real(theater_active_char)) {
+                        _pb = _cb; break;
+                    }
+                }
+            }
+            if (_pb != -1) {
             var _c_ref = characters[theater_active_char];
             var _is_v = !variable_struct_exists(_pb, "type") || _pb.type == "voice";
             var _is_alt = _is_v && (variable_struct_exists(_pb, "is_altered") ? _pb.is_altered : (_pb.voice_id != _c_ref.voice_id || _pb.pitch != _c_ref.pitch || _pb.speed != _c_ref.speed || _pb.mode != _c_ref.mode || _pb.style != _c_ref.style || _pb.tweaked != _c_ref.tweaked));
             if (_pb.char_index != 0 && _is_alt) {
                 _name += " (altered voice)";
+            }
             }
         }
         draw_text(200, 830, _name + ":");
@@ -264,24 +280,23 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
 					var _sc = (scene_win_h * 1.5) / 450;
 					var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+					var _y_off = variable_struct_exists(_act, "y_offset") ? _act.y_offset : 0;
 					var _draw_x = (target_surface == -1) ? (scene_win_x + _act.x - (_csw * _sc * _face)/2) : (_act.x - (_csw * _sc * _face)/2);
-					var _draw_y = (target_surface == -1) ? (scene_win_y + _act.y - (_csh * _sc)) : (_act.y - (_csh * _sc));
+					var _draw_y = (target_surface == -1) ? (scene_win_y + _act.y - (_csh * _sc) + _y_off) : (_act.y - (_csh * _sc) + _y_off);
 
-					var _is_speaking = false;
-					if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
-						var _pb = script_blocks[playing_block_index];
-						if (!variable_struct_exists(_pb, "type") && real(_pb.char_index) == real(_act.char_index)) _is_speaking = true;
+					var _char_is_speaking = false;
+					if (playing_block_index != -1 && is_speaking) {
+                        var _end_idx = max(playing_block_index, playing_linked_index);
+                        for (var _pi = playing_block_index; _pi <= _end_idx; _pi++) {
+                            if (_pi < array_length(script_blocks)) {
+                                var _cb = script_blocks[_pi];
+                                if ((!variable_struct_exists(_cb, "type") || _cb.type == "voice") && real(_cb.char_index) == real(_act.char_index)) {
+                                    _char_is_speaking = true; break;
+                                }
+                            }
+                        }
 					}
 					var _alpha = (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) ? 0.5 : 1.0;
-					
-					if (_draw_sprite && talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-						var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
-						if (_pulse > 0) {
-							gpu_set_blendmode(bm_add);
-							draw_sprite_ext(_spr, 0, _draw_x - (_csw*_sc*0.04), _draw_y - (_csh*_sc*0.08), _sc * _face * 1.08, _sc * 1.08, 0, c_yellow, _pulse * 0.6);
-							gpu_set_blendmode(bm_normal);
-						}
-					}
 					
 					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
 						gpu_set_fog(true, c_yellow, 0, 1);
@@ -298,9 +313,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					}
 
 					if (_draw_sprite) draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_white, _alpha);
-					
-					if (_draw_sprite && talking_glow_enabled && real(theater_active_char) == real(_act.char_index)) {
-						var _pulse = (is_speaking) ? (0.4 + sin(current_time * 0.01) * 0.2) : 0;
+
+					if (_draw_sprite && talking_glow_enabled && _char_is_speaking) {
+						var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
 						if (_pulse > 0) {
 							gpu_set_blendmode(bm_add);
 							draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_yellow, _pulse);
@@ -579,7 +594,8 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         }
     }
     var _box_y = _cur_y + 5;
-        draw_set_color((playing_block_index == b) ? make_color_rgb(255, 255, 180) : make_color_rgb(200, 200, 220));
+        var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
+        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : make_color_rgb(200, 200, 220));
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
         draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, "[SCENE: " + string_upper(_block.name) + "]");
     } else if (_is_action) {
@@ -594,7 +610,8 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         }
 
         var _box_y = _cur_y + 5;
-        draw_set_color(make_color_rgb(210, 220, 210));
+        var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
+        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : make_color_rgb(210, 220, 210));
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
         
         var _is_wait = (string_pos("WAIT", string_upper(_block.action_name)) > 0);
@@ -621,7 +638,8 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         if (!_is_onstage && _block.char_index != 0) _char_name += " (offstage)";
         
         draw_set_color(make_color_rgb(100, 100, 120)); draw_text(box_x + 50, _cur_y, _char_name + ":");
-        draw_set_color((playing_block_index == b) ? make_color_rgb(255, 255, 180) : (_is_focused ? make_color_rgb(245, 250, 255) : c_white));
+        var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
+        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : (_is_focused ? make_color_rgb(245, 250, 255) : c_white));
         draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, false);
         draw_set_color(_is_focused ? c_blue : c_black); draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, true);
 
@@ -713,6 +731,82 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         draw_set_color(c_yellow);
         draw_line_width(box_x + 10, _gap_y + 12, box_x + box_w - 10, _gap_y + 12, 2);
     }
+    
+    // 5. Draw "+" Splice Mode Button
+    if (b < array_length(script_blocks) - 1) {
+        var _plus_center_x = box_x + (box_w / 2);
+        var _plus_hov = (!_overlay_active && _mx > _plus_center_x - 20 && _mx < _plus_center_x + 20 && _my > _gap_y && _my < _gap_y + 20);
+        
+        // 6. Draw "LINK" Button
+        var _b1 = script_blocks[b];
+        var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
+        
+        if (!_is_linked) {
+            draw_set_color(_plus_hov ? c_green : make_color_rgb(150, 150, 170));
+            draw_set_halign(fa_center); draw_set_valign(fa_middle);
+            draw_text_transformed(_plus_center_x, _gap_y + 10, "+", 1.5, 1.5, 0);
+            draw_text_transformed(_plus_center_x + 1, _gap_y + 10, "+", 1.5, 1.5, 0); // Faux bolding
+            draw_text_transformed(_plus_center_x, _gap_y + 11, "+", 1.5, 1.5, 0);
+            draw_text_transformed(_plus_center_x + 1, _gap_y + 11, "+", 1.5, 1.5, 0);
+            draw_set_halign(fa_left); draw_set_valign(fa_top);
+        }
+        
+        var _b2 = script_blocks[b+1];
+        var _is_move1 = (variable_struct_exists(_b1, "type") && _b1.type == "action" && (string_pos("enter", string_lower(_b1.action_name)) > 0 || string_pos("exit", string_lower(_b1.action_name)) > 0 || string_pos("move", string_lower(_b1.action_name)) > 0));
+        var _is_voice1 = (!variable_struct_exists(_b1, "type") || _b1.type == "voice");
+        var _is_move2 = (variable_struct_exists(_b2, "type") && _b2.type == "action" && (string_pos("enter", string_lower(_b2.action_name)) > 0 || string_pos("exit", string_lower(_b2.action_name)) > 0 || string_pos("move", string_lower(_b2.action_name)) > 0));
+        var _is_voice2 = (!variable_struct_exists(_b2, "type") || _b2.type == "voice");
+        var _diff_voice = (_is_voice1 && _is_voice2 && real(_b1.char_index) != real(_b2.char_index));
+        var _diff_move = (_is_move1 && _is_move2 && real(_b1.char_index) != real(_b2.char_index));
+        
+        var _base_valid = ((_is_move1 && _is_voice2) || (_is_voice1 && _is_move2) || _diff_voice || _diff_move);
+        var _chain_valid = true;
+        
+        if (_base_valid && !_is_linked) {
+            var _start_idx = b;
+            while (_start_idx > 0 && variable_struct_exists(script_blocks[_start_idx-1], "linked") && script_blocks[_start_idx-1].linked) _start_idx--;
+            var _end_idx = b + 1;
+            while (_end_idx < array_length(script_blocks) - 1 && variable_struct_exists(script_blocks[_end_idx], "linked") && script_blocks[_end_idx].linked) _end_idx++;
+            
+            for (var k = _start_idx; k < _end_idx; k++) {
+                var _bk = script_blocks[k];
+                var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
+                var _k_is_v = (!variable_struct_exists(_bk, "type") || _bk.type == "voice");
+                var _k_is_m = (variable_struct_exists(_bk, "type") && _bk.type == "action" && (string_pos("enter", string_lower(_bk.action_name)) > 0 || string_pos("exit", string_lower(_bk.action_name)) > 0 || string_pos("move", string_lower(_bk.action_name)) > 0));
+                
+                if (_k_is_v || _k_is_m) {
+                    for (var j = k + 1; j <= _end_idx; j++) {
+                        var _bj = script_blocks[j];
+                        if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
+                            var _j_is_v = (!variable_struct_exists(_bj, "type") || _bj.type == "voice");
+                            var _j_is_m = (variable_struct_exists(_bj, "type") && _bj.type == "action" && (string_pos("enter", string_lower(_bj.action_name)) > 0 || string_pos("exit", string_lower(_bj.action_name)) > 0 || string_pos("move", string_lower(_bj.action_name)) > 0));
+                            if (_k_is_v && _j_is_v) { _chain_valid = false; break; }
+                            if (_k_is_m && _j_is_m) { _chain_valid = false; break; }
+                        }
+                    }
+                }
+                if (!_chain_valid) break;
+            }
+        }
+        
+        if ((_base_valid && _chain_valid) || _is_linked) {
+            var _link_x = box_x + 90;
+            var _link_hov = (!_overlay_active && _mx > _link_x - 15 && _mx < _link_x + 60 && _my > _gap_y && _my < _gap_y + 20);
+            
+            var _link_col = _is_linked ? (_link_hov ? c_green : c_lime) : (_link_hov ? c_yellow : make_color_rgb(150, 150, 170));
+            draw_set_color(_link_col);
+            var _lx1 = _link_x - 8; var _lx2 = _link_x + 8;
+            draw_circle(_lx1, _gap_y + 10, 5, true); draw_circle(_lx1, _gap_y + 10, 4, true);
+            draw_circle(_lx2, _gap_y + 10, 5, true); draw_circle(_lx2, _gap_y + 10, 4, true);
+            draw_line_width(_lx1 + 3, _gap_y + 7, _lx2 - 3, _gap_y + 7, 2);
+            draw_line_width(_lx1 + 3, _gap_y + 13, _lx2 - 3, _gap_y + 13, 2);
+            
+            draw_set_halign(fa_left); draw_set_valign(fa_middle);
+            draw_text(_link_x + 18, _gap_y + 10, _is_linked ? "LINKED" : "LINK");
+            draw_set_halign(fa_left); draw_set_valign(fa_top);
+        }
+    }
+
     _cur_y += _block.height + 20;
 }
 gpu_set_scissor(0, 0, 1280, 960);
@@ -802,8 +896,8 @@ if (dictionary_open) {
         }
         
         // Test Button
-        var _thov = (_mx > _m_x + 540 && _mx < _m_x + 610 && _my > _ey && _my < _ey + 35);
-        draw_set_color(_thov ? c_lime : make_color_rgb(50, 150, 50));
+        var _test_hov = (_mx > _m_x + 540 && _mx < _m_x + 610 && _my > _ey && _my < _ey + 35);
+        draw_set_color(_test_hov ? c_lime : make_color_rgb(50, 150, 50));
         draw_rectangle(_m_x + 540, _ey, _m_x + 610, _ey + 35, false);
         draw_set_color(c_white); draw_text(_m_x + 550, _ey + 8, "TEST");
         
