@@ -428,41 +428,6 @@ array_sort(all_scenes, function(a, b) {
     return 0;
 });
 
-mask_properties = ds_map_create();
-
-check_mask_properties = function(_sprite_index) {
-    if (_sprite_index == -1) return { has_top: false };
-    
-    var _w = sprite_get_width(_sprite_index);
-    var _h = sprite_get_height(_sprite_index);
-    
-    // This function can be slow, but it's only called once per mask on load.
-    var _surf = surface_create(_w, _h);
-    if (!surface_exists(_surf)) return { has_top: false };
-    
-    surface_set_target(_surf);
-    draw_clear_alpha(c_black, 0);
-    draw_sprite(_sprite_index, 0, 0, 0);
-    
-    var _has_top_mask = false;
-    // Scan top 7 pixels for any non-transparent pixel
-    for (var yy = 0; yy < min(7, _h); yy++) {
-        for (var xx = 0; xx < _w; xx++) {
-            var _pixel_color_with_alpha = surface_getpixel_ext(_surf, xx, yy);
-            var _alpha = (_pixel_color_with_alpha >> 24) & 255;
-            if (_alpha > 0) { // Check for any visible pixel
-                _has_top_mask = true;
-                break;
-            }
-        }
-        if (_has_top_mask) break;
-    }
-    
-    surface_reset_target();
-    surface_free(_surf);
-    
-    return { has_top: _has_top_mask };
-}
 
 scene_sprites = ds_map_create();
 get_scene_sprite = function(_internal_name) {
@@ -486,12 +451,6 @@ get_scene_sprite = function(_internal_name) {
         var _path = working_directory + "images/backgrounds/" + _internal_name + _exts_check[e];
         if (file_exists(_path)) {
             var _spr = sprite_add(_path, 1, false, false, 0, 0);
-            
-            // If it's a mask, check its properties and cache them
-            if (string_pos("_mask", _internal_name) > 0) {
-                var _props = check_mask_properties(_spr);
-                ds_map_add(mask_properties, _internal_name, _props);
-            }
             
             ds_map_add(scene_sprites, _internal_name, _spr);
             return _spr;

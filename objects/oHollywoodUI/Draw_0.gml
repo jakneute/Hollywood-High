@@ -172,15 +172,7 @@ if (theater_mode) {
 		surface_set_target(o_mask_surface);
 		draw_clear_alpha(c_black, 0);
 		
-		// Conditionally shift occlusion mask to handle top/bottom transparent fringes
-		var _props = ds_map_exists(mask_properties, _mask_name) ? mask_properties[? _mask_name] : { has_top: false };
-		var _y_shift = 0;
-		if (_props.has_top) {
-			_y_shift = -7 * _bg_sc; // Shift occlusion UP for top-heavy masks
-		} else {
-			_y_shift = 3 * _bg_sc; // Shift occlusion DOWN for bottom-gap masks
-		}
-		draw_sprite_ext(_mask_sprite, 0, 0, _y_shift, _bg_sc, _bg_sc, 0, c_white, 1);
+		draw_sprite_ext(_mask_sprite, 0, 0, 0, _bg_sc, _bg_sc, 0, c_white, 1);
 		
 		surface_reset_target();
 
@@ -419,16 +411,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		var _mask_scale_x = scene_win_w / _mask_w;
 		var _mask_scale_y = scene_win_h / _mask_h;
 		
-		// Conditionally shift occlusion mask to handle top/bottom transparent fringes
-		var _props = ds_map_exists(mask_properties, _mask_name) ? mask_properties[? _mask_name] : { has_top: false };
-		var _y_shift = 0;
-		if (_props.has_top) {
-			_y_shift = -7 * _mask_scale_y; // Shift occlusion UP for top-heavy masks
-		} else {
-			_y_shift = 3 * _mask_scale_y; // Shift occlusion DOWN for bottom-gap masks
-		}
-		
-		draw_sprite_ext(_mask_sprite, 0, 0, _y_shift, _mask_scale_x, _mask_scale_y, 0, c_white, 1);
+		draw_sprite_ext(_mask_sprite, 0, 0, 0, _mask_scale_x, _mask_scale_y, 0, c_white, 1);
 
 		surface_reset_target();
 
@@ -1180,10 +1163,15 @@ if (scene_modal_open) {
     var _pre_x = _mxo + 350; var _pre_y = _myo + 60; var _pre_w = 320; var _pre_h = 320;
     draw_set_color(c_black); draw_rectangle(_pre_x, _pre_y, _pre_x+_pre_w, _pre_y+_pre_h, false);
     if (_hov_idx != -1) {
-        var _spr = get_scene_sprite(all_scenes[_hov_idx].internal_name);
+        var _iname = all_scenes[_hov_idx].internal_name;
+        var _spr = get_scene_sprite(_iname);
+        var _mask_spr = get_scene_sprite(_iname + "_mask");
         if (_spr != -1) {
             var _sc = min(_pre_w/sprite_get_width(_spr), _pre_h/sprite_get_height(_spr)) * 0.9;
-            draw_sprite_ext(_spr, 0, _pre_x + (_pre_w - sprite_get_width(_spr)*_sc)/2, _pre_y + (_pre_h - sprite_get_height(_spr)*_sc)/2, _sc, _sc, 0, c_white, 1);
+            var _dx = _pre_x + (_pre_w - sprite_get_width(_spr)*_sc)/2;
+            var _dy = _pre_y + (_pre_h - sprite_get_height(_spr)*_sc)/2;
+            draw_sprite_ext(_spr, 0, _dx, _dy, _sc, _sc, 0, c_white, 1);
+            if (_mask_spr != -1) draw_sprite_ext(_mask_spr, 0, _dx, _dy, _sc, _sc, 0, c_white, 1);
         }
     }
 	var _c_y = _myo + _mh - 50;

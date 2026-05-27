@@ -18,7 +18,10 @@ if (fs.existsSync(mappingPath)) {
     process.exit(1);
 }
 
-const characters = Object.keys(colorMappings);
+let characters = Object.keys(colorMappings);
+// Ensure "Scenes" is included in our processing list for folder creation
+if (!characters.includes('Scenes')) characters.push('Scenes');
+
 if (characters.length === 0) {
     console.error('No characters found in color_mappings.json');
     process.exit(1);
@@ -46,12 +49,28 @@ if (createdNewDirs) {
     console.log(`Created missing character directories in: ${testImagesDir}`);
 }
 
+// Helper to find files recursively
+function getFilesRecursively(dir, baseDir) {
+    let results = [];
+    const list = fs.readdirSync(dir);
+    list.forEach(file => {
+        const fullPath = path.join(dir, file);
+        const stat = fs.statSync(fullPath);
+        if (stat && stat.isDirectory()) {
+            results = results.concat(getFilesRecursively(fullPath, baseDir));
+        } else if (file.toLowerCase().endsWith('.png')) {
+            results.push(path.relative(baseDir, fullPath));
+        }
+    });
+    return results;
+}
+
 const filesByCharacter = {};
 let totalFiles = 0;
 characters.forEach(char => {
     const charDir = path.join(testImagesDir, char);
     if (fs.existsSync(charDir)) {
-        const files = fs.readdirSync(charDir).filter(f => f.toLowerCase().endsWith('.png'));
+        const files = getFilesRecursively(charDir, charDir);
         if (files.length > 0) {
             filesByCharacter[char] = files;
             totalFiles += files.length;
@@ -258,6 +277,11 @@ rl.question('Drive letter for Hollywood High CD-ROM to read global palette (e.g.
             const inPath = path.join(testImagesDir, selectedCharacter, file);
             const ext = path.extname(file);
             const outPath = path.join(charOutDir, file);
+            
+            // Ensure the specific subfolder in the output directory exists
+            const outSubDir = path.dirname(outPath);
+            if (!fs.existsSync(outSubDir)) fs.mkdirSync(outSubDir, { recursive: true });
+
             console.log(`Processing ${file}...`);
 
             try {

@@ -77,6 +77,7 @@ function sanitizeFilename(name) {
 function preScanSceneNames(drive) {
     const foundNames = {};
     const resourcesByGroup = {};
+    const resourceMetadata = {};
 
     const sceneFiles = [
         `${drive}:\\SCENES1.RF`,
@@ -131,11 +132,22 @@ function preScanSceneNames(drive) {
                 const id = chunk.readUInt16BE(10);
 
                 const dataOffset = 256 + relativeOffset;
-                const sizeBuf = Buffer.alloc(12);
-                fs.readSync(fd, sizeBuf, 0, 12, dataOffset);
+                const sizeBuf = Buffer.alloc(48);
+                fs.readSync(fd, sizeBuf, 0, 48, dataOffset);
 
+                const y_offset = sizeBuf.readUInt16BE(4);
+                const x_offset = sizeBuf.readUInt16BE(6);
                 const height = sizeBuf.readUInt16BE(8);
                 const width = sizeBuf.readUInt16BE(10);
+
+                resourceMetadata[id] = {
+                    file: filePath,
+                    offset: dataOffset,
+                    x_off: x_offset,
+                    y_off: y_offset,
+                    w: width,
+                    h: height
+                };
 
                 const name = getString(nameOff);
                 const cleanName = name ? sanitizeFilename(name) : '';
@@ -213,6 +225,48 @@ function preScanSceneNames(drive) {
             sceneLabels[overlays[i].id] = i === 1 ? 'mask' : `mask_${i}`;
         }
     }
+	
+    // Calculate group-wide crops based on backgrounds
+    for (const groupId in resourcesByGroup) {
+        const list = resourcesByGroup[groupId];
+        const backgrounds = list.filter(r => sceneLabels[r.id] === 'background');
+        
+        let minX = 500, minY = 250, maxX = 0, maxY = 0;
+        let foundAny = false;
+
+        for (const bgInfo of backgrounds) {
+            const meta = resourceMetadata[bgInfo.id];
+            if (!meta) continue;
+
+            const fd = fs.openSync(meta.file, 'r');
+            const sizeBuf = Buffer.alloc(4);
+            fs.readSync(fd, sizeBuf, 0, 4, meta.offset);
+            const dataCompressedSize = sizeBuf.readUInt32BE(0);
+            
+            const compressedData = Buffer.alloc(dataCompressedSize);
+            fs.readSync(fd, compressedData, 0, dataCompressedSize, meta.offset + 48);
+            fs.closeSync(fd);
+
+            const decompressed = decompressPackBits(compressedData);
+            const rowBytes = Math.ceil(meta.w / 4) * 4;
+            for (let y = 0; y < meta.h; y++) {
+                for (let x = 0; x < meta.w; x++) {
+                    const srcIdx = y * rowBytes + x;
+                    if (srcIdx < decompressed.length && decompressed[srcIdx] !== 255) {
+                        const destX = x + meta.x_off;
+                        const destY = y + meta.y_off;
+                        if (destX >= 0 && destX < 500 && destY >= 0 && destY < 250) {
+                            if (destX < minX) minX = destX; if (destX > maxX) maxX = destX;
+                            if (destY < minY) minY = destY; if (destY > maxY) maxY = destY;
+                            foundAny = true;
+                        }
+                    }
+                }
+            }
+        }
+        if (foundAny) sceneGroupCrops[groupId] = { minX, minY, maxX, maxY };
+    }	
+	
     // Resolve case-insensitive name collisions (e.g. "Classroom" vs "classroom") before manual overrides
     const lowerNames = {};
     for (const groupId in foundNames) {
@@ -293,6 +347,7 @@ const actrNames = {
 let globalPalette = null;
 let colorMappings = {};
 let sceneGroupNames = {};
+let sceneGroupCrops = {};
 let sceneLabels = {};
 
 // Hardcoded rerouting map to fix the original CD-ROM's compilation index misalignments!
@@ -608,20 +663,22 @@ async function processRFFile(filePath, mode) {
 
                     const decompressed = decompressPackBits(compressedData);
 
-                    let canvasWidth = width;
-                    let canvasHeight = height;
+                    let canvasWidth = width; // Default to image's native width
+                    let canvasHeight = height; // Default to image's native height
                     let renderX = 0;
                     let renderY = 0;
 
-                    const isVisualScene = isSceneFile && (width > 100 || height > 100);
-                    if (isVisualScene) {
-                        canvasWidth = 512;
-                        canvasHeight = 260;
+                    if (isSceneFile) {
+                        canvasWidth = 500; // Fixed canvas size for scenes
+                        canvasHeight = 250; // Fixed canvas size for scenes
                         renderX = x_offset;
                         renderY = y_offset;
                     }
 
                     const image = new Jimp({ width: canvasWidth, height: canvasHeight });
+                    
+                    let minX = canvasWidth, minY = canvasHeight, maxX = 0, maxY = 0;
+                    let hasVisiblePixels = false;
 
                     for (let y = 0; y < height; y++) {
                         for (let x = 0; x < width; x++) {
@@ -653,10 +710,29 @@ async function processRFFile(filePath, mode) {
                                         image.bitmap.data[dataIdx + 1] = color.g;
                                         image.bitmap.data[dataIdx + 2] = color.b;
                                         image.bitmap.data[dataIdx + 3] = 255;
+
+                                        // Only track visible pixels for cropping if not a scene file
+                                        if (!isSceneFile) {
+                                            if (destX < minX) minX = destX;
+                                            if (destX > maxX) maxX = destX;
+                                            if (destY < minY) minY = destY;
+                                            if (destY > maxY) maxY = destY;
+                                            hasVisiblePixels = true;
+                                        }
                                     }
                                 }
                             }
                         }
+                    }
+
+                    if (isSceneFile) {
+                        const groupId = sceneReroutes[id] !== undefined ? sceneReroutes[id] : Math.floor(id / 10);
+                        const crop = sceneGroupCrops[groupId];
+                        if (crop) image.crop({ x: crop.minX, y: crop.minY, w: crop.maxX - crop.minX + 1, h: crop.maxY - crop.minY + 1 });
+                    } else if (hasVisiblePixels) {
+                        const cropW = maxX - minX + 1;
+                        const cropH = maxY - minY + 1;
+                        if (cropW > 0 && cropH > 0) image.crop({ x: minX, y: minY, w: cropW, h: cropH });
                     }
 
                     // Modern Jimp (v1+) uses getBuffer, older used getBufferAsync.
@@ -896,6 +972,8 @@ async function dumpRFFile(filePath) {
 
                     if (dataCompressedSize <= 0 || dataCompressedSize > 50000000) continue;
 
+                    const y_offset = sizeBuf.readUInt16BE(4);
+                    const x_offset = sizeBuf.readUInt16BE(6);
                     const height = sizeBuf.readUInt16BE(8);
                     const width = sizeBuf.readUInt16BE(10);
                     if (width <= 0 || height <= 0 || width > 2000 || height > 2000) continue;
@@ -904,8 +982,26 @@ async function dumpRFFile(filePath) {
                     fs.readSync(fd, compressedData, 0, dataCompressedSize, dataOffset + 48);
                     const decompressed = decompressPackBits(compressedData);
 
+                    const groupId = sceneReroutes[id] !== undefined ? sceneReroutes[id] : Math.floor(id / 10);
+
                     let rowBytes = Math.ceil(width / 4) * 4;
-                    const image = new Jimp({ width, height });
+                    
+                    let canvasWidth = width; // Default to image's native width
+                    let canvasHeight = height; // Default to image's native height
+                    let renderX = 0;
+                    let renderY = 0;
+                    
+                    const isSceneDump = filename.toUpperCase().startsWith('SCENES');
+                    if (isSceneDump) {
+                        canvasWidth = 500; // Fixed canvas size for scenes
+                        canvasHeight = 250; // Fixed canvas size for scenes
+                        renderX = x_offset;
+                        renderY = y_offset;
+                    }
+                    const image = new Jimp({ width: canvasWidth, height: canvasHeight });
+                    
+                    let minX = canvasWidth, minY = canvasHeight, maxX = 0, maxY = 0;
+                    let hasVisiblePixels = false;
 
                     for (let y = 0; y < height; y++) {
                         for (let x = 0; x < width; x++) {
@@ -913,7 +1009,11 @@ async function dumpRFFile(filePath) {
                             if (srcIdx < decompressed.length) {
                                 const paletteIdx = decompressed[srcIdx];
                                 const color = globalPalette[paletteIdx] || { r: 0, g: 0, b: 0 };
-                                const dataIdx = (y * width + x) * 4;
+                                
+                                // Define destX and destY for the current pixel on the canvas
+                                const destX = x + renderX;
+                                const destY = y + renderY;
+                                const dataIdx = (destY * canvasWidth + destX) * 4;
                                 if (paletteIdx === 255) {
                                     image.bitmap.data[dataIdx] = 0;
                                     image.bitmap.data[dataIdx + 1] = 0;
@@ -924,8 +1024,28 @@ async function dumpRFFile(filePath) {
                                     image.bitmap.data[dataIdx + 1] = color.g;
                                     image.bitmap.data[dataIdx + 2] = color.b;
                                     image.bitmap.data[dataIdx + 3] = 255;
+
+                                    // Only track visible pixels for cropping if not a scene file (dump)
+                                    if (!isSceneDump) {
+                                        if (destX < minX) minX = destX;
+                                        if (destX > maxX) maxX = destX;
+                                        if (destY < minY) minY = destY;
+                                        if (destY > maxY) maxY = destY;
+                                        hasVisiblePixels = true;
+                                    }
                                 }
                             }
+                        }
+                    }
+
+                    if (isSceneDump) {
+                        const crop = sceneGroupCrops[groupId];
+                        if (crop) image.crop({ x: crop.minX, y: crop.minY, w: crop.maxX - crop.minX + 1, h: crop.maxY - crop.minY + 1 });
+                    } else if (hasVisiblePixels) {
+                        const cropW = maxX - minX + 1;
+                        const cropH = maxY - minY + 1;
+                        if (cropW > 0 && cropH > 0) {
+                            image.crop({ x: minX, y: minY, w: cropW, h: cropH });
                         }
                     }
 
