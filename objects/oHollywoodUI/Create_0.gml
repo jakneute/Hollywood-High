@@ -325,6 +325,34 @@ active_animations = [];
 action_modal_slider_dragging = false;
 action_modal_wait_duration = 1.0;
 
+action_modal_title_text = "";
+action_modal_title_align = 1;
+action_modal_title_font = 0;
+action_modal_title_size = 1;
+action_modal_title_color = 0;
+action_modal_title_align_opts = ["Top", "Center", "Bottom"];
+
+// Dynamically scan the project for any font assets
+action_modal_title_font_opts = ["Default"];
+action_modal_title_fonts = [-1]; // -1 maps to the default UI font
+for (var _f_idx = 0; _f_idx < 5000; _f_idx++) {
+    if (font_exists(_f_idx)) {
+        var _fname = font_get_name(_f_idx);
+        if (_fname != "" && _fname != "<undefined>") {
+            var _disp_name = _fname;
+            if (string_pos("fnt_", _disp_name) == 1) _disp_name = string_copy(_disp_name, 5, string_length(_disp_name) - 4);
+            else if (string_pos("font_", _disp_name) == 1) _disp_name = string_copy(_disp_name, 6, string_length(_disp_name) - 5);
+            
+            array_push(action_modal_title_font_opts, _disp_name);
+            array_push(action_modal_title_fonts, _f_idx);
+        }
+    }
+}
+
+action_modal_title_size_opts = ["Small", "Medium", "Large"];
+action_modal_title_color_opts = ["White", "Black", "Red", "Yellow", "Blue", "Green", "Orange", "Purple", "Cyan", "Pink"];
+action_modal_dropdown_open = "";
+
 // --- SFX Browser State ---
 action_modal_sfx_folders = [];
 action_modal_sfx_files = [];
@@ -374,7 +402,8 @@ refresh_sfx_files = function(_folder) {
 all_actions = [
     { name: "turns around", desc: "Character flips their horizontal facing direction.", category: "character" },
     { name: "wait", desc: "Pauses the script for a set duration of time.", category: "general" },
-    { name: "play sfx", desc: "Plays a sound effect from the library.", category: "general" }
+    { name: "play sfx", desc: "Plays a sound effect from the library.", category: "general" },
+    { name: "display title", desc: "Displays a text title on screen for a set duration.", category: "general" }
 ];
 
 char_facings = array_create(array_length(characters), 1);

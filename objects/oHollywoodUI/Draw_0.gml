@@ -5,6 +5,65 @@ var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_m
 
 draw_clear(make_color_rgb(45, 45, 55)); 
 
+// --- LIVE TITLE RENDERING FUNCTION ---
+var _render_live_titles = function() {
+    if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
+        var _pb = -1;
+        var _end_idx = max(playing_block_index, playing_linked_index);
+        for (var _i = playing_block_index; _i <= _end_idx; _i++) {
+            if (_i < array_length(script_blocks)) {
+                var _cb = script_blocks[_i];
+                if (variable_struct_exists(_cb, "type") && _cb.type == "action" && string_pos("DISPLAY TITLE", string_upper(_cb.action_name)) > 0) {
+                    _pb = _cb; break;
+                }
+            }
+        }
+        
+        if (_pb != -1) {
+            var _txt = variable_struct_exists(_pb, "title_text") ? _pb.title_text : "";
+            if (_txt != "") {
+                var _align = variable_struct_exists(_pb, "title_align") ? _pb.title_align : 1;
+                var _font_idx = variable_struct_exists(_pb, "title_font") ? _pb.title_font : 0;
+                var _size = variable_struct_exists(_pb, "title_size") ? _pb.title_size : 1;
+                var _color_idx = variable_struct_exists(_pb, "title_color") ? _pb.title_color : 0;
+                
+                var _c = c_white;
+                if (_color_idx == 1) _c = c_black; else if (_color_idx == 2) _c = c_red;
+                else if (_color_idx == 3) _c = c_yellow; else if (_color_idx == 4) _c = c_blue;
+                else if (_color_idx == 5) _c = c_green; else if (_color_idx == 6) _c = c_orange;
+                else if (_color_idx == 7) _c = c_purple; else if (_color_idx == 8) _c = c_aqua;
+                else if (_color_idx == 9) _c = c_fuchsia;
+
+                var _scl = 2.0;
+                if (_size == 0) _scl = 2.0; else if (_size == 1) _scl = 2.5; else if (_size == 2) _scl = 3.0;
+                
+                var _tx = 0; var _ty = 0;
+                if (theater_mode) {
+                    _scl *= 1.6;
+                    _tx = 1280 / 2;
+                    if (_align == 0) _ty = 80; else if (_align == 1) _ty = 405; else if (_align == 2) _ty = 730;
+                } else {
+                    _tx = scene_win_x + scene_win_w / 2;
+                    if (_align == 0) _ty = scene_win_y + 40; else if (_align == 1) _ty = scene_win_y + scene_win_h / 2; else if (_align == 2) _ty = scene_win_y + scene_win_h - 40;
+                }
+                
+                var _sel_font = -1;
+                if (_font_idx >= 0 && _font_idx < array_length(action_modal_title_fonts)) _sel_font = action_modal_title_fonts[_font_idx];
+
+                draw_set_halign(fa_center); 
+                if (_align == 0) draw_set_valign(fa_top); else if (_align == 1) draw_set_valign(fa_middle); else if (_align == 2) draw_set_valign(fa_bottom);
+                
+                if (_sel_font != -1) draw_set_font(_sel_font);
+                var _wrap_w = theater_mode ? (1100 / _scl) : ((scene_win_w - 60) / _scl);
+                
+                gpu_set_texfilter(true); draw_set_color(c_black); draw_set_alpha(0.5); draw_text_ext_transformed(_tx + 2*_scl, _ty + 2*_scl, _txt, -1, _wrap_w, _scl, _scl, 0);
+                draw_set_alpha(1.0); draw_set_color(_c); draw_text_ext_transformed(_tx, _ty, _txt, -1, _wrap_w, _scl, _scl, 0); gpu_set_texfilter(false);
+                draw_set_halign(fa_left); draw_set_valign(fa_top); if (_sel_font != -1) draw_set_font(-1);
+            }
+        }
+    }
+};
+
 //// --- 3. THEATER MODE RENDERER ---
 if (theater_mode) {
     draw_set_color(c_black);
@@ -200,6 +259,8 @@ if (theater_mode) {
     draw_text(_px + 60, _py + 15, theater_paused ? "PLAY" : "PAUSE");
     draw_set_halign(fa_left);
     
+    _render_live_titles();
+    
     return; // Stop here if in theater mode
 }
 
@@ -223,8 +284,8 @@ btn_theater_y = scene_win_y - 45;
 
 btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
 btn_dictionary_y = btn_theater_y;
-var _d_hov = (!_overlay_active && _mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h);
-draw_set_color(_d_hov ? make_color_rgb(100, 200, 255) : make_color_rgb(60, 120, 180));
+var _d_hov = (!_overlay_active && playing_block_index == -1 && _mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 60, 60) : (_d_hov ? make_color_rgb(100, 200, 255) : make_color_rgb(60, 120, 180)));
 draw_rectangle(btn_dictionary_x, btn_dictionary_y, btn_dictionary_x + btn_dictionary_w, btn_dictionary_y + btn_dictionary_h, false);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_dictionary_x + (btn_dictionary_w/2), btn_dictionary_y + 8, "DICTIONARY"); draw_set_halign(fa_left);
 
@@ -245,8 +306,8 @@ btn_add_action_w = 125; btn_add_action_h = 35;
 
 // --- FILE MENU BUTTON ---
 var _fm_btn_x = 10; var _fm_btn_y = 10; var _fm_btn_w = 80; var _fm_btn_h = 35;
-var _fm_hov = (!_overlay_active && _mx > _fm_btn_x && _mx < _fm_btn_x + _fm_btn_w && _my > _fm_btn_y && _my < _fm_btn_y + _fm_btn_h);
-draw_set_color((_fm_hov || file_menu_open) ? make_color_rgb(100, 100, 120) : make_color_rgb(60, 60, 80));
+var _fm_hov = (!_overlay_active && playing_block_index == -1 && _mx > _fm_btn_x && _mx < _fm_btn_x + _fm_btn_w && _my > _fm_btn_y && _my < _fm_btn_y + _fm_btn_h);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 60, 60) : ((_fm_hov || file_menu_open) ? make_color_rgb(100, 100, 120) : make_color_rgb(60, 60, 80)));
 draw_rectangle(_fm_btn_x, _fm_btn_y, _fm_btn_x + _fm_btn_w, _fm_btn_y + _fm_btn_h, false);
 draw_set_color(c_white); draw_set_halign(fa_center);
 draw_text(_fm_btn_x + (_fm_btn_w / 2), _fm_btn_y + 8, "FILE");
@@ -404,21 +465,21 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 gpu_set_scissor(0, 0, 1280, 960);
 
 // --- 1. GLOBAL BUTTONS (Drawn on top of Scene Window to prevent any overlap) ---
-var _add_hov = (!_overlay_active && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h);
-draw_set_color(_add_hov ? make_color_rgb(0, 220, 120) : make_color_rgb(0, 180, 100));
+var _add_hov = (!_overlay_active && playing_block_index == -1 && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(100, 100, 100) : (_add_hov ? make_color_rgb(0, 220, 120) : make_color_rgb(0, 180, 100)));
 draw_rectangle(btn_add_x, btn_add_y, btn_add_x + btn_add_w, btn_add_y + btn_add_h, false);
 draw_set_color(c_white); draw_text(btn_add_x + 12, btn_add_y + 5, "+ VOICE");
 
-var _act_hov = (!_overlay_active && _mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h);
+var _act_hov = (!_overlay_active && playing_block_index == -1 && _mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h);
 var _act_col = make_color_rgb(180, 50, 255);
 var _act_hov_col = make_color_rgb(220, 100, 255);
-draw_set_color(_act_hov ? _act_hov_col : _act_col);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(100, 100, 100) : (_act_hov ? _act_hov_col : _act_col));
 draw_rectangle(btn_add_action_x, btn_add_action_y, btn_add_action_x + btn_add_action_w, btn_add_action_y + btn_add_action_h, false);
 draw_set_color(c_white);
 draw_text(btn_add_action_x + 12, btn_add_action_y + 5, "+ ACTION");
 
-var _scn_hov = (!_overlay_active && _mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h);
-draw_set_color(_scn_hov ? make_color_rgb(0, 120, 220) : make_color_rgb(0, 100, 180));
+var _scn_hov = (!_overlay_active && playing_block_index == -1 && _mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(100, 100, 100) : (_scn_hov ? make_color_rgb(0, 120, 220) : make_color_rgb(0, 100, 180)));
 draw_rectangle(btn_add_scene_x, btn_add_scene_y, btn_add_scene_x + btn_add_scene_w, btn_add_scene_y + btn_add_scene_h, false);
 draw_set_color(c_white); draw_text(btn_add_scene_x + 12, btn_add_scene_y + 5, "+ SCENE");
 
@@ -437,7 +498,7 @@ if (insertion_idx != -1 && !scene_edit_mode) {
 }
 
 // --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
-if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+if (playing_block_index == -1 && scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     var _scene = script_blocks[active_scene_block_idx];
     if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
         var _act = _scene.actors[scene_edit_selected_actor_idx];
@@ -514,7 +575,7 @@ for (var i = 0; i < array_length(characters); i++) {
     var _iy = _grid_y + floor(i / _cols) * _item_h + char_sel_scroll_y;
     if (_iy + _item_h < char_sel_y + 30 || _iy > char_sel_y + char_sel_h) continue;
     var _is_sel = (i == selected_character_index);
-    var _hov = (!_overlay_active && _mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
+    var _hov = (!_overlay_active && playing_block_index == -1 && _mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
     if (_hov || dragging_char_index == i) { draw_set_color(make_color_rgb(60, 60, 80)); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, false); }
     if (_is_sel) { draw_set_color(c_yellow); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, true); }
     var _spr = get_character_sprite(i);
@@ -639,8 +700,9 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         
         var _is_wait = (string_pos("WAIT", string_upper(_block.action_name)) > 0);
         var _is_sfx = (string_pos("PLAY SFX", string_upper(_block.action_name)) > 0);
+        var _is_title = (string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0);
         var _act_str = "ACTION: ";
-        if (_is_wait || _is_sfx) {
+        if (_is_wait || _is_sfx || _is_title) {
             _act_str += string_upper(_block.action_name);
         } else {
             _act_str += characters[_block.char_index].name + " " + string_upper(_block.action_name);
@@ -723,36 +785,38 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     var _lx = box_x + 10; var _rx = box_x + box_w - 35; var _bw = 28; var _bh = 22;
     
     // Left Hover Checks
-    var _hov_up = (!_overlay_active && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
-    var _hov_ed = (!_overlay_active && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
-    var _hov_dn = (!_overlay_active && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
+    var _hov_up = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
+    var _hov_ed = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
+    var _hov_dn = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
     
     // Right Hover Checks
-    var _hov_del = (!_overlay_active && _mx > _rx && _mx < _rx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
+    var _hov_del = (!_overlay_active && playing_block_index == -1 && _mx > _rx && _mx < _rx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
 
     // Render Left Stack
-    draw_set_color(_hov_up ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120));
+    draw_set_color((playing_block_index != -1) ? make_color_rgb(80, 80, 90) : (_hov_up ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120)));
     draw_rectangle(_lx, _cur_y + 5, _lx + _bw, _cur_y + 5 + _bh, false); 
-    draw_set_color(c_white); draw_text(_lx+8, _cur_y + 5, "^");
+    draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_lx+8, _cur_y + 5, "^");
     
-    draw_set_color(_hov_ed ? make_color_rgb(255, 255, 150) : c_yellow);
+    draw_set_color((playing_block_index != -1) ? make_color_rgb(150, 150, 150) : (_hov_ed ? make_color_rgb(255, 255, 150) : c_yellow));
     draw_rectangle(_lx, _cur_y+35, _lx + _bw, _cur_y + 35 + _bh, false); 
     draw_set_color(c_black); draw_text(_lx+8, _cur_y+35, "/");
     
-    draw_set_color(_hov_dn ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120));
+    draw_set_color((playing_block_index != -1) ? make_color_rgb(80, 80, 90) : (_hov_dn ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120)));
     draw_rectangle(_lx, _cur_y+65, _lx + _bw, _cur_y + 65 + _bh, false); 
-    draw_set_color(c_white); draw_text(_lx+8, _cur_y+65, "v");
+    draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_lx+8, _cur_y+65, "v");
 
     // Render Right Stack
-    draw_set_color(_hov_del ? make_color_rgb(230, 80, 80) : make_color_rgb(180, 50, 50));
+    draw_set_color((playing_block_index != -1) ? make_color_rgb(120, 60, 60) : (_hov_del ? make_color_rgb(230, 80, 80) : make_color_rgb(180, 50, 50)));
     draw_rectangle(_rx, _cur_y + 5, _rx + _bw, _cur_y + 5 + _bh, false); 
-    draw_set_color(c_white); draw_text(_rx+6, _cur_y + 5, "X");
+    draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_rx+6, _cur_y + 5, "X");
 
     // 4. Play From Here (Green Triangle) - Now in the GUTTER
-    var _px = box_x - 30; var _py = _cur_y + 5;
-    var _phov = (!_overlay_active && _mx > _px && _mx < _px + 30 && _my > _py && _my < _py + 30);
-    draw_set_color(_phov ? c_lime : c_green);
-    draw_triangle(_px+5, _py+5, _px+5, _py+25, _px+25, _py+15, false);
+    if (playing_block_index == -1) {
+        var _px = box_x - 30; var _py = _cur_y + 5;
+        var _phov = (!_overlay_active && _mx > _px && _mx < _px + 30 && _my > _py && _my < _py + 30);
+        draw_set_color(_phov ? c_lime : c_green);
+        draw_triangle(_px+5, _py+5, _px+5, _py+25, _px+25, _py+15, false);
+    }
 
     var _gap_y = _cur_y + _block.height;
     if (insertion_idx == b && !action_animating && playing_block_index == -1) {
@@ -765,7 +829,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     }
     
     // 5. Draw "+" Splice Mode Button
-    if (b < array_length(script_blocks) - 1) {
+    if (b < array_length(script_blocks) - 1 && playing_block_index == -1) {
         var _plus_center_x = box_x + (box_w / 2);
         var _plus_hov = (!_overlay_active && _mx > _plus_center_x - 20 && _mx < _plus_center_x + 20 && _my > _gap_y && _my < _gap_y + 20);
         
@@ -789,6 +853,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             if (variable_struct_exists(_block, "type") && _block.type == "action") {
                 var _aname = string_lower(_block.action_name);
                 if (string_pos("play sfx", _aname) > 0) return "sfx";
+                if (string_pos("display title", _aname) > 0) return "title";
                 if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
             } else if (!variable_struct_exists(_block, "type") || _block.type == "voice") {
                 return "voice";
@@ -804,6 +869,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         if ((_b1_type == "move" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "move")) _base_valid = true;
         else if ((_b1_type == "move" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "move")) _base_valid = true;
         else if ((_b1_type == "voice" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "voice")) _base_valid = true;
+        else if ((_b1_type == "title" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "title")) _base_valid = true;
         else if (_b1_type == "move" && _b2_type == "move" && _diff_char) _base_valid = true;
         else if (_b1_type == "voice" && _b2_type == "voice" && _diff_char) _base_valid = true;
 
@@ -816,11 +882,15 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             while (_end_idx < array_length(script_blocks) - 1 && variable_struct_exists(script_blocks[_end_idx], "linked") && script_blocks[_end_idx].linked) _end_idx++;
             
             var _sfx_in_chain = 0;
-            for (var k = _start_idx; k < _end_idx; k++) {
+            var _title_in_chain = 0;
+            var _voice_or_move_in_chain = false;
+            for (var k = _start_idx; k <= _end_idx; k++) {
                 var _bk = script_blocks[k];
                 var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
                 var _bk_type = get_link_type(_bk);
                 if (_bk_type == "sfx") _sfx_in_chain++;
+                if (_bk_type == "title") _title_in_chain++;
+                if (_bk_type == "voice" || _bk_type == "move") _voice_or_move_in_chain = true;
                 
                 if (_bk_type == "voice" || _bk_type == "move") {
                     for (var j = k + 1; j <= _end_idx; j++) {
@@ -834,7 +904,11 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 }
                 if (!_chain_valid) break;
             }
-            if (_sfx_in_chain > 1) _chain_valid = false;
+            if (_title_in_chain > 0) {
+                if (_title_in_chain > 1 || _sfx_in_chain > 1 || _voice_or_move_in_chain) _chain_valid = false;
+            } else {
+                if (_sfx_in_chain > 1) _chain_valid = false;
+            }
         }
         
         if ((_base_valid && _chain_valid) || _is_linked) {
@@ -889,14 +963,14 @@ draw_rectangle(btn_play_x, btn_play_y, btn_play_x + btn_play_w, btn_play_y + btn
 draw_set_color(c_white); draw_text(btn_play_x + 25, btn_play_y + 8, (playing_block_index != -1) ? "STOP" : "PLAY");
 
 // ENTER THEATER Button
-var _thov = (!_overlay_active && !is_speaking && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h);
-draw_set_color(_thov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150));
+var _thov = (!_overlay_active && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 60, 60) : (_thov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150)));
 draw_rectangle(btn_theater_x, btn_theater_y, btn_theater_x + btn_theater_w, btn_theater_y + btn_theater_h, false);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_theater_x + (btn_theater_w / 2), btn_theater_y + 8, "ENTER THEATER"); draw_set_halign(fa_left);
 
 // MOVE PARAMS Button
-var _mhov = (!_overlay_active && !is_speaking && playing_block_index == -1 && _mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h);
-draw_set_color(_mhov ? make_color_rgb(255, 100, 0) : make_color_rgb(200, 80, 0));
+var _mhov = (!_overlay_active && playing_block_index == -1 && _mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(100, 100, 100) : (_mhov ? make_color_rgb(255, 100, 0) : make_color_rgb(200, 80, 0)));
 draw_rectangle(btn_move_params_x, btn_move_params_y, btn_move_params_x + btn_move_params_w, btn_move_params_y + btn_move_params_h, false);
 draw_set_color(c_white); draw_text(btn_move_params_x + 10, btn_move_params_y + 8, "MOVE PARAMS");
 
@@ -904,8 +978,9 @@ draw_set_color(make_color_rgb(50, 50, 60)); draw_rectangle(dropdown_x, dropdown_
 draw_set_color(c_aqua); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, true);
 draw_set_color(c_white); draw_text(dropdown_x + 10, dropdown_y + 5, characters[selected_character_index].name);
 
-var _ev_hov = (!_overlay_active && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
-draw_set_color(_ev_hov ? make_color_rgb(160, 160, 160) : make_color_rgb(100, 100, 100)); draw_rectangle(btn_edit_x, btn_edit_y, btn_edit_x + btn_edit_w, btn_edit_y + btn_edit_h, false);
+var _ev_hov = (!_overlay_active && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
+draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 60, 60) : (_ev_hov ? make_color_rgb(160, 160, 160) : make_color_rgb(100, 100, 100))); 
+draw_rectangle(btn_edit_x, btn_edit_y, btn_edit_x + btn_edit_w, btn_edit_y + btn_edit_h, false);
 draw_set_color(c_white); draw_text(btn_edit_x + 10, btn_edit_y + 5, "EDIT VOICE");
 
 // --- 6. MODALS ---
@@ -1171,6 +1246,25 @@ if (action_modal_open) {
         draw_set_color(_disabled ? c_gray : c_white); draw_text(_mxo+30, _by+10, string_upper(all_actions[i].name));
     }
     
+    // OK / Cancel Buttons
+    var _can_proceed = true;
+    if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
+        if (action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) _can_proceed = false;
+    } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "display title") {
+        if (action_modal_title_text == "") _can_proceed = false;
+    }
+    
+    var _ok_locked = (action_modal_locked && _can_proceed);
+    var _ok_hov = (_ok_locked && _mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _myo+_mh-50 && _my < _myo+_mh-15);
+    draw_set_color(_ok_locked ? (_ok_hov ? make_color_rgb(50,200,50) : make_color_rgb(30,150,30)) : make_color_rgb(50,50,60));
+    draw_rectangle(_mxo+_mw-280, _myo+_mh-50, _mxo+_mw-150, _myo+_mh-15, false);
+    draw_set_color(_ok_locked ? c_white : c_gray); draw_text(_mxo+_mw-230, _myo+_mh-42, "OK");
+    
+    var _can_hov = (_mx > _mxo+_mw-130 && _mx < _mxo+_mw-20 && _my > _myo+_mh-50 && _my < _myo+_mh-15);
+    draw_set_color(_can_hov ? make_color_rgb(200,50,50) : make_color_rgb(150,30,30));
+    draw_rectangle(_mxo+_mw-130, _myo+_mh-50, _mxo+_mw-20, _myo+_mh-15, false);
+    draw_set_color(c_white); draw_text(_mxo+_mw-110, _myo+_mh-42, "CANCEL");
+
     // Description Box
     draw_set_color(make_color_rgb(30,30,40));
     draw_rectangle(_mxo+280, _myo+60, _mxo+880, _myo+480, false);
@@ -1253,7 +1347,7 @@ if (action_modal_open) {
             gpu_set_scissor(0, 0, 1280, 960);
             
             // FOLDER SCROLLBAR
-            var _fh = 215; var _ftot = array_length(action_modal_sfx_folders) * 30;
+            _fh = 215; var _ftot = array_length(action_modal_sfx_folders) * 30;
             if (_ftot > _fh) {
                 var _sb_x = _fx + 240 - 8;
                 draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _wy + 65, _sb_x + 8, _wy + 280, false);
@@ -1263,7 +1357,7 @@ if (action_modal_open) {
             }
             
             // FILE SCROLLBAR
-            var _lh = 215; var _ltot = array_length(action_modal_sfx_files) * 30;
+            _lh = 215; var _ltot = array_length(action_modal_sfx_files) * 30;
             if (_ltot > _lh) {
                 var _sb_x = _lx + 310 - 8;
                 draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _wy + 65, _sb_x + 8, _wy + 280, false);
@@ -1279,25 +1373,61 @@ if (action_modal_open) {
             draw_set_color(_can_test ? (_t_hov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150)) : make_color_rgb(40, 40, 50));
             draw_rectangle(_tx, _ty, _tx + 120, _ty + 35, false);
             draw_set_color(_can_test ? c_white : c_gray); draw_text(_tx + 35, _ty + 8, "TEST");
+        } else if (all_actions[action_modal_selected_idx].name == "display title") {
+            var _wx = _mxo + 300; var _wy = _myo + 100;
+            
+            draw_set_color(c_aqua); draw_text(_wx, _wy, "PARAMETERS");
+            draw_line(_wx, _wy + 25, _wx + 560, _wy + 25);
+            
+            draw_set_color(c_white); draw_text(_wx, _wy + 40, "Title Text (Max 100 chars, Auto-wraps):");
+            draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_wx, _wy + 65, _wx + 560, _wy + 150, false);
+            draw_set_color(c_white); draw_text_ext(_wx + 10, _wy + 75, action_modal_title_text + (cursor_visible ? "|" : ""), 25, 540);
+            
+            draw_set_color(c_white); draw_text(_wx, _wy + 170, "Duration:");
+            var _sw = 300; var _sx = _wx + 100; var _sy = _wy + 170;
+            
+            var _l_hov = (_mx > _sx - 35 && _mx < _sx - 5 && _my > _sy - 10 && _my < _sy + 35);
+            draw_set_color(_l_hov ? c_aqua : c_gray); draw_text(_sx - 35, _sy, "<");
+            var _r_hov = (_mx > _sx + _sw + 5 && _mx < _sx + _sw + 45 && _my > _sy - 10 && _my < _sy + 35);
+            draw_set_color(_r_hov ? c_aqua : c_gray); draw_text(_sx + _sw + 20, _sy, ">");
+
+            draw_set_color(make_color_rgb(60, 60, 80)); draw_rectangle(_sx, _sy + 8, _sx + _sw, _sy + 13, false);
+            var _perc = (action_modal_wait_duration - 0.1) / 9.9;
+            draw_set_color(c_aqua); draw_circle(_sx + (_perc * _sw), _sy + 10, 8, false);
+            draw_set_color(c_white); draw_text(_sx + _sw + 50, _sy, string(action_modal_wait_duration) + "s");
+
+            var draw_dropdown = function(dx, dy, label, val_idx, opts_array, is_open) {
+                draw_set_color(c_white); draw_text(dx, dy, label);
+                var _bx = dx + 60; var _bw = 200;
+                draw_set_color(is_open ? make_color_rgb(60,60,80) : make_color_rgb(40,40,50));
+                draw_rectangle(_bx, dy, _bx + _bw, dy + 25, false);
+                draw_set_color(c_aqua); draw_rectangle(_bx, dy, _bx + _bw, dy + 25, true);
+                draw_set_color(c_white); draw_text(_bx + 10, dy + 3, opts_array[val_idx]);
+                draw_text(_bx + _bw - 20, dy + 3, "v");
+                
+                if (is_open) {
+                    draw_set_color(make_color_rgb(30,30,40)); draw_rectangle(_bx, dy + 25, _bx + _bw, dy + 25 + (array_length(opts_array) * 30), false);
+                    draw_set_color(c_aqua); draw_rectangle(_bx, dy + 25, _bx + _bw, dy + 25 + (array_length(opts_array) * 30), true);
+                    for (var d = 0; d < array_length(opts_array); d++) {
+                        var _dhov = (mouse_x > _bx && mouse_x < _bx + _bw && mouse_y > dy + 25 + (d * 30) && mouse_y < dy + 25 + ((d+1) * 30));
+                        if (_dhov) { draw_set_color(make_color_rgb(80,80,120)); draw_rectangle(_bx, dy + 25 + (d * 30), _bx + _bw, dy + 25 + ((d+1) * 30), false); }
+                        draw_set_color(d == val_idx ? c_yellow : c_white);
+                        draw_text(_bx + 10, dy + 30 + (d * 30), opts_array[d]);
+                    }
+                }
+            };
+            
+            if (action_modal_dropdown_open != "align") draw_dropdown(_wx, _wy + 230, "Align:", action_modal_title_align, action_modal_title_align_opts, false);
+            if (action_modal_dropdown_open != "size") draw_dropdown(_wx + 290, _wy + 230, "Size:", action_modal_title_size, action_modal_title_size_opts, false);
+            if (action_modal_dropdown_open != "font") draw_dropdown(_wx, _wy + 280, "Font:", action_modal_title_font, action_modal_title_font_opts, false);
+            if (action_modal_dropdown_open != "color") draw_dropdown(_wx + 290, _wy + 280, "Color:", action_modal_title_color, action_modal_title_color_opts, false);
+            
+            if (action_modal_dropdown_open == "align") draw_dropdown(_wx, _wy + 230, "Align:", action_modal_title_align, action_modal_title_align_opts, true);
+            if (action_modal_dropdown_open == "size") draw_dropdown(_wx + 290, _wy + 230, "Size:", action_modal_title_size, action_modal_title_size_opts, true);
+            if (action_modal_dropdown_open == "font") draw_dropdown(_wx, _wy + 280, "Font:", action_modal_title_font, action_modal_title_font_opts, true);
+            if (action_modal_dropdown_open == "color") draw_dropdown(_wx + 290, _wy + 280, "Color:", action_modal_title_color, action_modal_title_color_opts, true);
         }
     }
-    
-    // OK / Cancel Buttons
-    var _can_proceed = true;
-    if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
-        if (action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) _can_proceed = false;
-    }
-    
-    var _ok_locked = (action_modal_locked && _can_proceed);
-    var _ok_hov = (_ok_locked && _mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _myo+_mh-50 && _my < _myo+_mh-15);
-    draw_set_color(_ok_locked ? (_ok_hov ? make_color_rgb(50,200,50) : make_color_rgb(30,150,30)) : make_color_rgb(50,50,60));
-    draw_rectangle(_mxo+_mw-280, _myo+_mh-50, _mxo+_mw-150, _myo+_mh-15, false);
-    draw_set_color(_ok_locked ? c_white : c_gray); draw_text(_mxo+_mw-230, _myo+_mh-42, "OK");
-    
-    var _can_hov = (_mx > _mxo+_mw-130 && _mx < _mxo+_mw-20 && _my > _myo+_mh-50 && _my < _myo+_mh-15);
-    draw_set_color(_can_hov ? make_color_rgb(200,50,50) : make_color_rgb(150,30,30));
-    draw_rectangle(_mxo+_mw-130, _myo+_mh-50, _mxo+_mw-20, _myo+_mh-15, false);
-    draw_set_color(c_white); draw_text(_mxo+_mw-110, _myo+_mh-42, "CANCEL");
 }
 
 if (move_modal_open) {
@@ -1338,3 +1468,6 @@ if (move_modal_open) {
     draw_rectangle(_m_x + 220, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, false);
     draw_set_color(c_black); draw_text(_m_x + 255, _m_y + _m_h - 50, "CANCEL");
 }
+
+// --- 5c. LIVE TITLE RENDERING ---
+_render_live_titles();
