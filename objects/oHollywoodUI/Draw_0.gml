@@ -849,17 +849,6 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         
         var _b2 = script_blocks[b+1];
 
-        var get_link_type = function(_block) {
-            if (variable_struct_exists(_block, "type") && _block.type == "action") {
-                var _aname = string_lower(_block.action_name);
-                if (string_pos("play sfx", _aname) > 0) return "sfx";
-                if (string_pos("display title", _aname) > 0) return "title";
-                if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
-            } else if (!variable_struct_exists(_block, "type") || _block.type == "voice") {
-                return "voice";
-            }
-            return "other";
-        }
         var _b1_type = get_link_type(_b1);
         var _b2_type = get_link_type(_b2);
 
@@ -870,6 +859,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         else if ((_b1_type == "move" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "move")) _base_valid = true;
         else if ((_b1_type == "voice" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "voice")) _base_valid = true;
         else if ((_b1_type == "title" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "title")) _base_valid = true;
+        else if ((_b1_type == "title" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "title")) _base_valid = true;
         else if (_b1_type == "move" && _b2_type == "move" && _diff_char) _base_valid = true;
         else if (_b1_type == "voice" && _b2_type == "voice" && _diff_char) _base_valid = true;
 
@@ -883,14 +873,14 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             
             var _sfx_in_chain = 0;
             var _title_in_chain = 0;
-            var _voice_or_move_in_chain = false;
+            var _move_in_chain = false;
             for (var k = _start_idx; k <= _end_idx; k++) {
                 var _bk = script_blocks[k];
                 var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
                 var _bk_type = get_link_type(_bk);
                 if (_bk_type == "sfx") _sfx_in_chain++;
                 if (_bk_type == "title") _title_in_chain++;
-                if (_bk_type == "voice" || _bk_type == "move") _voice_or_move_in_chain = true;
+                if (_bk_type == "move") _move_in_chain = true;
                 
                 if (_bk_type == "voice" || _bk_type == "move") {
                     for (var j = k + 1; j <= _end_idx; j++) {
@@ -905,7 +895,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 if (!_chain_valid) break;
             }
             if (_title_in_chain > 0) {
-                if (_title_in_chain > 1 || _sfx_in_chain > 1 || _voice_or_move_in_chain) _chain_valid = false;
+                if (_title_in_chain > 1 || _move_in_chain || (_end_idx - _start_idx > 1)) _chain_valid = false;
             } else {
                 if (_sfx_in_chain > 1) _chain_valid = false;
             }

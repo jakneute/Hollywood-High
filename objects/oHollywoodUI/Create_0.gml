@@ -226,6 +226,18 @@ get_text_pos = function(_txt, _target_pos, _wrap_w, _line_h) {
     return { x: _tx, y: _ty };
 };
 
+get_link_type = function(_block) {
+    if (variable_struct_exists(_block, "type") && _block.type == "action") {
+        var _aname = string_lower(_block.action_name);
+        if (string_pos("play sfx", _aname) > 0) return "sfx";
+        if (string_pos("display title", _aname) > 0) return "title";
+        if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
+    } else if (!variable_struct_exists(_block, "type") || _block.type == "voice") {
+        return "voice";
+    }
+    return "other";
+};
+
 // --- 5. TTS ENGINE & CHARACTERS ---
 all_voices = tts_refresh_voices(); 
 
