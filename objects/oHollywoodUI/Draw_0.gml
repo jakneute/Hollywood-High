@@ -1,7 +1,7 @@
 /// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
-var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode);
+var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open);
 
 draw_clear(make_color_rgb(45, 45, 55)); 
 
@@ -111,7 +111,14 @@ if (theater_mode) {
 		gpu_set_texfilter(true);
 		for (var i = 0; i < array_length(preview_actors); i++) {
 			var _act = preview_actors[i];
-			var _spr = get_character_sprite(_act.char_index);
+			var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
+			var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 17;
+			var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+			
+			var _sprs = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
+			var _spr = _sprs[0];
+			var _spr_over = _sprs[1];
+			
 			if (_spr != -1) {
 				var _csh = sprite_get_height(_spr);
 				var _csw = sprite_get_width(_spr);
@@ -120,10 +127,10 @@ if (theater_mode) {
 				var _ax = (_act.x / scene_win_w) * _stg_w;
 				var _ay = (_act.y / scene_win_h) * _stg_h;
 				
-				var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
 				var _y_off = variable_struct_exists(_act, "y_offset") ? (_act.y_offset / scene_win_h) * _stg_h : 0;
 				
-				var _draw_x = (target_surface == -1) ? (_stg_x + _ax - (_csw * _asc * _face / 2)) : (_ax - (_csw * _asc * _face / 2));
+				// The correct directional image is already chosen by get_composite_character_sprite, so draw at scale 1 (no mirroring)
+				var _draw_x = (target_surface == -1) ? (_stg_x + _ax - (_csw * _asc / 2)) : (_ax - (_csw * _asc / 2));
 				var _draw_y = (target_surface == -1) ? (_stg_y + _ay - (_csh * _asc) + _y_off) : (_ay - (_csh * _asc) + _y_off);
 				
 				var _char_is_speaking = false;
@@ -139,13 +146,19 @@ if (theater_mode) {
                     }
 				}
 				
-				draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_white, 1);
+				draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc, _asc, 0, c_white, 1);
+				if (_spr_over != -1) {
+					draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _asc, _asc, 0, c_white, 1);
+				}
 
 				if (talking_glow_enabled && _char_is_speaking) {
 					var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
 					if (_pulse > 0) {
 						gpu_set_blendmode(bm_add);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc * _face, _asc, 0, c_yellow, _pulse);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc, _asc, 0, c_yellow, _pulse);
+						if (_spr_over != -1) {
+							draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _asc, _asc, 0, c_yellow, _pulse);
+						}
 						gpu_set_blendmode(bm_normal);
 					}
 				}
@@ -281,16 +294,23 @@ draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 60, 60) : (_d_hov 
 draw_rectangle(btn_dictionary_x, btn_dictionary_y, btn_dictionary_x + btn_dictionary_w, btn_dictionary_y + btn_dictionary_h, false);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_dictionary_x + (btn_dictionary_w/2), btn_dictionary_y + 8, "DICTIONARY"); draw_set_halign(fa_left);
 
-var _btn_gap = 10;
-var _half_w = (char_sel_w - _btn_gap) / 2;
+var _btn_gap = 6;
+var _col_w = (char_sel_w - _btn_gap * 2) / 3;
 
-btn_move_params_x = char_sel_x;
-btn_move_params_w = _half_w;
-btn_move_params_y = char_sel_y + char_sel_h + 10;
+btn_pose_x = char_sel_x;
+btn_pose_w = _col_w;
+btn_pose_y = char_sel_y + char_sel_h + 10;
+btn_pose_h = 35;
 
-btn_edit_x = char_sel_x + _half_w + _btn_gap;
-btn_edit_w = _half_w;
-btn_edit_y = btn_move_params_y;
+btn_expression_x = char_sel_x + _col_w + _btn_gap;
+btn_expression_w = _col_w;
+btn_expression_y = btn_pose_y;
+btn_expression_h = 35;
+
+btn_edit_x = char_sel_x + (_col_w + _btn_gap) * 2;
+btn_edit_w = _col_w;
+btn_edit_y = btn_pose_y;
+btn_edit_h = 35;
 
 btn_add_w = 125; btn_add_h = 35;
 btn_add_scene_w = 125; btn_add_scene_h = 35;
@@ -337,13 +357,20 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) _is_being_dragged = true;
 				if (_is_being_dragged) continue;
 				
-				var _spr = get_character_sprite(_act.char_index);
+				var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
+				var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 17;
+				var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+				
+				var _sprs = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
+				var _spr = _sprs[0];
+				var _spr_over = _sprs[1];
+				
 				if (_spr != -1) {
 					var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
 					var _sc = (scene_win_h * 1.5) / 450;
-					var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
 					var _y_off = variable_struct_exists(_act, "y_offset") ? _act.y_offset : 0;
-					var _draw_x = (target_surface == -1) ? (scene_win_x + _act.x - (_csw * _sc * _face)/2) : (_act.x - (_csw * _sc * _face)/2);
+					// Directional image already selected — draw at scale 1, no mirroring
+					var _draw_x = (target_surface == -1) ? (scene_win_x + _act.x - (_csw * _sc)/2) : (_act.x - (_csw * _sc)/2);
 					var _draw_y = (target_surface == -1) ? (scene_win_y + _act.y - (_csh * _sc) + _y_off) : (_act.y - (_csh * _sc) + _y_off);
 
 					var _char_is_speaking = false;
@@ -363,24 +390,32 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
 						gpu_set_fog(true, c_yellow, 0, 1);
 						var _ow = 3; // Outline thickness
-						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y - _ow, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y + _ow, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y - _ow, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y - _ow, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y + _ow, _sc * _face, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y + _ow, _sc * _face, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y, _sc, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y, _sc, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y - _ow, _sc, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y + _ow, _sc, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y - _ow, _sc, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y - _ow, _sc, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y + _ow, _sc, _sc, 0, c_white, 1);
+						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y + _ow, _sc, _sc, 0, c_white, 1);
 						gpu_set_fog(false, c_black, 0, 0);
 					}
 
-					if (_draw_sprite) draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_white, _alpha);
+					if (_draw_sprite) {
+						draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, _alpha);
+						if (_spr_over != -1) {
+							draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, _alpha);
+						}
+					}
 
 					if (_draw_sprite && talking_glow_enabled && _char_is_speaking) {
 						var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
 						if (_pulse > 0) {
 							gpu_set_blendmode(bm_add);
-							draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc * _face, _sc, 0, c_yellow, _pulse);
+							draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc, _sc, 0, c_yellow, _pulse);
+							if (_spr_over != -1) {
+								draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _sc, _sc, 0, c_yellow, _pulse);
+							}
 							gpu_set_blendmode(bm_normal);
 						}
 					}
@@ -561,11 +596,21 @@ for (var i = 0; i < array_length(characters); i++) {
     var _hov = (!_overlay_active && playing_block_index == -1 && _mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
     if (_hov || dragging_char_index == i) { draw_set_color(make_color_rgb(60, 60, 80)); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, false); }
     if (_is_sel) { draw_set_color(c_yellow); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, true); }
-    var _spr = get_character_sprite(i);
+    // Use composite sprite reflecting current pose/expression; facing 1 (right) is the default selector view
+    var _c_ch = characters[i];
+    var _sel_pose = variable_struct_exists(_c_ch, "pose") ? _c_ch.pose : 1;
+    var _sel_expr = variable_struct_exists(_c_ch, "expression") ? _c_ch.expression : 17;
+    var _sprs_ch = get_composite_character_sprite(i, _sel_pose, _sel_expr, 1);
+    var _spr = (_sprs_ch[0] != -1) ? _sprs_ch[0] : get_character_sprite(i);
+    var _spr_ch_over = _sprs_ch[1];
     if (_spr != -1) {
         var _sc = (_item_h - 30) / sprite_get_height(_spr);
+        var _sx = _ix + (_item_w - 5) / 2 - (sprite_get_width(_spr) * _sc) / 2;
         gpu_set_texfilter(true);
-        draw_sprite_ext(_spr, 0, _ix + (_item_w - 5) / 2 - (sprite_get_width(_spr) * _sc) / 2, _iy + 5, _sc, _sc, 0, c_white, (dragging_char_index == i) ? 0.3 : 1.0);
+        draw_sprite_ext(_spr, 0, _sx, _iy + 5, _sc, _sc, 0, c_white, (dragging_char_index == i) ? 0.3 : 1.0);
+        if (_spr_ch_over != -1) {
+            draw_sprite_ext(_spr_ch_over, 0, _sx, _iy + 5, _sc, _sc, 0, c_white, (dragging_char_index == i) ? 0.3 : 1.0);
+        }
         gpu_set_texfilter(false);
     }
     draw_set_color(_is_sel ? c_yellow : c_white);
@@ -585,21 +630,39 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         _char_id = preview_actors[dragging_preview_idx].char_index;
         _face = preview_actors[dragging_preview_idx].facing;
     }
+    var _pose = 1;
+    var _expr = 17;
+    if (dragging_char_index != -1) {
+        var _c = characters[dragging_char_index];
+        _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
+        _expr = variable_struct_exists(_c, "expression") ? _c.expression : 17;
+    } else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+        var _sa = script_blocks[active_scene_block_idx].actors[dragging_actor_idx];
+        _pose = variable_struct_exists(_sa, "pose") ? _sa.pose : 1;
+        _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 17;
+    } else if (dragging_preview_idx != -1) {
+        var _sa = preview_actors[dragging_preview_idx];
+        _pose = variable_struct_exists(_sa, "pose") ? _sa.pose : 1;
+        _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 17;
+    }
     
-    var _spr = get_character_sprite(_char_id);
+    // Compute facing before sprite selection so the correct directional image is fetched
+    _mx = mouse_x;
+    _my = mouse_y;
+    if (dragging_char_index != -1) {
+        var _is_left = (_mx < scene_win_x + (scene_win_w/2));
+        var _base_face = _is_left ? -1 : 1;
+        _face = moonwalk_enabled ? -_base_face : _base_face;
+    }
+    
+    var _sprs = get_composite_character_sprite(_char_id, _pose, _expr, _face);
+    var _spr = _sprs[0];
+    var _spr_over = _sprs[1];
+    
     if (_spr != -1) {
         var _csh = sprite_get_height(_spr);
         var _csw = sprite_get_width(_spr);
-        var _scale = (scene_win_h * 1.5) / 450; 
-        
-        _mx = mouse_x;
-        _my = mouse_y;
-        
-        if (dragging_char_index != -1) {
-            var _is_left = (_mx < scene_win_x + (scene_win_w/2));
-            var _base_face = _is_left ? -1 : 1;
-            _face = moonwalk_enabled ? -_base_face : _base_face;
-        }
+        var _scale = (scene_win_h * 1.5) / 450;
 
         var _cw = _csw * _scale;
         var _ch = _csh * _scale;
@@ -629,10 +692,14 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         var _alpha = _in_live ? 0.6 : 0.4;
         
         gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-        var _gx = scene_win_x + _px - (_csw * _scale * _face)/2;
+        // Directional image already selected — draw at scale 1, no mirroring
+        var _gx = scene_win_x + _px - (_csw * _scale)/2;
         var _gy = scene_win_y + _py - (_csh * _scale);
         gpu_set_texfilter(true);
-        draw_sprite_ext(_spr, 0, _gx, _gy, _scale * _face, _scale, 0, _color, _alpha);
+        draw_sprite_ext(_spr, 0, _gx, _gy, _scale, _scale, 0, _color, _alpha);
+        if (_spr_over != -1) {
+            draw_sprite_ext(_spr_over, 0, _gx, _gy, _scale, _scale, 0, _color, _alpha);
+        }
         gpu_set_texfilter(false);
         gpu_set_scissor(0, 0, 1280, 960);
     }
@@ -941,20 +1008,36 @@ draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 60, 60) : (_thov ?
 draw_rectangle(btn_theater_x, btn_theater_y, btn_theater_x + btn_theater_w, btn_theater_y + btn_theater_h, false);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_theater_x + (btn_theater_w / 2), btn_theater_y + 8, "ENTER THEATER"); draw_set_halign(fa_left);
 
-// MOVE PARAMS Button
-var _mhov = (!_overlay_active && playing_block_index == -1 && _mx > btn_move_params_x && _mx < btn_move_params_x + btn_move_params_w && _my > btn_move_params_y && _my < btn_move_params_y + btn_move_params_h);
-draw_set_color(playing_block_index != -1 ? make_color_rgb(100, 100, 100) : (_mhov ? make_color_rgb(255, 100, 0) : make_color_rgb(200, 80, 0)));
-draw_rectangle(btn_move_params_x, btn_move_params_y, btn_move_params_x + btn_move_params_w, btn_move_params_y + btn_move_params_h, false);
-draw_set_color(c_white); draw_text(btn_move_params_x + 10, btn_move_params_y + 8, "MOVE PARAMS");
+// --- POSE, EXPRESSION & VOICE CONTROLS ---
+var _is_narrator = (characters[selected_character_index].name == "NARRATOR");
+var _phov = (!_is_narrator && !_overlay_active && playing_block_index == -1 && _mx > btn_pose_x && _mx < btn_pose_x + btn_pose_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h);
+var _ehov = (!_is_narrator && !_overlay_active && playing_block_index == -1 && _mx > btn_expression_x && _mx < btn_expression_x + btn_expression_w && _my > btn_expression_y && _my < btn_expression_y + btn_expression_h);
+var _evhov = (!_overlay_active && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
+
+// RENDER POSE BUTTON
+draw_set_color(_is_narrator || playing_block_index != -1 ? make_color_rgb(55, 55, 55) : (_phov ? make_color_rgb(100, 150, 255) : make_color_rgb(40, 80, 150)));
+draw_rectangle(btn_pose_x, btn_pose_y, btn_pose_x + btn_pose_w, btn_pose_y + btn_pose_h, false);
+draw_set_color(_is_narrator ? make_color_rgb(110, 110, 110) : c_white); draw_set_halign(fa_center);
+draw_text(btn_pose_x + btn_pose_w/2, btn_pose_y + 8, "POSE");
+draw_set_halign(fa_left);
+
+// RENDER EXPRESSION BUTTON
+draw_set_color(_is_narrator || playing_block_index != -1 ? make_color_rgb(55, 55, 55) : (_ehov ? make_color_rgb(100, 200, 100) : make_color_rgb(40, 150, 80)));
+draw_rectangle(btn_expression_x, btn_expression_y, btn_expression_x + btn_expression_w, btn_expression_y + btn_expression_h, false);
+draw_set_color(_is_narrator ? make_color_rgb(110, 110, 110) : c_white); draw_set_halign(fa_center);
+draw_text(btn_expression_x + btn_expression_w/2, btn_expression_y + 8, "EXPR");
+draw_set_halign(fa_left);
+
+// RENDER VOICE BUTTON
+draw_set_color(playing_block_index != -1 ? make_color_rgb(80, 80, 80) : (_evhov ? make_color_rgb(160, 160, 160) : make_color_rgb(100, 100, 100)));
+draw_rectangle(btn_edit_x, btn_edit_y, btn_edit_x + btn_edit_w, btn_edit_y + btn_edit_h, false);
+draw_set_color(c_white); draw_set_halign(fa_center);
+draw_text(btn_edit_x + btn_edit_w/2, btn_edit_y + 8, "VOICE");
+draw_set_halign(fa_left);
 
 draw_set_color(make_color_rgb(50, 50, 60)); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, false);
 draw_set_color(c_aqua); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, true);
 draw_set_color(c_white); draw_text(dropdown_x + 10, dropdown_y + 5, characters[selected_character_index].name);
-
-var _ev_hov = (!_overlay_active && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
-draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 60, 60) : (_ev_hov ? make_color_rgb(160, 160, 160) : make_color_rgb(100, 100, 100))); 
-draw_rectangle(btn_edit_x, btn_edit_y, btn_edit_x + btn_edit_w, btn_edit_y + btn_edit_h, false);
-draw_set_color(c_white); draw_text(btn_edit_x + 10, btn_edit_y + 5, "EDIT VOICE");
 
 // --- 6. MODALS ---
 if (dictionary_open) {
@@ -1445,6 +1528,87 @@ if (move_modal_open) {
     draw_set_color(_can_hov ? c_white : c_ltgray);
     draw_rectangle(_m_x + 220, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, false);
     draw_set_color(c_black); draw_text(_m_x + 255, _m_y + _m_h - 50, "CANCEL");
+}
+
+if (pose_modal_open) {
+    draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+    var _m_w = 400; var _m_h = 320;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    draw_set_color(make_color_rgb(30, 30, 40)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
+    draw_set_color(c_aqua); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
+    
+    draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "SELECT CHARACTER POSE");
+    
+    for (var i = 1; i <= 4; i++) {
+        var _by = _m_y + 70 + ((i-1) * 45);
+        var _is_sel = (pose_modal_temp_pose == i);
+        var _hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40);
+        
+        draw_set_color(_is_sel ? c_aqua : (_hov ? make_color_rgb(60,60,80) : make_color_rgb(45,45,55)));
+        draw_rectangle(_m_x + 50, _by, _m_x + 350, _by + 40, false);
+        draw_set_color(_is_sel ? c_black : c_white);
+        draw_text(_m_x + 60, _by + 10, pose_names[i-1]);
+    }
+    
+    // APPLY Button (Left)
+    var _ap_hov = (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_ap_hov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 40, _m_y + _m_h - 60, _m_x + 180, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 85, _m_y + _m_h - 50, "APPLY");
+    
+    // CANCEL Button (Right)
+    var _can_hov = (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_can_hov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 220, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 255, _m_y + _m_h - 50, "CANCEL");
+}
+
+if (expression_modal_open) {
+    draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+    var _m_w = 600; var _m_h = 360;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    draw_set_color(make_color_rgb(20, 30, 25)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
+    draw_set_color(c_lime); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
+    
+    draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "SELECT CHARACTER EXPRESSION");
+    
+    var _grid_w = 540;
+    var _grid_h = 200;
+    var _gx = _m_x + 30;
+    var _gy = _m_y + 60;
+    
+    var _col_w = _grid_w / 4;
+    var _row_h = _grid_h / 5;
+    
+    for (var e = 1; e <= 17; e++) {
+        var _col = (e - 1) % 4;
+        var _row = floor((e - 1) / 4);
+        var _ex = _gx + _col * _col_w;
+        var _ey = _gy + _row * _row_h;
+        
+        var _is_sel = (expression_modal_temp_expr == e);
+        var _hov_e = (_mx > _ex && _mx < _ex + _col_w && _my > _ey && _my < _ey + _row_h);
+        
+        draw_set_color(_is_sel ? c_lime : (_hov_e ? make_color_rgb(40, 80, 50) : make_color_rgb(30, 45, 35)));
+        draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w - 2, _ey + _row_h - 2, false);
+        
+        draw_set_color(_is_sel ? c_black : c_white);
+        draw_set_halign(fa_center);
+        draw_text(_ex + _col_w/2, _ey + 8, mood_names[e - 1]);
+        draw_set_halign(fa_left);
+    }
+    
+    // APPLY Button (Left)
+    var _ap_hov = (_mx > _m_x + 100 && _mx < _m_x + 250 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_ap_hov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 100, _m_y + _m_h - 60, _m_x + 250, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 150, _m_y + _m_h - 50, "APPLY");
+    
+    // CANCEL Button (Right)
+    var _can_hov = (_mx > _m_x + 350 && _mx < _m_x + 500 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    draw_set_color(_can_hov ? c_white : c_ltgray);
+    draw_rectangle(_m_x + 350, _m_y + _m_h - 60, _m_x + 500, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 395, _m_y + _m_h - 50, "CANCEL");
 }
 
 // --- 5c. LIVE TITLE RENDERING ---

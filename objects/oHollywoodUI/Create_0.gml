@@ -61,9 +61,17 @@ btn_dictionary_w = 140; btn_dictionary_h = 35;
 btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
 btn_dictionary_y = scene_win_y - 45;
 
-// --- 2b. MOVEMENT PARAMETERS STATE ---
-btn_move_params_x = btn_theater_x + btn_theater_w + 10; btn_move_params_y = 15; 
-btn_move_params_w = 170; btn_move_params_h = 35;
+// --- 2b. POSE & EXPRESSION PARAMETERS STATE ---
+pose_modal_open = false;
+pose_modal_temp_pose = 1;
+expression_modal_open = false;
+expression_modal_temp_expr = 17;
+selected_pose = 1;
+selected_expression = 17; // Neutral
+mood_names = ["HAPPY", "SAD", "ANGRY", "SURPRISED", "SCARED", "CONFUSED", "BORED", "PROUD", "WORRIED", "EXCITED", "SHY", "GUILTY", "SILLY", "THOUGHTFUL", "STUBBORN", "SLEEPY", "NEUTRAL"];
+pose_names = ["POSE 1", "POSE 2", "POSE 3", "POSE 4"];
+
+// --- 2c. MOVEMENT PARAMETERS STATE ---
 move_modal_open = false;
 move_speed_index = 2; // Default: WALK
 move_speeds = [0.6, 1.25, 1.9, 3.1, 5.6];
@@ -242,29 +250,29 @@ get_link_type = function(_block) {
 all_voices = tts_refresh_voices(); 
 
 characters = [
-    { name: "NARRATOR", voice_id: all_voices[0].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1 },
-    { name: "GUS", voice_id: all_voices[18].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1 },
-    { name: "LILLY", voice_id: all_voices[1].voice_id, pitch: 60, speed: 45, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "MATT", voice_id: all_voices[4].voice_id, pitch: 40, speed: 55, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "JENNY", voice_id: all_voices[2].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "SUSAN", voice_id: all_voices[7].voice_id, pitch: 45, speed: 40, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "GARY", voice_id: all_voices[5].voice_id, pitch: 30, speed: 35, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "RUTH", voice_id: all_voices[13].voice_id, pitch: 20, speed: 30, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "GLENN", voice_id: all_voices[15].voice_id, pitch: 55, speed: 50, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "BABY", voice_id: all_voices[3].voice_id, pitch: 90, speed: 40, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "STELLA", voice_id: all_voices[1].voice_id, pitch: 55, speed: 30, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "ANNA", voice_id: all_voices[2].voice_id, pitch: 45, speed: 65, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "ED", voice_id: all_voices[16].voice_id, pitch: 65, speed: 70, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "LARRY", voice_id: all_voices[0].voice_id, pitch: 40, speed: 30, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "SID", voice_id: all_voices[17].voice_id, pitch: 75, speed: 50, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "TIFFANIE", voice_id: all_voices[6].voice_id, pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "ARTIE", voice_id: all_voices[11].voice_id, pitch: 30, speed: 45, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "CHARLOTTE", voice_id: all_voices[1].voice_id, pitch: 80, speed: 40, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "CHUCK", voice_id: all_voices[14].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "BILLIE", voice_id: all_voices[3].voice_id, pitch: 85, speed: 70, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "JJ", voice_id: all_voices[12].voice_id, pitch: 50, speed: 75, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "BEV", voice_id: all_voices[7].voice_id, pitch: 35, speed: 65, mode: 0, style: 0, tweaked: true, sprite: -1 },
-    { name: "LUCILLE", voice_id: all_voices[13].voice_id, pitch: 50, speed: 25, mode: 0, style: 0, tweaked: true, sprite: -1 }
+    { name: "NARRATOR", voice_id: all_voices[0].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1, act_index: 0, pose: 1, expression: 17 },
+    { name: "GUS", voice_id: all_voices[18].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1, act_index: 11, pose: 1, expression: 17 },
+    { name: "LILLY", voice_id: all_voices[1].voice_id, pitch: 60, speed: 45, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 12, pose: 1, expression: 17 },
+    { name: "MATT", voice_id: all_voices[4].voice_id, pitch: 40, speed: 55, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 13, pose: 1, expression: 17 },
+    { name: "JENNY", voice_id: all_voices[2].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 14, pose: 1, expression: 17 },
+    { name: "SUSAN", voice_id: all_voices[7].voice_id, pitch: 45, speed: 40, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 15, pose: 1, expression: 17 },
+    { name: "GARY", voice_id: all_voices[5].voice_id, pitch: 30, speed: 35, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 16, pose: 1, expression: 17 },
+    { name: "RUTH", voice_id: all_voices[13].voice_id, pitch: 20, speed: 30, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 17, pose: 1, expression: 17 },
+    { name: "GLENN", voice_id: all_voices[15].voice_id, pitch: 55, speed: 50, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 18, pose: 1, expression: 17 },
+    { name: "BABY", voice_id: all_voices[3].voice_id, pitch: 90, speed: 40, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 19, pose: 1, expression: 17 },
+    { name: "STELLA", voice_id: all_voices[1].voice_id, pitch: 55, speed: 30, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 20, pose: 1, expression: 17 },
+    { name: "ANNA", voice_id: all_voices[2].voice_id, pitch: 45, speed: 65, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 21, pose: 1, expression: 17 },
+    { name: "ED", voice_id: all_voices[16].voice_id, pitch: 65, speed: 70, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 22, pose: 1, expression: 17 },
+    { name: "LARRY", voice_id: all_voices[0].voice_id, pitch: 40, speed: 30, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 1, pose: 1, expression: 17 },
+    { name: "SID", voice_id: all_voices[17].voice_id, pitch: 75, speed: 50, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 2, pose: 1, expression: 17 },
+    { name: "TIFFANIE", voice_id: all_voices[6].voice_id, pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 3, pose: 1, expression: 17 },
+    { name: "ARTIE", voice_id: all_voices[11].voice_id, pitch: 30, speed: 45, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 4, pose: 1, expression: 17 },
+    { name: "CHARLOTTE", voice_id: all_voices[1].voice_id, pitch: 80, speed: 40, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 5, pose: 1, expression: 17 },
+    { name: "CHUCK", voice_id: all_voices[14].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 6, pose: 1, expression: 17 },
+    { name: "BILLIE", voice_id: all_voices[3].voice_id, pitch: 85, speed: 70, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 7, pose: 1, expression: 17 },
+    { name: "JJ", voice_id: all_voices[12].voice_id, pitch: 50, speed: 75, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 8, pose: 1, expression: 17 },
+    { name: "BEV", voice_id: all_voices[7].voice_id, pitch: 35, speed: 65, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 9, pose: 1, expression: 17 },
+    { name: "LUCILLE", voice_id: all_voices[13].voice_id, pitch: 50, speed: 25, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 10, pose: 1, expression: 17 }
 ];
 
 // Character sprites
@@ -280,6 +288,110 @@ get_character_sprite = function(_char_index) {
         return _spr;
     }
     return -1;
+}
+
+get_composite_character_sprite = function(_char_index, _pose, _expression, _facing) {
+    if (_char_index < 0 || _char_index >= array_length(characters)) return [-1, -1];
+    var _c = characters[_char_index];
+    
+    // NARRATOR has no sprites
+    if (_c.name == "NARRATOR") return [-1, -1];
+    
+    var _act_idx = variable_struct_exists(_c, "act_index") ? _c.act_index : 1;
+    var _dir_name = string_lower(_c.name);
+    var _prefix = string(_act_idx) + string(_pose);
+    
+    var _base_spr = -1;
+    var _overlay_spr = -1;
+    
+    var _folder_path = working_directory + "images/characters/" + _c.name + "/";
+    if (!directory_exists(_folder_path)) {
+        _folder_path = working_directory + "images/characters/" + _dir_name + "/";
+    }
+    
+    // If the subdirectory does not exist, return the baseline pose in the root!
+    if (!directory_exists(_folder_path)) {
+        var _base_path = working_directory + "images/characters/" + _dir_name + ".png";
+        if (!file_exists(_base_path)) {
+            _base_path = working_directory + "images/characters/" + _c.name + ".png";
+        }
+        if (file_exists(_base_path)) {
+            if (ds_map_exists(char_sprites, _c.name)) _base_spr = char_sprites[? _c.name];
+            else {
+                _base_spr = sprite_add(_base_path, 1, false, false, 0, 0);
+                ds_map_add(char_sprites, _c.name, _base_spr);
+            }
+        }
+        return [_base_spr, -1];
+    }
+    
+    // Resolve base body template: try all candidate suffixes and pick the LARGEST file
+    // (tiny files < 2000 bytes are transparent spacers; the full body is always the largest)
+    var _right_suffixes = ["02", "03", "01", "04", "05", "06", "07", "08", "09", "10"];
+    var _left_suffixes  = ["53", "52", "54", "51", "55", "56", "57", "58", "59", "60"];
+    var _suffixes = (_facing == 1) ? _right_suffixes : _left_suffixes;
+    
+    var _base_file = "";
+    var _best_size = 0;
+    for (var _si = 0; _si < array_length(_suffixes); _si++) {
+        var _candidate = "pose_" + _prefix + _suffixes[_si] + ".png";
+        var _full_path = _folder_path + _candidate;
+        if (file_exists(_full_path)) {
+            var _fbin = file_bin_open(_full_path, 0);
+            var _sz = (_fbin != -1) ? file_bin_size(_fbin) : 0;
+            if (_fbin != -1) file_bin_close(_fbin);
+            if (_sz > _best_size) {
+                _best_size = _sz;
+                _base_file = _candidate;
+            }
+        }
+    }
+    // Only accept the file if it's substantial (> 2000 bytes) — ignore tiny spacers
+    if (_best_size < 2000) _base_file = "";
+    
+    if (_base_file != "") {
+        var _cache_key = _c.name + "_" + _base_file;
+        if (ds_map_exists(char_sprites, _cache_key)) _base_spr = char_sprites[? _cache_key];
+        else {
+            _base_spr = sprite_add(_folder_path + _base_file, 1, false, false, 0, 0);
+            ds_map_add(char_sprites, _cache_key, _base_spr);
+        }
+    }
+    
+    // Resolve expression overlay
+    if (_expression >= 1 && _expression <= 12) {
+        var _expr_file = "";
+        if (_facing == 1) {
+            var _expr_val = 10 + _expression;
+            _expr_file = "pose_" + _prefix + string(_expr_val) + ".png";
+        } else {
+            var _expr_val = 60 + _expression;
+            _expr_file = "pose_" + _prefix + string(_expr_val) + ".png";
+        }
+        
+        if (file_exists(_folder_path + _expr_file)) {
+            var _cache_key = _c.name + "_" + _expr_file;
+            if (ds_map_exists(char_sprites, _cache_key)) _overlay_spr = char_sprites[? _cache_key];
+            else {
+                _overlay_spr = sprite_add(_folder_path + _expr_file, 1, false, false, 0, 0);
+                ds_map_add(char_sprites, _cache_key, _overlay_spr);
+            }
+        }
+    }
+    
+    // Fallback to baseline
+    if (_base_spr == -1) {
+        var _base_path = working_directory + "images/characters/" + _dir_name + ".png";
+        if (file_exists(_base_path)) {
+            if (ds_map_exists(char_sprites, _c.name)) _base_spr = char_sprites[? _c.name];
+            else {
+                _base_spr = sprite_add(_base_path, 1, false, false, 0, 0);
+                ds_map_add(char_sprites, _c.name, _base_spr);
+            }
+        }
+    }
+    
+    return [_base_spr, _overlay_spr];
 }
 
 selected_character_index = 0;
@@ -612,7 +724,9 @@ play_from_index = function(_idx) {
             for (var a = 0; a < array_length(_scene.actors); a++) {
                 var _sa = _scene.actors[a];
                 var _face = variable_struct_exists(_sa, "facing") ? _sa.facing : 1;
-                array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face });
+                var _pose = variable_struct_exists(_sa, "pose") ? _sa.pose : 1;
+                var _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 17;
+                array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
                 char_facings[_sa.char_index] = _face;
             }
         }
@@ -626,7 +740,7 @@ play_from_index = function(_idx) {
                 var _is_exit = (string_pos("exit", _aname) > 0);
                 var _is_left = (string_pos("left", _aname) > 0);
                 var _spd = variable_struct_exists(_b, "speed") ? _b.speed : 1.5;
-                var _moon = variable_struct_exists(_b, "moonwalk") ? _b.moonwalk : false;
+                var _moon = (variable_struct_exists(_b, "moonwalk") && _b.moonwalk) || (string_pos("[moonwalk]", _aname) > 0);
                 
                 var _act_idx = -1;
                 for (var k = 0; k < array_length(preview_actors); k++) {
@@ -643,8 +757,11 @@ play_from_index = function(_idx) {
                         var _final_x = variable_struct_exists(_b, "target_x") ? _b.target_x : _start_x;
                         var _final_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                         
+                        var _c = characters[_b.char_index];
+                        var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
+                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 17;
                         char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
-                        array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index] });
+                        array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
                     } else {
                         // If already onstage, update position and handle auto-facing
                         if (variable_struct_exists(_b, "target_x")) {
@@ -678,6 +795,30 @@ play_from_index = function(_idx) {
                             preview_actors[_act_idx].x = _b.target_x;
                             preview_actors[_act_idx].y = _b.target_y;
                             char_facings[_b.char_index] = preview_actors[_act_idx].facing;
+                        }
+                    }
+                } else if (string_pos("poses", _aname) > 0) {
+                    if (_act_idx != -1) {
+                        var _p_pos = string_pos("poses ", _aname);
+                        if (_p_pos > 0) {
+                            var _p_str = string_copy(_aname, _p_pos + 6, 1);
+                            var _p_num = real(_p_str);
+                            if (_p_num >= 1 && _p_num <= 4) {
+                                preview_actors[_act_idx].pose = _p_num;
+                            }
+                        }
+                        
+                        var _m_start = string_pos("(", _aname);
+                        var _m_end = string_pos(")", _aname);
+                        if (_m_start > 0 && _m_end > _m_start) {
+                            var _mood_str = string_copy(_aname, _m_start + 1, _m_end - _m_start - 1);
+                            _mood_str = string_upper(_mood_str);
+                            for (var m = 0; m < array_length(mood_names); m++) {
+                                if (mood_names[m] == _mood_str) {
+                                    preview_actors[_act_idx].expression = m + 1;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
