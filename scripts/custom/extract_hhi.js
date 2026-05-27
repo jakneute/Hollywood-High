@@ -9,8 +9,9 @@ const actorsDir = path.join(baseOutDir, 'actors');
 const scenesDir = path.join(baseOutDir, 'scenes');
 const soundsDir = path.join(baseOutDir, 'sounds');
 const mainDir = path.join(baseOutDir, 'main');
+const dumpDir = path.join(baseOutDir, 'dump');
 
-[baseOutDir, actorsDir, scenesDir, soundsDir, mainDir].forEach(dir => {
+[baseOutDir, actorsDir, scenesDir, soundsDir, mainDir, dumpDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
@@ -592,6 +593,7 @@ async function processRFFile(filePath, mode) {
                         }
                         const sceneName = `${groupName}_${typeSuffix}_${id}.png`;
                         outPath = path.join(sceneSpecificDir, sceneName);
+                        activeRemap = colorMappings['Scenes'] || null;
                     } else if (isMainFile) {
                         const outImgDir = path.join(mainDir, 'images');
                         if (!fs.existsSync(outImgDir)) {
@@ -638,9 +640,8 @@ async function processRFFile(filePath, mode) {
                                 if (destX >= 0 && destX < canvasWidth && destY >= 0 && destY < canvasHeight) {
                                     const dataIdx = (destY * canvasWidth + destX) * 4;
                                     
-                                    // True transparency routing: backgrounds/walkmasks render index 0 & 255 as solid colors
-									const isTransparent = (isActorFile || isMainFile || typeSuffix === 'foreground' || typeSuffix === 'mask') && 
-														  paletteIdx === 255;
+                                    // True transparency routing: index 255 is always transparent
+                                    const isTransparent = paletteIdx === 255;
                                     
                                     if (isTransparent) {
                                         image.bitmap.data[dataIdx] = 0;
@@ -826,10 +827,225 @@ async function processRFFile(filePath, mode) {
     fs.closeSync(fd);
 }
 
+// D. Full RAW Binary Dump Function
+async function dumpRFFile(filePath) {
+    if (!fs.existsSync(filePath)) {
+        console.log(`Skipping missing file: ${filePath}`);
+        return;
+    }
+
+    const filename = path.basename(filePath);
+    console.log(`\nStarting Full Dump of ${filename}...`);
+
+    const fd = fs.openSync(filePath, 'r');
+    const header = Buffer.alloc(16);
+    fs.readSync(fd, header, 0, 16, 0);
+
+    const tocOffset = header.readUInt32BE(4);
+    const tocSize = header.readUInt32BE(12);
+
+    const tocBuffer = Buffer.alloc(tocSize);
+    fs.readSync(fd, tocBuffer, 0, tocSize, tocOffset);
+
+    const namesOffset = tocBuffer.readUInt16BE(26);
+    const numTypesMinus1 = tocBuffer.readUInt16BE(28);
+    const numTypes = numTypesMinus1 + 1;
+
+    function getString(offset) {
+        if (offset === 0xffff || offset >= tocBuffer.length - namesOffset) return '';
+        const start = namesOffset + offset;
+        const len = tocBuffer[start];
+        if (len === 0 || start + 1 + len > tocBuffer.length) return '';
+        return tocBuffer.slice(start + 1, start + 1 + len).toString('ascii').trim();
+    }
+
+    let offsetInTOC = 30;
+    const types = [];
+    for (let i = 0; i < numTypes; i++) {
+        const tag = tocBuffer.slice(offsetInTOC, offsetInTOC + 4).toString('ascii');
+        const count = tocBuffer.readUInt16BE(offsetInTOC + 4);
+        const typeOffset = tocBuffer.readUInt16BE(offsetInTOC + 6);
+        types.push({ tag, count, typeOffset });
+        offsetInTOC += 8;
+    }
+
+    const fileOutDir = path.join(dumpDir, sanitizeFilename(filename));
+
+    for (const typeEntry of types) {
+        const actualStart = 30 + typeEntry.typeOffset;
+        const entrySize = 12;
+        let extractedCount = 0;
+        const safeTag = sanitizeFilename(typeEntry.tag.trim()) || 'UNKNOWN';
+        const targetDir = path.join(fileOutDir, safeTag);
+
+        for (let i = 0; i < typeEntry.count; i++) {
+            const entryOffset = actualStart + i * entrySize;
+            const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
+            const nameOff = chunk.readUInt16BE(0);
+            const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
+            const id = chunk.readUInt16BE(10);
+
+            const dataOffset = 256 + relativeOffset;
+            if (dataOffset >= tocOffset || dataOffset < 256) continue;
+
+            try {
+                if (typeEntry.tag === 'Im08') {
+                    const sizeBuf = Buffer.alloc(48);
+                    fs.readSync(fd, sizeBuf, 0, 48, dataOffset);
+                    const dataCompressedSize = sizeBuf.readUInt32BE(0);
+
+                    if (dataCompressedSize <= 0 || dataCompressedSize > 50000000) continue;
+
+                    const height = sizeBuf.readUInt16BE(8);
+                    const width = sizeBuf.readUInt16BE(10);
+                    if (width <= 0 || height <= 0 || width > 2000 || height > 2000) continue;
+
+                    const compressedData = Buffer.alloc(dataCompressedSize);
+                    fs.readSync(fd, compressedData, 0, dataCompressedSize, dataOffset + 48);
+                    const decompressed = decompressPackBits(compressedData);
+
+                    let rowBytes = Math.ceil(width / 4) * 4;
+                    const image = new Jimp({ width, height });
+
+                    for (let y = 0; y < height; y++) {
+                        for (let x = 0; x < width; x++) {
+                            const srcIdx = y * rowBytes + x;
+                            if (srcIdx < decompressed.length) {
+                                const paletteIdx = decompressed[srcIdx];
+                                const color = globalPalette[paletteIdx] || { r: 0, g: 0, b: 0 };
+                                const dataIdx = (y * width + x) * 4;
+                                if (paletteIdx === 255) {
+                                    image.bitmap.data[dataIdx] = 0;
+                                    image.bitmap.data[dataIdx + 1] = 0;
+                                    image.bitmap.data[dataIdx + 2] = 0;
+                                    image.bitmap.data[dataIdx + 3] = 0;
+                                } else {
+                                    image.bitmap.data[dataIdx] = color.r;
+                                    image.bitmap.data[dataIdx + 1] = color.g;
+                                    image.bitmap.data[dataIdx + 2] = color.b;
+                                    image.bitmap.data[dataIdx + 3] = 255;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+                    const name = getString(nameOff);
+                    const cleanName = sanitizeFilename(name) || `${safeTag}_${id}`;
+                    const outPath = path.join(targetDir, `${cleanName}.png`);
+                    
+                    const pngBuf = await image.getBuffer('image/png');
+                    fs.writeFileSync(outPath, pngBuf);
+                    extractedCount++;
+                }
+                else if (typeEntry.tag === 'snd ') {
+                    const sizeBuf = Buffer.alloc(48);
+                    fs.readSync(fd, sizeBuf, 0, 48, dataOffset);
+                    const dataCompressedSize = sizeBuf.readUInt32BE(0);
+
+                    if (dataCompressedSize <= 48) continue;
+
+                    const rawData = Buffer.alloc(dataCompressedSize - 48);
+                    fs.readSync(fd, rawData, 0, rawData.length, dataOffset + 48);
+
+                    const sampleRate = decodeExtendedFloat(rawData, 2);
+                    const sampleSize = rawData.length >= 26 ? rawData.readUInt16BE(24) : 16;
+
+                    const pcmBig = rawData.slice(40);
+                    let pcmData;
+
+                    if (sampleSize === 16) {
+                        pcmData = Buffer.alloc(pcmBig.length);
+                        for (let j = 0; j < pcmBig.length; j += 2) {
+                            if (j + 1 < pcmBig.length) {
+                                pcmData.writeUInt16LE(pcmBig.readUInt16BE(j), j);
+                            }
+                        }
+                    } else {
+                        pcmData = pcmBig;
+                    }
+
+                    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+                    const name = getString(nameOff);
+                    const cleanName = sanitizeFilename(name) || `${safeTag}_${id}`;
+                    const outPath = path.join(targetDir, `${cleanName}.wav`);
+
+                    writeWav(pcmData, sampleRate, sampleSize, outPath);
+                    extractedCount++;
+                }
+                else {
+                    const sizeBuf = Buffer.alloc(4);
+                    fs.readSync(fd, sizeBuf, 0, 4, dataOffset);
+                    const dataSize = sizeBuf.readUInt32BE(0);
+
+                    if (dataSize <= 0 || dataSize > 50000000) continue; 
+
+                    const rawData = Buffer.alloc(dataSize);
+                    fs.readSync(fd, rawData, 0, dataSize, dataOffset + 4);
+
+                    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+
+                    const name = getString(nameOff);
+                    const cleanName = sanitizeFilename(name) || `${safeTag}_${id}`;
+                
+                    let ext = '.bin';
+                    const tagStr = typeEntry.tag;
+                    if (['TEXT', 'STR ', 'STR#'].includes(tagStr)) ext = '.txt';
+                    else if (tagStr === 'scpt') ext = '.scpt';
+                    else if (tagStr === 'PICT') ext = '.pict';
+                    else if (['CURS', 'crsr'].includes(tagStr)) ext = '.cur';
+                    else if (['ICN#', 'cicn', 'icon'].includes(tagStr)) ext = '.ico';
+                    else {
+                        const safeExt = tagStr.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                        if (safeExt) ext = '.' + safeExt;
+                    }
+
+                    const outPath = path.join(targetDir, `${cleanName}${ext}`);
+                    fs.writeFileSync(outPath, rawData);
+                    extractedCount++;
+                }
+            } catch (err) {
+                console.error(`Error dumping ${typeEntry.tag} ID ${id} in ${filename}:`, err.message);
+            }
+        }
+        if (extractedCount > 0) {
+            console.log(`  Dumped ${extractedCount} items for tag: ${typeEntry.tag}`);
+        }
+    }
+    fs.closeSync(fd);
+}
+
 async function runExtractor(drive, choice) {
     console.log(`Starting Unified CD Asset Extractor to: ${baseOutDir}`);
 
-    globalPalette = getGlobalPalette(drive);
+    try {
+        globalPalette = getGlobalPalette(drive);
+    } catch (err) {
+        console.warn('Warning: Could not load global palette. Images may not extract correctly.', err.message);
+    }
+
+    if (choice === '6') {
+        console.log('\n=========================================');
+        console.log('PERFORMING FULL RAW BINARY DUMP');
+        console.log('=========================================');
+        const driveRoot = `${drive}:\\`;
+        try {
+            if (fs.existsSync(driveRoot)) {
+                const files = fs.readdirSync(driveRoot).filter(f => f.toUpperCase().endsWith('.RF'));
+                for (const file of files) {
+                    await dumpRFFile(path.join(driveRoot, file));
+                }
+            } else {
+                console.log(`Could not read drive root: ${driveRoot}`);
+            }
+        } catch (err) {
+            console.log(`Error reading drive: ${err.message}`);
+        }
+        console.log('\n======================================================');
+        console.log(`Extraction complete! All dump files placed in:\n${dumpDir}`);
+        console.log('======================================================');
+        return;
+    }
 
     if (choice === '1' || choice === '3') {
         console.log('Pre-scanning scene files for names...');
@@ -892,10 +1108,11 @@ rl.question('Drive letter for Hollywood High CD-ROM (e.g., J): ', (driveLetter) 
     console.log('  3. Scenes only');
     console.log('  4. Sounds only');
     console.log('  5. Main assets only');
-    rl.question('Choice [1-5]: ', (choice) => {
+    console.log('  6. Full RAW Binary Dump (All .RF files)');
+    rl.question('Choice [1-6]: ', (choice) => {
         choice = choice.trim();
         rl.close();
-        if (!['1','2','3','4','5'].includes(choice)) {
+        if (!['1','2','3','4','5','6'].includes(choice)) {
             console.error('Invalid choice.');
             process.exit(1);
         }

@@ -147,7 +147,7 @@ function getImageDataFromCD(drive, targetId) {
                     fs.readSync(fd, compressedData, 0, dataCompressedSize, dataOffset + 48);
                     const decompressed = decompressPackBits(compressedData);
                     fs.closeSync(fd);
-                    return { width, height, decompressed };
+                    return { width, height, decompressed, sourceFile: file };
                 }
             }
         }
@@ -283,7 +283,8 @@ rl.question('Drive letter for Hollywood High CD-ROM to read global palette (e.g.
                             const srcIdx = y * rowBytes + x;
                             if (srcIdx < cdData.decompressed.length) {
                                 const paletteIdx = cdData.decompressed[srcIdx];
-                                if (paletteIdx === 255) continue; // Transparent
+                                
+                                if (paletteIdx === 255) continue; // Always transparent
 
                                 const origColor = globalPalette[paletteIdx] || { r: 0, g: 0, b: 0 };
                                 let mappedRGB = null;

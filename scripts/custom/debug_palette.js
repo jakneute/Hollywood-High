@@ -119,7 +119,7 @@ function getImageDataFromCD(drive, targetId) {
                     fs.readSync(fd, compressedData, 0, dataCompressedSize, dataOffset + 48);
                     const decompressed = decompressPackBits(compressedData);
                     fs.closeSync(fd);
-                    return { width, height, decompressed };
+                    return { width, height, decompressed, sourceFile: file };
                 }
             }
         }
@@ -156,7 +156,7 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 
 rl.question('Drive letter for CD-ROM (e.g., J): ', (driveLetter) => {
     driveLetter = driveLetter.trim().toUpperCase() || 'J';
-    rl.question('Enter Pose ID (e.g., 300, 4001): ', async (idStr) => {
+    rl.question('Enter Image ID (e.g., 300 for Actor, 151 for Scene): ', async (idStr) => {
         const targetId = parseInt(idStr.trim(), 10);
         if (isNaN(targetId)) { console.error("Invalid ID."); process.exit(1); }
 
@@ -173,12 +173,18 @@ rl.question('Drive letter for CD-ROM (e.g., J): ', (driveLetter) => {
 
         console.log(`Found image: ${cdData.width}x${cdData.height}. Processing...`);
 
-        const charRouteId = Math.floor(targetId / 1000);
-        const characterName = actrNames[charRouteId] || "Unknown";
+        let characterName = "Unknown";
+        if (cdData.sourceFile.toUpperCase().startsWith('SCENES')) {
+            characterName = "Scenes";
+        } else {
+            const charRouteId = Math.floor(targetId / 1000);
+            characterName = actrNames[charRouteId] || "Unknown";
+        }
+        
         const activeRemap = colorMappings[characterName] || null;
         
         console.log(`\n-----------------------------------------`);
-        console.log(`Character Detected: ${characterName}`);
+        console.log(`Category Detected: ${characterName} (from ${cdData.sourceFile})`);
         console.log(`Active Color Overrides: ${activeRemap ? Object.keys(activeRemap).length : 0}`);
         console.log(`-----------------------------------------\n`);
 
@@ -194,7 +200,8 @@ rl.question('Drive letter for CD-ROM (e.g., J): ', (driveLetter) => {
                 const srcIdx = y * rowBytes + x;
                 if (srcIdx < cdData.decompressed.length) {
                     const paletteIdx = cdData.decompressed[srcIdx];
-                    if (paletteIdx === 255) continue; // Transparent
+                    
+                    if (paletteIdx === 255) continue; // Always transparent
 
                     const color = globalPalette[paletteIdx] || { r: 0, g: 0, b: 0 };
                     if (!usedIndices.has(paletteIdx)) {
@@ -295,7 +302,7 @@ rl.question('Drive letter for CD-ROM (e.g., J): ', (driveLetter) => {
     </style>
 </head>
 <body>
-    <h1>Palette Debug - Pose ID: ${targetId} (${characterName})</h1>
+    <h1>Palette Debug - Image ID: ${targetId} (${characterName})</h1>
     <h2 id="selectedIndexLabel" style="margin-top: -10px; margin-bottom: 20px; color: #aaa; font-size: 18px;">Selected Index: None</h2>
     <div class="container">
         <div class="img-panel">
