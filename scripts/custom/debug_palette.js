@@ -181,7 +181,7 @@ rl.question('Drive letter for CD-ROM (e.g., J): ', (driveLetter) => {
             characterName = actrNames[charRouteId] || "Unknown";
         }
         
-        const activeRemap = colorMappings[characterName] || null;
+        const activeRemap = colorMappings || null;
         
         console.log(`\n-----------------------------------------`);
         console.log(`Category Detected: ${characterName} (from ${cdData.sourceFile})`);
