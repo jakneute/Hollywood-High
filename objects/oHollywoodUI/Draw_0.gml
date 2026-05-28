@@ -1,7 +1,7 @@
 /// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
-var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open);
+var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || expr_cfg_open);
 
 draw_clear(make_color_rgb(45, 45, 55)); 
 
@@ -111,28 +111,26 @@ if (theater_mode) {
 		gpu_set_texfilter(true);
 		for (var i = 0; i < array_length(preview_actors); i++) {
 			var _act = preview_actors[i];
-			var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
-			var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 17;
-			var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-			
-			var _sprs = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
-			var _spr = _sprs[0];
-			var _spr_over = _sprs[1];
-			
+			var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
+			var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 17;
+			var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
+
+			var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+			var _spr    = _layers[0].spr;
+
 			if (_spr != -1) {
 				var _csh = sprite_get_height(_spr);
 				var _csw = sprite_get_width(_spr);
 				var _asc = (_stg_h * 1.5) / 450;
-				
+
 				var _ax = (_act.x / scene_win_w) * _stg_w;
 				var _ay = (_act.y / scene_win_h) * _stg_h;
-				
+
 				var _y_off = variable_struct_exists(_act, "y_offset") ? (_act.y_offset / scene_win_h) * _stg_h : 0;
-				
-				// The correct directional image is already chosen by get_composite_character_sprite, so draw at scale 1 (no mirroring)
+
 				var _draw_x = (target_surface == -1) ? (_stg_x + _ax - (_csw * _asc / 2)) : (_ax - (_csw * _asc / 2));
 				var _draw_y = (target_surface == -1) ? (_stg_y + _ay - (_csh * _asc) + _y_off) : (_ay - (_csh * _asc) + _y_off);
-				
+
 				var _char_is_speaking = false;
 				if (playing_block_index != -1 && is_speaking) {
                     var _end_idx = max(playing_block_index, playing_linked_index);
@@ -145,19 +143,19 @@ if (theater_mode) {
                         }
                     }
 				}
-				
-				draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc, _asc, 0, c_white, 1);
-				if (_spr_over != -1) {
-					draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _asc, _asc, 0, c_white, 1);
+
+				for (var _li = 0; _li < array_length(_layers); _li++) {
+					var _l = _layers[_li];
+					if (_l.spr != -1) draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _asc, _draw_y + _l.dy * _asc, _asc, _asc, 0, c_white, 1);
 				}
 
 				if (talking_glow_enabled && _char_is_speaking) {
 					var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
 					if (_pulse > 0) {
 						gpu_set_blendmode(bm_add);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _asc, _asc, 0, c_yellow, _pulse);
-						if (_spr_over != -1) {
-							draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _asc, _asc, 0, c_yellow, _pulse);
+						for (var _gli = 0; _gli < array_length(_layers); _gli++) {
+							var _gl = _layers[_gli];
+							if (_gl.spr != -1) draw_sprite_ext(_gl.spr, 0, _draw_x + _gl.dx * _asc, _draw_y + _gl.dy * _asc, _asc, _asc, 0, c_yellow, _pulse);
 						}
 						gpu_set_blendmode(bm_normal);
 					}
@@ -357,19 +355,17 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) _is_being_dragged = true;
 				if (_is_being_dragged) continue;
 				
-				var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
-				var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 17;
-				var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-				
-				var _sprs = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
-				var _spr = _sprs[0];
-				var _spr_over = _sprs[1];
-				
+				var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
+				var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 17;
+				var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
+
+				var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+				var _spr    = _layers[0].spr;
+
 				if (_spr != -1) {
 					var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
 					var _sc = (scene_win_h * 1.5) / 450;
 					var _y_off = variable_struct_exists(_act, "y_offset") ? _act.y_offset : 0;
-					// Directional image already selected — draw at scale 1, no mirroring
 					var _draw_x = (target_surface == -1) ? (scene_win_x + _act.x - (_csw * _sc)/2) : (_act.x - (_csw * _sc)/2);
 					var _draw_y = (target_surface == -1) ? (scene_win_y + _act.y - (_csh * _sc) + _y_off) : (_act.y - (_csh * _sc) + _y_off);
 
@@ -402,9 +398,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					}
 
 					if (_draw_sprite) {
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, _alpha);
-						if (_spr_over != -1) {
-							draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, _alpha);
+						for (var _li = 0; _li < array_length(_layers); _li++) {
+							var _l = _layers[_li];
+							if (_l.spr != -1) draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, _alpha);
 						}
 					}
 
@@ -412,9 +408,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 						var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
 						if (_pulse > 0) {
 							gpu_set_blendmode(bm_add);
-							draw_sprite_ext(_spr, 0, _draw_x, _draw_y, _sc, _sc, 0, c_yellow, _pulse);
-							if (_spr_over != -1) {
-								draw_sprite_ext(_spr_over, 0, _draw_x, _draw_y, _sc, _sc, 0, c_yellow, _pulse);
+							for (var _gli = 0; _gli < array_length(_layers); _gli++) {
+								var _gl = _layers[_gli];
+								if (_gl.spr != -1) draw_sprite_ext(_gl.spr, 0, _draw_x + _gl.dx * _sc, _draw_y + _gl.dy * _sc, _sc, _sc, 0, c_yellow, _pulse);
 							}
 							gpu_set_blendmode(bm_normal);
 						}
@@ -526,16 +522,14 @@ if (playing_block_index == -1 && scene_edit_mode && scene_edit_selected_actor_id
             var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
             var _sc = (scene_win_h * 1.5) / 450;
             var _cw = _csw * _sc; var _ch = _csh * _sc;
-            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
             var _ax = scene_win_x + _act.x; var _ay = scene_win_y + _act.y;
-            
+
             var _v_top = max(_ay - _ch, scene_win_y);
             var _v_bottom = min(_ay, scene_win_y + scene_win_h);
             var _v_visible = max(0, _v_bottom - _v_top);
-            
-            var _h_left = _ax - (_cw * _face)/2;
-            var _h_right = _ax + (_cw * _face)/2;
-            if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
+
+            var _h_left  = _ax - _cw / 2;
+            var _h_right = _ax + _cw / 2;
             var _h_intersect_l = max(_h_left, scene_win_x);
             var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
             var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
@@ -572,6 +566,13 @@ draw_set_color(make_color_rgb(35, 35, 45));
 draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, false);
 draw_set_color(c_aqua); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, true);
 draw_set_color(c_white); draw_text(char_sel_x + 10, char_sel_y + 5, "CHARACTER SELECTOR");
+var _is_narrator_sel = (characters[selected_character_index].name == "NARRATOR");
+var _ecfg_btn_hov = (!_overlay_active && !_is_narrator_sel && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28);
+draw_set_color(_is_narrator_sel ? make_color_rgb(28, 28, 38) : (_ecfg_btn_hov ? make_color_rgb(100, 150, 255) : make_color_rgb(40, 60, 110)));
+draw_roundrect_ext(char_sel_x + 195, char_sel_y + 2, char_sel_x + char_sel_w - 6, char_sel_y + 28, 4, 4, false);
+draw_set_color(_is_narrator_sel ? make_color_rgb(55, 55, 65) : c_white); draw_set_halign(fa_center);
+draw_text((char_sel_x + 195 + char_sel_x + char_sel_w - 6) / 2, char_sel_y + 7, "EXPR CFG");
+draw_set_halign(fa_left);
 
 // --- Character Pane Scrollbar ---
 var _c_total_h = ceil(array_length(characters) / 3) * 135;
@@ -607,16 +608,29 @@ for (var i = 0; i < array_length(characters); i++) {
             break;
         }
     }
-    var _sprs_ch = get_composite_character_sprite(i, _sel_pose, _sel_expr, 1);
-    var _spr = (_sprs_ch[0] != -1) ? _sprs_ch[0] : get_character_sprite(i);
-    var _spr_ch_over = _sprs_ch[1];
+    // Use cached layers if pose/expr haven't changed — avoids ~5 file_exists calls per character per frame
+    var _cached = (i < array_length(char_sel_layer_cache)) ? char_sel_layer_cache[i] : undefined;
+    if (_cached == undefined || _cached.pose != _sel_pose || _cached.expr != _sel_expr) {
+        var _ch_layers = get_composite_character_sprite(i, _sel_pose, _sel_expr);
+        char_sel_layer_cache[i] = { layers: _ch_layers, pose: _sel_pose, expr: _sel_expr };
+    } else {
+        var _ch_layers = _cached.layers;
+    }
+    var _spr = _ch_layers[0].spr; // Use the body sprite from the composite layers
     if (_spr != -1) {
-        var _sc = (_item_h - 30) / sprite_get_height(_spr);
-        var _sx = _ix + (_item_w - 5) / 2 - (sprite_get_width(_spr) * _sc) / 2;
+        // Total composite height = lower body + amount face extends above it (face_dy is negative)
+        var _body_h_ch = sprite_get_height(_spr);
+        var _face_above = max(0, -_ch_layers[1].dy);  // 0 for neutral (full body, no tiled face)
+        var _total_h_ch = _body_h_ch + _face_above;
+        var _sc    = (_item_h - 30) / _total_h_ch;
+        var _sx    = _ix + (_item_w - 5) / 2 - (sprite_get_width(_spr) * _sc) / 2;
+        // Bottom-anchor: feet near the name label, face extends upward naturally
+        var _sy    = _iy + _item_h - 22 - _body_h_ch * _sc;
+        var _alpha = (dragging_char_index == i) ? 0.3 : 1.0;
         gpu_set_texfilter(true);
-        draw_sprite_ext(_spr, 0, _sx, _iy + 5, _sc, _sc, 0, c_white, (dragging_char_index == i) ? 0.3 : 1.0);
-        if (_spr_ch_over != -1) {
-            draw_sprite_ext(_spr_ch_over, 0, _sx, _iy + 5, _sc, _sc, 0, c_white, (dragging_char_index == i) ? 0.3 : 1.0);
+        for (var _li = 0; _li < array_length(_ch_layers); _li++) {
+            var _cl = _ch_layers[_li];
+            if (_cl.spr != -1) draw_sprite_ext(_cl.spr, 0, _sx + _cl.dx * _sc, _sy + _cl.dy * _sc, _sc, _sc, 0, c_white, _alpha);
         }
         gpu_set_texfilter(false);
     }
@@ -627,15 +641,12 @@ for (var i = 0; i < array_length(characters); i++) {
 gpu_set_scissor(0, 0, 1280, 960);
 if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_idx != -1) {
     var _char_id = -1;
-    var _face = 1;
     if (dragging_char_index != -1) _char_id = dragging_char_index;
     else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
         _char_id = script_blocks[active_scene_block_idx].actors[dragging_actor_idx].char_index;
-        _face = script_blocks[active_scene_block_idx].actors[dragging_actor_idx].facing;
     }
     else if (dragging_preview_idx != -1) {
         _char_id = preview_actors[dragging_preview_idx].char_index;
-        _face = preview_actors[dragging_preview_idx].facing;
     }
     var _pose = 1;
     var _expr = 17;
@@ -653,19 +664,12 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 17;
     }
     
-    // Compute facing before sprite selection so the correct directional image is fetched
     _mx = mouse_x;
     _my = mouse_y;
-    if (dragging_char_index != -1) {
-        var _is_left = (_mx < scene_win_x + (scene_win_w/2));
-        var _base_face = _is_left ? -1 : 1;
-        _face = moonwalk_enabled ? -_base_face : _base_face;
-    }
-    
-    var _sprs = get_composite_character_sprite(_char_id, _pose, _expr, _face);
-    var _spr = _sprs[0];
-    var _spr_over = _sprs[1];
-    
+
+    var _layers = get_composite_character_sprite(_char_id, _pose, _expr);
+    var _spr    = _layers[0].spr;
+
     if (_spr != -1) {
         var _csh = sprite_get_height(_spr);
         var _csw = sprite_get_width(_spr);
@@ -673,39 +677,34 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
 
         var _cw = _csw * _scale;
         var _ch = _csh * _scale;
-        
-        // Proposed Position (with offsets, removed clamps)
+
         var _px = _mx - scene_win_x - drag_off_x;
         var _py = _my - scene_win_y - drag_off_y;
 
-        // Vertical intersection
         var _ay_abs = scene_win_y + _py;
         var _v_top = _ay_abs - _ch;
         var _v_bottom = _ay_abs;
         var _v_visible = max(0, min(_v_bottom, scene_win_y + scene_win_h) - max(_v_top, scene_win_y));
-        
-        // Horizontal intersection (using Proposed Position)
+
         var _ax_abs = scene_win_x + _px;
-        var _h_left = _ax_abs - (_cw * _face)/2;
-        var _h_right = _ax_abs + (_cw * _face)/2;
-        if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
-        
+        var _h_left  = _ax_abs - _cw / 2;
+        var _h_right = _ax_abs + _cw / 2;
+
         var _h_intersect_l = max(_h_left, scene_win_x);
         var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
         var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
-        
+
         var _in_live = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
         var _color = _in_live ? c_white : c_red;
         var _alpha = _in_live ? 0.6 : 0.4;
-        
+
         gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-        // Directional image already selected — draw at scale 1, no mirroring
         var _gx = scene_win_x + _px - (_csw * _scale)/2;
         var _gy = scene_win_y + _py - (_csh * _scale);
         gpu_set_texfilter(true);
-        draw_sprite_ext(_spr, 0, _gx, _gy, _scale, _scale, 0, _color, _alpha);
-        if (_spr_over != -1) {
-            draw_sprite_ext(_spr_over, 0, _gx, _gy, _scale, _scale, 0, _color, _alpha);
+        for (var _gli = 0; _gli < array_length(_layers); _gli++) {
+            var _gl = _layers[_gli];
+            if (_gl.spr != -1) draw_sprite_ext(_gl.spr, 0, _gx + _gl.dx * _scale, _gy + _gl.dy * _scale, _scale, _scale, 0, _color, _alpha);
         }
         gpu_set_texfilter(false);
         gpu_set_scissor(0, 0, 1280, 960);
@@ -1581,18 +1580,20 @@ if (pose_modal_open) {
     draw_roundrect_ext(_m_x + 380, _m_y + 50, _m_x + 610, _m_y + 280, 10, 10, true);
     
     if (selected_character_index != -1) {
-        var _sprs = get_composite_character_sprite(selected_character_index, pose_modal_temp_pose, selected_expression, 1);
-        if (_sprs[0] != -1) {
-            var _csh = sprite_get_height(_sprs[0]);
-            var _csw = sprite_get_width(_sprs[0]);
-            
-            var _sc = 200 / _csh;
+        var _layers = get_composite_character_sprite(selected_character_index, pose_modal_temp_pose, selected_expression);
+        if (_layers[0].spr != -1) {
+            var _csh = sprite_get_height(_layers[0].spr);
+            var _csw = sprite_get_width(_layers[0].spr);
+            var _face_above_pm = max(0, -_layers[1].dy);
+            var _total_h_pm = _csh + _face_above_pm;
+            var _avail_pm = 210; // preview box inner height
+            var _sc = _avail_pm / _total_h_pm;
             var _draw_x = _m_x + 495 - (_csw * _sc / 2);
-            var _draw_y = _m_y + 270 - 200;
-            
-            draw_sprite_ext(_sprs[0], 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, 1);
-            if (_sprs[1] != -1) {
-                draw_sprite_ext(_sprs[1], 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, 1);
+            // Bottom-anchor body inside the preview box
+            var _draw_y = _m_y + 275 - _csh * _sc;
+            for (var _li = 0; _li < array_length(_layers); _li++) {
+                var _l = _layers[_li];
+                if (_l.spr != -1) draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, 1);
             }
         }
     }
@@ -1612,36 +1613,37 @@ if (pose_modal_open) {
 
 if (expression_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    var _m_w = 600; var _m_h = 360;
+    // 21 expressions: 4 cols × 6 rows (last row has 1 cell = NEUTRAL)
+    var _m_w = 700; var _m_h = 460;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     draw_set_color(make_color_rgb(20, 30, 25)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
     draw_set_color(c_lime); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
-    
+
     draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "SELECT CHARACTER EXPRESSION");
-    
-    var _grid_w = 540;
-    var _grid_h = 200;
-    var _gx = _m_x + 30;
-    var _gy = _m_y + 60;
-    
-    var _col_w = _grid_w / 4;
-    var _row_h = _grid_h / 5;
-    
-    for (var e = 1; e <= 17; e++) {
-        var _col = (e - 1) % 4;
-        var _row = floor((e - 1) / 4);
+
+    var _cols_em = 4;
+    var _col_w = 660 / _cols_em;
+    var _row_h = 52;
+    var _gx = _m_x + 20;
+    var _gy = _m_y + 55;
+
+    for (var e = 1; e <= 21; e++) {
+        var _col = (e - 1) % _cols_em;
+        var _row = floor((e - 1) / _cols_em);
         var _ex = _gx + _col * _col_w;
         var _ey = _gy + _row * _row_h;
-        
+
         var _is_sel = (expression_modal_temp_expr == e);
         var _hov_e = (_mx > _ex && _mx < _ex + _col_w && _my > _ey && _my < _ey + _row_h);
-        
-        draw_set_color(_is_sel ? c_lime : (_hov_e ? make_color_rgb(40, 80, 50) : make_color_rgb(30, 45, 35)));
+
+        draw_set_color(e == 21
+            ? (_is_sel ? c_lime : (_hov_e ? make_color_rgb(50, 70, 50) : make_color_rgb(30, 40, 30)))
+            : (_is_sel ? c_lime : (_hov_e ? make_color_rgb(40, 80, 50) : make_color_rgb(30, 45, 35))));
         draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w - 2, _ey + _row_h - 2, false);
-        
+
         draw_set_color(_is_sel ? c_black : c_white);
         draw_set_halign(fa_center);
-        draw_text(_ex + _col_w/2, _ey + 8, mood_names[e - 1]);
+        draw_text(_ex + _col_w/2, _ey + (_row_h/2) - 8, mood_names[e - 1]);
         draw_set_halign(fa_left);
     }
     
@@ -1656,6 +1658,421 @@ if (expression_modal_open) {
     draw_set_color(_can_hov ? c_white : c_ltgray);
     draw_rectangle(_m_x + 350, _m_y + _m_h - 60, _m_x + 500, _m_y + _m_h - 20, false);
     draw_set_color(c_black); draw_text(_m_x + 395, _m_y + _m_h - 50, "CANCEL");
+}
+
+// ── EXPRESSION TILE CONFIGURATOR MODAL ──
+if (expr_cfg_open) {
+    draw_set_color(c_black); draw_set_alpha(0.78);
+    draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+
+    var _m_x = 85; var _m_y = 55; var _m_w = 1110; var _m_h = 770;
+    draw_set_color(make_color_rgb(16, 20, 30));
+    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 10, 10, false);
+    draw_set_color(make_color_rgb(70, 110, 200));
+    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 10, 10, true);
+
+    var _lx = _m_x + 12; var _ly = _m_y + 12;
+    var _c_ec = characters[expr_cfg_char_idx];
+
+    // Title
+    draw_set_color(c_white);
+    draw_text(_lx, _ly, "EXPRESSION TILE CONFIGURATOR  [DEBUG]");
+
+    // Character navigation
+    var _nav_y = _ly + 28;
+    var _c_prev_hov = (!theater_mode && _mx > _lx && _mx < _lx + 28 && _my > _nav_y && _my < _nav_y + 28);
+    var _c_next_hov = (!theater_mode && _mx > _lx + 252 && _mx < _lx + 280 && _my > _nav_y && _my < _nav_y + 28);
+    draw_set_color(_c_prev_hov ? c_yellow : c_ltgray);
+    draw_rectangle(_lx, _nav_y, _lx + 27, _nav_y + 27, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_lx + 13, _nav_y + 5, "<");
+    draw_set_color(_c_next_hov ? c_yellow : c_ltgray);
+    draw_rectangle(_lx + 253, _nav_y, _lx + 280, _nav_y + 27, false);
+    draw_set_color(c_black); draw_text(_lx + 266, _nav_y + 5, ">"); draw_set_halign(fa_left);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text(_lx + 140, _nav_y + 5, _c_ec.name); draw_set_halign(fa_left);
+
+    // Pose buttons
+    var _pose_y = _nav_y + 36;
+    draw_set_color(c_ltgray); draw_text(_lx, _pose_y + 3, "POSE");
+    for (var _pi = 1; _pi <= 4; _pi++) {
+        var _pbx = _lx + 45 + (_pi - 1) * 58;
+        var _p_hov = (!theater_mode && _mx > _pbx && _mx < _pbx + 48 && _my > _pose_y && _my < _pose_y + 28);
+        var _p_sel = (expr_cfg_pose == _pi);
+        draw_set_color(_p_sel ? make_color_rgb(70, 110, 200) : (_p_hov ? make_color_rgb(45, 55, 80) : make_color_rgb(28, 32, 48)));
+        draw_roundrect_ext(_pbx, _pose_y, _pbx + 48, _pose_y + 28, 4, 4, false);
+        draw_set_color(_p_sel ? c_white : c_ltgray);
+        draw_set_halign(fa_center); draw_text(_pbx + 24, _pose_y + 5, string(_pi)); draw_set_halign(fa_left);
+    }
+
+    // Direction toggle
+    var _dir_y = _pose_y + 36;
+    var _dir_labels = ["NATURAL", "FLIPPED"];
+    for (var _di = 0; _di <= 1; _di++) {
+        var _dbx = _lx + _di * 142;
+        var _d_sel = (expr_cfg_high == (_di == 1));
+        var _d_hov = (!theater_mode && _mx > _dbx && _mx < _dbx + 132 && _my > _dir_y && _my < _dir_y + 28);
+        draw_set_color(_d_sel ? make_color_rgb(50, 100, 60) : (_d_hov ? make_color_rgb(35, 50, 40) : make_color_rgb(25, 30, 28)));
+        draw_roundrect_ext(_dbx, _dir_y, _dbx + 132, _dir_y + 28, 4, 4, false);
+        draw_set_color(_d_sel ? c_lime : c_ltgray);
+        draw_set_halign(fa_center); draw_text(_dbx + 66, _dir_y + 5, _dir_labels[_di]); draw_set_halign(fa_left);
+    }
+
+    // Layer rows
+    var _pc_ec = expr_cfg_get_pc();
+    var _layer_y0 = _dir_y + 38;
+    var _layer_names_ec = ["BODY", "FACE", "EYES", "MOUTH"];
+    var _layer_cols = [make_color_rgb(160,120,60), make_color_rgb(100,160,255), make_color_rgb(80,200,80), make_color_rgb(255,160,60)];
+    for (var _li = 0; _li <= 3; _li++) {
+        var _lby = _layer_y0 + _li * 52;
+        var _l_sel = (expr_cfg_selected_layer == _li);
+        var _l_hov = (!theater_mode && _mx > _lx && _mx < _lx + 280 && _my > _lby && _my < _lby + 46);
+        draw_set_color(_l_sel ? make_color_rgb(28, 40, 68) : (_l_hov ? make_color_rgb(22, 26, 40) : make_color_rgb(18, 20, 30)));
+        draw_roundrect_ext(_lx, _lby, _lx + 280, _lby + 46, 5, 5, false);
+        draw_set_color(_layer_cols[_li]);
+        draw_roundrect_ext(_lx, _lby, _lx + 280, _lby + 46, 5, 5, true);
+        draw_set_color(c_white); draw_text(_lx + 8, _lby + 4, _layer_names_ec[_li]);
+        if (_pc_ec != undefined) {
+            var _ldx = 0; var _ldy = 0;
+            if (_li == 0) { _ldx = variable_struct_exists(_pc_ec, "body_dx") ? _pc_ec.body_dx : 0; _ldy = variable_struct_exists(_pc_ec, "body_dy") ? _pc_ec.body_dy : 0; }
+            if (_li == 1) { _ldx = _pc_ec.face_dx;  _ldy = _pc_ec.face_dy; }
+            if (_li == 2) { _ldx = _pc_ec.eyes_dx;  _ldy = _pc_ec.eyes_dy; }
+            if (_li == 3) { _ldx = _pc_ec.mouth_dx; _ldy = _pc_ec.mouth_dy; }
+            draw_set_color(c_ltgray); draw_text(_lx + 8, _lby + 24, "dx:" + string(_ldx) + "  dy:" + string(_ldy));
+        }
+    }
+
+    // dx/dy nudge controls for selected layer
+    var _nudge_y = _layer_y0 + 4 * 52 + 6;
+    if (_pc_ec != undefined) {
+        var _n_ldx = 0; var _n_ldy = 0;
+        if (expr_cfg_selected_layer == 0) { _n_ldx = variable_struct_exists(_pc_ec, "body_dx") ? _pc_ec.body_dx : 0; _n_ldy = variable_struct_exists(_pc_ec, "body_dy") ? _pc_ec.body_dy : 0; }
+        if (expr_cfg_selected_layer == 1) { _n_ldx = _pc_ec.face_dx;  _n_ldy = _pc_ec.face_dy; }
+        if (expr_cfg_selected_layer == 2) { _n_ldx = _pc_ec.eyes_dx;  _n_ldy = _pc_ec.eyes_dy; }
+        if (expr_cfg_selected_layer == 3) { _n_ldx = _pc_ec.mouth_dx; _n_ldy = _pc_ec.mouth_dy; }
+        var _axes = ["dx", "dy"]; var _vals = [_n_ldx, _n_ldy];
+        for (var _ai2 = 0; _ai2 <= 1; _ai2++) {
+            var _ny2 = _nudge_y + _ai2 * 34;
+            draw_set_color(c_ltgray); draw_text(_lx, _ny2 + 4, _axes[_ai2] + ":");
+            var _nm_hov = (!theater_mode && _mx > _lx + 30 && _mx < _lx + 58 && _my > _ny2 && _my < _ny2 + 28);
+            var _np_hov = (!theater_mode && _mx > _lx + 110 && _mx < _lx + 138 && _my > _ny2 && _my < _ny2 + 28);
+            draw_set_color(_nm_hov ? c_yellow : c_ltgray); draw_rectangle(_lx + 30, _ny2, _lx + 57, _ny2 + 27, false);
+            draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_lx + 43, _ny2 + 4, "-"); draw_set_halign(fa_left);
+            draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_lx + 84, _ny2 + 4, string(_vals[_ai2])); draw_set_halign(fa_left);
+            draw_set_color(_np_hov ? c_yellow : c_ltgray); draw_rectangle(_lx + 110, _ny2, _lx + 137, _ny2 + 27, false);
+            draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_lx + 123, _ny2 + 4, "+"); draw_set_halign(fa_left);
+        }
+        draw_set_color(make_color_rgb(60, 60, 80));
+        draw_text(_lx, _nudge_y + 72, "Arrow keys: nudge 1px");
+        draw_text(_lx, _nudge_y + 86, "Drag tiles in preview");
+    }
+
+    // Expression selector — drives both eyes and mouth (via mood_map)
+    // 20 expressions in a 5-col × 4-row grid
+    var _esel_y = _nudge_y + 110;
+    draw_set_color(c_ltgray); draw_text(_lx, _esel_y, "EXPRESSION (eyes + mouth):");
+    var _expr_names_short = ["HAP","SAD","ANG","COL","FLR","SHY","EMB","SUR","FRI","MSC","GUI","PAR","CON","BOR","SIL","PAN","POM","CNT","REF","WIS"];
+    var _esel_mood_map    = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+    var _mood_col = [make_color_rgb(255,200,60), make_color_rgb(160,160,180), make_color_rgb(255,100,80), make_color_rgb(160,220,100)];
+    var _ecols = 5; var _eboxw = 52; var _eboxh = 36; var _egap = 4;
+    for (var _ei = 1; _ei <= 20; _ei++) {
+        var _ecol = (_ei - 1) % _ecols;
+        var _erow = floor((_ei - 1) / _ecols);
+        var _ex2 = _lx + _ecol * (_eboxw + _egap);
+        var _ey2 = _esel_y + 18 + _erow * (_eboxh + _egap);
+        var _e_sel2 = (expr_cfg_preview_expr == _ei);
+        var _e_hov2 = (!theater_mode && _mx > _ex2 && _mx < _ex2 + _eboxw && _my > _ey2 && _my < _ey2 + _eboxh);
+        draw_set_color(_e_sel2 ? make_color_rgb(55, 90, 170) : (_e_hov2 ? make_color_rgb(38, 46, 68) : make_color_rgb(22, 26, 38)));
+        draw_rectangle(_ex2, _ey2, _ex2 + _eboxw, _ey2 + _eboxh, false);
+        // Expression name
+        draw_set_color(c_white); draw_set_halign(fa_center);
+        draw_text(_ex2 + _eboxw/2, _ey2 + 3, _expr_names_short[_ei - 1]);
+        // Mouth-mood colour stripe
+        var _em = _esel_mood_map[_ei - 1];
+        var _has_mouth = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files") && variable_struct_exists(_pc_ec.mouth_files, string(_em)) && _pc_ec.mouth_files[$ string(_em)] != "");
+        var _has_eyes  = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "eyes_files")  && variable_struct_exists(_pc_ec.eyes_files,  string(_ei)) && _pc_ec.eyes_files[$  string(_ei)] != "");
+        draw_set_color(_has_mouth ? _mood_col[_em] : make_color_rgb(40, 42, 55));
+        draw_rectangle(_ex2 + 2, _ey2 + 26, _ex2 + _eboxw - 2, _ey2 + 33, false);
+        if (_has_eyes) { draw_set_color(c_aqua); draw_circle(_ex2 + _eboxw - 6, _ey2 + 6, 3, false); }
+        draw_set_halign(fa_left);
+    }
+
+    // Bottom buttons: SAVE, CLOSE
+    var _btn_y2 = _m_y + _m_h - 52;
+    var _btn_w = 50; var _btn_gap = 8;
+
+    // SAVE
+    var _save_x = _lx;
+    var _save_hov = (!theater_mode && _mx > _save_x && _mx < _save_x + _btn_w && _my > _btn_y2 && _my < _btn_y2 + 40);
+    draw_set_color(_save_hov ? c_lime : make_color_rgb(50, 110, 50)); draw_rectangle(_save_x, _btn_y2, _save_x + _btn_w, _btn_y2 + 40, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_save_x + _btn_w/2, _btn_y2 + 11, "SAVE"); draw_set_halign(fa_left);
+
+    // CLOSE
+    var _cls_x = _save_x + _btn_w + _btn_gap;
+    var _cls_hov2 = (!theater_mode && _mx > _cls_x && _mx < _cls_x + _btn_w && _my > _btn_y2 && _my < _btn_y2 + 40);
+    draw_set_color(_cls_hov2 ? c_red : make_color_rgb(80, 25, 25)); draw_rectangle(_cls_x, _btn_y2, _cls_x + _btn_w, _btn_y2 + 40, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_cls_x + _btn_w/2, _btn_y2 + 11, "CLOSE"); draw_set_halign(fa_left);
+
+    // ── Right panel: preview ──
+    var _px2 = _m_x + 298; var _py2 = _m_y + 10;
+    var _pw2 = _m_w - 308; var _ph2 = _m_h - 20;
+    draw_set_color(make_color_rgb(10, 12, 18));
+    draw_roundrect_ext(_px2, _py2, _px2 + _pw2, _py2 + _ph2, 8, 8, false);
+    draw_set_color(make_color_rgb(35, 45, 75));
+    draw_roundrect_ext(_px2, _py2, _px2 + _pw2, _py2 + _ph2, 8, 8, true);
+
+    // Get preview sprites
+    var _body_spr_ec = -1;
+    var _face_spr_ec = -1;
+    var _eyes_spr_ec = -1;
+    var _mouth_spr_ec = -1;
+    var _folder_ec2 = working_directory + "images/characters/" + _c_ec.name + "/";
+    var _ai_ec = variable_struct_exists(_c_ec, "act_index") ? _c_ec.act_index : 1;
+    var _sfx_off_ec = expr_cfg_high ? 50 : 0;
+    var _pfx_ec = string(_ai_ec) + string(expr_cfg_pose);
+
+    // ── Load body / face sprites (with sprite_add fallback) ──
+    if (_pc_ec != undefined) {
+        if (_pc_ec.body_file != "") {
+            var _bk3 = _c_ec.name + "_" + _pc_ec.body_file;
+            if (ds_map_exists(char_sprites, _bk3)) {
+                _body_spr_ec = char_sprites[? _bk3];
+            } else if (file_exists(_folder_ec2 + _pc_ec.body_file)) {
+                _body_spr_ec = sprite_add(_folder_ec2 + _pc_ec.body_file, 1, false, false, 0, 0);
+                ds_map_add(char_sprites, _bk3, _body_spr_ec);
+            }
+        }
+        if (_pc_ec.face_file != "") {
+            var _fk3 = _c_ec.name + "_" + _pc_ec.face_file;
+            if (ds_map_exists(char_sprites, _fk3)) {
+                _face_spr_ec = char_sprites[? _fk3];
+            } else if (file_exists(_folder_ec2 + _pc_ec.face_file)) {
+                _face_spr_ec = sprite_add(_folder_ec2 + _pc_ec.face_file, 1, false, false, 0, 0);
+                ds_map_add(char_sprites, _fk3, _face_spr_ec);
+            }
+        }
+    }
+
+    // Eyes: use per-expression override if set, else suffix auto
+    var _eyes_file_ec = "";
+    if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "eyes_files")) {
+        var _ef_ec = _pc_ec.eyes_files;
+        var _ef_ek = string(expr_cfg_preview_expr);
+        if (variable_struct_exists(_ef_ec, _ef_ek) && _ef_ec[$ _ef_ek] != "") _eyes_file_ec = _ef_ec[$ _ef_ek];
+    }
+    if (_eyes_file_ec == "") {
+        var _eyes_n_ec = 10 + expr_cfg_preview_expr + _sfx_off_ec;
+        _eyes_file_ec = "pose_" + _pfx_ec + ((_eyes_n_ec < 10 ? "0" : "") + string(_eyes_n_ec)) + ".png";
+    }
+    var _ek3 = _c_ec.name + "_" + _eyes_file_ec;
+    if (ds_map_exists(char_sprites, _ek3)) {
+        _eyes_spr_ec = char_sprites[? _ek3];
+    } else if (file_exists(_folder_ec2 + _eyes_file_ec)) {
+        _eyes_spr_ec = sprite_add(_folder_ec2 + _eyes_file_ec, 1, false, false, 0, 0);
+        ds_map_add(char_sprites, _ek3, _eyes_spr_ec);
+    }
+
+    // Mouth: derive mood from the selected expression (same mapping as get_composite_character_sprite)
+    var _ec_mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+    var _derived_mood_ec = _ec_mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
+    var _mouth_file_ec = "";
+    if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files")) {
+        var _mf_ec = _pc_ec.mouth_files;
+        var _mf_mk = string(_derived_mood_ec);
+        if (variable_struct_exists(_mf_ec, _mf_mk) && _mf_ec[$ _mf_mk] != "") _mouth_file_ec = _mf_ec[$ _mf_mk];
+    }
+    if (_mouth_file_ec == "") {
+        var _mouth_n_ec = 31 + _derived_mood_ec + _sfx_off_ec;
+        _mouth_file_ec = "pose_" + _pfx_ec + ((_mouth_n_ec < 10 ? "0" : "") + string(_mouth_n_ec)) + ".png";
+    }
+    var _mk3 = _c_ec.name + "_" + _mouth_file_ec;
+    if (ds_map_exists(char_sprites, _mk3)) {
+        _mouth_spr_ec = char_sprites[? _mk3];
+    } else if (file_exists(_folder_ec2 + _mouth_file_ec)) {
+        _mouth_spr_ec = sprite_add(_folder_ec2 + _mouth_file_ec, 1, false, false, 0, 0);
+        ds_map_add(char_sprites, _mk3, _mouth_spr_ec);
+    }
+
+    // ── Split preview panel: top 58% = composite, bottom 42% = file browser ──
+    var _char_preview_h = floor(_ph2 * 0.58);
+    var _file_browser_y = _py2 + _char_preview_h + 4;
+    var _file_browser_h = _ph2 - _char_preview_h - 8;
+
+    // ── Character composite preview ──
+    var _bdw2 = (_body_spr_ec != -1) ? sprite_get_width(_body_spr_ec) : 80;
+    var _bdh2 = (_body_spr_ec != -1) ? sprite_get_height(_body_spr_ec) : 100;
+    // Total composite height = body bottom → face top (face_dy is negative when above body)
+    var _total_char_h = _bdh2;
+    if (_pc_ec != undefined && _pc_ec.face_dy < 0) _total_char_h = _bdh2 - _pc_ec.face_dy;
+    var _base_sc = (_body_spr_ec != -1) ? min((_char_preview_h - 20) / _total_char_h, 4.0) : 2.0;
+    var _cfg_sc = _base_sc * expr_cfg_zoom;
+
+    var _anch_x2 = _px2 + _pw2 / 2;
+    var _anch_y2 = _py2 + _char_preview_h - 10;
+    var _drawx2 = _anch_x2 - _bdw2 * _cfg_sc / 2;
+    var _drawy2 = _anch_y2 - _bdh2 * _cfg_sc;
+
+    gpu_set_scissor(_px2 + 2, _py2 + 2, _pw2 - 4, _char_preview_h - 4);
+    gpu_set_texfilter(true);
+    var _prev_sprs = [_body_spr_ec, _face_spr_ec, _eyes_spr_ec, _mouth_spr_ec];
+    var _body_dx_ec = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "body_dx") ? _pc_ec.body_dx : 0);
+    var _body_dy_ec = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "body_dy") ? _pc_ec.body_dy : 0);
+    var _prev_dx = [_body_dx_ec,
+        (_pc_ec != undefined ? _pc_ec.face_dx  + _body_dx_ec : 0),
+        (_pc_ec != undefined ? _pc_ec.eyes_dx  + _body_dx_ec : 0),
+        (_pc_ec != undefined ? _pc_ec.mouth_dx + _body_dx_ec : 0)];
+    var _prev_dy = [_body_dy_ec,
+        (_pc_ec != undefined ? _pc_ec.face_dy  + _body_dy_ec : 0),
+        (_pc_ec != undefined ? _pc_ec.eyes_dy  + _body_dy_ec : 0),
+        (_pc_ec != undefined ? _pc_ec.mouth_dy + _body_dy_ec : 0)];
+    for (var _li2 = 0; _li2 <= 3; _li2++) {
+        var _ls2 = _prev_sprs[_li2];
+        var _lsx = _drawx2 + _prev_dx[_li2] * _cfg_sc;
+        var _lsy = _drawy2 + _prev_dy[_li2] * _cfg_sc;
+        var _is_sel_l = (expr_cfg_selected_layer == _li2);
+        if (_ls2 == -1) {
+            // Placeholder: lets user see and click the layer even without a sprite loaded
+            draw_set_color(_is_sel_l ? c_yellow : make_color_rgb(35, 40, 60));
+            draw_rectangle(_lsx, _lsy, _lsx + 64, _lsy + 28, _is_sel_l);
+            draw_set_color(_is_sel_l ? c_black : _layer_cols[_li2]);
+            draw_text(_lsx + 4, _lsy + 7, _layer_names_ec[_li2] + " ?");
+            continue;
+        }
+        if (_is_sel_l) {
+            gpu_set_blendmode(bm_add);
+            draw_sprite_ext(_ls2, 0, _lsx, _lsy, _cfg_sc, _cfg_sc, 0, _layer_cols[_li2], 0.35);
+            gpu_set_blendmode(bm_normal);
+        }
+        draw_sprite_ext(_ls2, 0, _lsx, _lsy, _cfg_sc, _cfg_sc, 0, _is_sel_l ? c_yellow : c_white, 1.0);
+        draw_set_color(_layer_cols[_li2]); draw_text(_lsx + 2, _lsy - 13, _layer_names_ec[_li2]);
+    }
+
+    // Zoom Indicator
+    draw_set_halign(fa_right); draw_set_color(c_ltgray);
+    draw_text(_px2 + _pw2 - 10, _py2 + 10, "Zoom: " + string(round(expr_cfg_zoom * 100)) + "%");
+    draw_set_halign(fa_left);
+
+    gpu_set_texfilter(false);
+    gpu_set_scissor(0, 0, 1280, 960);
+
+    // Divider
+    draw_set_color(make_color_rgb(40, 50, 80));
+    draw_rectangle(_px2, _py2 + _char_preview_h, _px2 + _pw2, _py2 + _char_preview_h + 4, false);
+
+    // ── File browser ──
+    draw_set_color(make_color_rgb(12, 14, 22));
+    draw_rectangle(_px2 + 1, _file_browser_y, _px2 + _pw2 - 1, _file_browser_y + _file_browser_h, false);
+
+    // Header bar: shows layer name + slot selector for EYES/MOUTH
+    draw_set_color(make_color_rgb(28, 35, 55));
+    draw_rectangle(_px2 + 1, _file_browser_y, _px2 + _pw2 - 1, _file_browser_y + 26, false);
+    draw_set_color(c_white);
+    var _fb_layer_name = _layer_names_ec[expr_cfg_selected_layer];
+    draw_text(_px2 + 6, _file_browser_y + 5, "SELECT FILE  ·  " + _fb_layer_name);
+
+    var _fb_list_y = _file_browser_y + 28;
+
+    // File list grid (3 columns)
+    var _fb_cols = 3;
+    var _fb_item_w = floor(_pw2 / _fb_cols);
+    var _fb_item_h = 22;
+    var _fb_vis_rows = floor((_file_browser_h - (_fb_list_y - _file_browser_y) - 2) / _fb_item_h);
+    var _fb_start = expr_cfg_file_scroll * _fb_cols;
+    var _fb_end = min(_fb_start + _fb_vis_rows * _fb_cols, array_length(expr_cfg_file_list));
+
+    // Determine currently assigned file for selected layer/slot
+    var _fb_cur_file = "";
+    if (_pc_ec != undefined) {
+        if (expr_cfg_selected_layer == 0) _fb_cur_file = _pc_ec.body_file;
+        else if (expr_cfg_selected_layer == 1) _fb_cur_file = _pc_ec.face_file;
+        else if (expr_cfg_selected_layer == 2 && variable_struct_exists(_pc_ec, "eyes_files")) {
+            var _ef2 = _pc_ec.eyes_files; var _ek4 = string(expr_cfg_preview_expr);
+            if (variable_struct_exists(_ef2, _ek4)) _fb_cur_file = _ef2[$ _ek4];
+        } else if (expr_cfg_selected_layer == 3 && variable_struct_exists(_pc_ec, "mouth_files")) {
+            var _mf2 = _pc_ec.mouth_files; var _mk4 = string(_derived_mood_ec);
+            if (variable_struct_exists(_mf2, _mk4)) _fb_cur_file = _mf2[$ _mk4];
+        }
+    }
+
+    gpu_set_scissor(_px2 + 1, _fb_list_y, _pw2 - 2, _file_browser_h - (_fb_list_y - _file_browser_y));
+    for (var _fi = _fb_start; _fi < _fb_end; _fi++) {
+        var _fname = expr_cfg_file_list[_fi];
+        var _fcol  = (_fi - _fb_start) mod _fb_cols;
+        var _frow  = floor((_fi - _fb_start) / _fb_cols);
+        var _fitem_x = _px2 + 1 + _fcol * _fb_item_w;
+        var _fitem_y = _fb_list_y + _frow * _fb_item_h;
+        var _fhov = (!theater_mode && _mx > _fitem_x && _mx < _fitem_x + _fb_item_w && _my > _fitem_y && _my < _fitem_y + _fb_item_h);
+        var _fsel = (_fname == _fb_cur_file);
+        draw_set_color(_fsel ? make_color_rgb(50,80,160) : (_fhov ? make_color_rgb(30,38,58) : make_color_rgb(16,18,26)));
+        draw_rectangle(_fitem_x, _fitem_y, _fitem_x + _fb_item_w - 2, _fitem_y + _fb_item_h - 1, false);
+        draw_set_color(_fsel ? c_yellow : (_fhov ? c_white : c_ltgray));
+        // Trim filename to fit cell
+        var _disp = _fname; if (string_length(_disp) > 22) _disp = string_copy(_disp, 1, 20) + "..";
+        draw_text(_fitem_x + 3, _fitem_y + 3, _disp);
+    }
+    gpu_set_scissor(0, 0, 1280, 960);
+
+    // ── File hover preview ──
+    // When hovering any file in the browser, show a sprite preview near the mouse
+    var _hov_fname = "";
+    for (var _fi2 = _fb_start; _fi2 < _fb_end; _fi2++) {
+        var _fcol2  = (_fi2 - _fb_start) mod _fb_cols;
+        var _frow2  = floor((_fi2 - _fb_start) / _fb_cols);
+        var _fix2   = _px2 + 1 + _fcol2 * _fb_item_w;
+        var _fiy2   = _fb_list_y + _frow2 * _fb_item_h;
+        if (_mx > _fix2 && _mx < _fix2 + _fb_item_w && _my > _fiy2 && _my < _fiy2 + _fb_item_h) {
+            _hov_fname = expr_cfg_file_list[_fi2]; break;
+        }
+    }
+    if (_hov_fname != "") {
+        var _hk = _c_ec.name + "_" + _hov_fname;
+        var _hov_spr = -1;
+        if (ds_map_exists(char_sprites, _hk)) {
+            _hov_spr = char_sprites[? _hk];
+        } else {
+            var _hpath = working_directory + "images/characters/" + _c_ec.name + "/" + _hov_fname;
+            if (file_exists(_hpath)) {
+                _hov_spr = sprite_add(_hpath, 1, false, false, 0, 0);
+                ds_map_add(char_sprites, _hk, _hov_spr);
+            }
+        }
+        if (_hov_spr != -1 && sprite_exists(_hov_spr)) {
+            var _hw = sprite_get_width(_hov_spr);
+            var _hh = sprite_get_height(_hov_spr);
+            // Scale so preview fits within 160×160
+            var _hsc = min(160 / max(_hw, 1), 160 / max(_hh, 1), 3.0);
+            var _hdw = _hw * _hsc; var _hdh = _hh * _hsc;
+            // Anchor to the right of the mouse, clamped inside the modal
+            var _hpx = clamp(_mx + 14, _m_x + 4, _m_x + _m_w - _hdw - 8);
+            var _hpy = clamp(_my - _hdh / 2, _m_y + 4, _m_y + _m_h - _hdh - 8);
+            // Shadow panel
+            draw_set_alpha(0.88);
+            draw_set_color(make_color_rgb(8, 10, 18));
+            draw_rectangle(_hpx - 4, _hpy - 4, _hpx + _hdw + 4, _hpy + _hdh + 16, false);
+            draw_set_alpha(1.0);
+            draw_set_color(make_color_rgb(70, 110, 200));
+            draw_rectangle(_hpx - 4, _hpy - 4, _hpx + _hdw + 4, _hpy + _hdh + 16, true);
+            // Sprite
+            gpu_set_texfilter(true);
+            draw_sprite_ext(_hov_spr, 0, _hpx, _hpy, _hsc, _hsc, 0, c_white, 1.0);
+            gpu_set_texfilter(false);
+            // Filename label
+            draw_set_color(c_ltgray); draw_set_halign(fa_center);
+            var _disp_h = _hov_fname; if (string_length(_disp_h) > 26) _disp_h = string_copy(_disp_h, 1, 24) + "..";
+            draw_text(_hpx + _hdw/2, _hpy + _hdh + 2, _disp_h);
+            draw_set_halign(fa_left);
+        }
+    }
+
+    // Scrollbar for file browser
+    var _total_rows = ceil(array_length(expr_cfg_file_list) / _fb_cols);
+    if (_total_rows > _fb_vis_rows) {
+        var _sb2_x = _px2 + _pw2 - 10;
+        var _sb2_y = _fb_list_y; var _sb2_h = _fb_vis_rows * _fb_item_h;
+        draw_set_color(make_color_rgb(28,32,48)); draw_rectangle(_sb2_x, _sb2_y, _sb2_x + 8, _sb2_y + _sb2_h, false);
+        var _bar2_h = max(20, (_fb_vis_rows / _total_rows) * _sb2_h);
+        var _bar2_y = _sb2_y + (expr_cfg_file_scroll / max(1, _total_rows - _fb_vis_rows)) * (_sb2_h - _bar2_h);
+        draw_set_color(make_color_rgb(80,100,160)); draw_rectangle(_sb2_x, _bar2_y, _sb2_x + 8, _bar2_y + _bar2_h, false);
+    }
 }
 
 // --- 5c. LIVE TITLE RENDERING ---
