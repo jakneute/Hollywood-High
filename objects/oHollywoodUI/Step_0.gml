@@ -168,27 +168,42 @@ if (move_modal_open) {
 }
 
 if (pose_modal_open) {
-    var _m_w = 400; var _m_h = 320;
+    var _m_w = 650; var _m_h = 320;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     
+    // Hovering Logic
+    var _hovered_pose = -1;
+    for (var i = 1; i <= 4; i++) {
+        var _by = _m_y + 70 + ((i-1) * 45);
+        if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40) {
+            _hovered_pose = i;
+            break;
+        }
+    }
+    
+    if (_hovered_pose != -1) {
+        pose_modal_temp_pose = _hovered_pose; // Always preview hovered
+    } else {
+        pose_modal_temp_pose = pose_modal_locked_pose; // Revert to locked
+    }
+    
     if (mouse_check_button_pressed(mb_left)) {
-        // Radio option selection
-        for (var i = 1; i <= 4; i++) {
-            var _by = _m_y + 70 + ((i-1) * 45);
-            if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40) {
-                pose_modal_temp_pose = i;
-            }
+        if (_hovered_pose != -1) {
+            pose_modal_locked_pose = _hovered_pose;
+            pose_modal_temp_pose = _hovered_pose;
         }
         
         // APPLY Button (Left)
         if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            selected_pose = pose_modal_temp_pose;
+            if (pose_modal_locked_pose != -1) selected_pose = pose_modal_locked_pose;
+            else selected_pose = pose_modal_temp_pose;
+            
             var _char = characters[selected_character_index];
             _char.pose = selected_pose;
             
             // Sync changes to onstage staging actors
             var _applied_to_staging = false;
-            if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+            if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
                 var _scene_block = script_blocks[active_scene_block_idx];
                 if (variable_struct_exists(_scene_block, "actors")) {
                     for (var a = 0; a < array_length(_scene_block.actors); a++) {
@@ -202,38 +217,66 @@ if (pose_modal_open) {
             }
             
             // Always update live preview actors immediately so the scene reflects the change
+            var _is_onstage = false;
             for (var pa = 0; pa < array_length(preview_actors); pa++) {
                 var _act = preview_actors[pa];
                 if (_act.char_index == selected_character_index) {
                     _act.pose = selected_pose;
+                    _is_onstage = true;
                 }
             }
             
             // Apply block to screenplay script only when NOT in staging/scene_edit mode
-            if (!scene_edit_mode && (!_applied_to_staging || focused_block != -1)) {
+            if ((_is_onstage || pose_modal_edit_mode) && !scene_edit_mode) {
                 var _pose_lbl = string(selected_pose);
-                var _expr_lbl = mood_names[selected_expression - 1];
+                
+                var _current_expr = 17;
+                for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                    if (preview_actors[pa].char_index == selected_character_index) {
+                        _current_expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : 17;
+                        break;
+                    }
+                }
+                var _expr_lbl = mood_names[_current_expr - 1];
+                
+                if (pose_modal_edit_mode && pose_modal_target_index != -1) {
+                    var _old_action = script_blocks[pose_modal_target_index].action_name;
+                    var _open_p = string_pos("(", _old_action);
+                    var _close_p = string_pos(")", _old_action);
+                    if (_open_p > 0 && _close_p > _open_p) {
+                        _expr_lbl = string_copy(_old_action, _open_p + 1, _close_p - _open_p - 1);
+                    }
+                }
+                
                 var _action_text = "poses " + _pose_lbl + " (" + _expr_lbl + ")";
                 
-                var _new_a = { 
-                    type: "action", 
-                    char_index: selected_character_index, 
-                    action_name: _action_text, 
-                    height: 85 
-                };
-                
-                var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
-                array_insert(script_blocks, _insert_idx, _new_a);
-                update_block_height(_insert_idx);
+                if (pose_modal_edit_mode && pose_modal_target_index != -1) {
+                    script_blocks[pose_modal_target_index].action_name = _action_text;
+                    pose_modal_edit_mode = false;
+                } else {
+                    var _new_a = { 
+                        type: "action", 
+                        char_index: selected_character_index, 
+                        action_name: _action_text, 
+                        height: 85 
+                    };
+                    
+                    var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                    array_insert(script_blocks, _insert_idx, _new_a);
+                    update_block_height(_insert_idx);
+                    focused_block = _insert_idx;
+                }
             }
             
             pose_modal_open = false;
+            pose_modal_edit_mode = false;
             return;
         }
         
         // CANCEL Button (Right)
         if (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             pose_modal_open = false;
+            pose_modal_edit_mode = false;
             return;
         }
     }
@@ -273,7 +316,7 @@ if (expression_modal_open) {
             
             // Sync changes to onstage staging actors
             var _applied_to_staging = false;
-            if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+            if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
                 var _scene_block = script_blocks[active_scene_block_idx];
                 if (variable_struct_exists(_scene_block, "actors")) {
                     for (var a = 0; a < array_length(_scene_block.actors); a++) {
@@ -287,16 +330,25 @@ if (expression_modal_open) {
             }
             
             // Always update live preview actors immediately so the scene reflects the change
+            var _is_onstage = false;
             for (var pa = 0; pa < array_length(preview_actors); pa++) {
                 var _act = preview_actors[pa];
                 if (_act.char_index == selected_character_index) {
                     _act.expression = selected_expression;
+                    _is_onstage = true;
                 }
             }
             
             // Apply block to screenplay script only when NOT in staging/scene_edit mode
-            if (!scene_edit_mode && (!_applied_to_staging || focused_block != -1)) {
-                var _pose_lbl = string(selected_pose);
+            if (_is_onstage && !scene_edit_mode) {
+                var _current_pose = 1;
+                for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                    if (preview_actors[pa].char_index == selected_character_index) {
+                        _current_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : 1;
+                        break;
+                    }
+                }
+                var _pose_lbl = string(_current_pose);
                 var _expr_lbl = mood_names[selected_expression - 1];
                 var _action_text = "poses " + _pose_lbl + " (" + _expr_lbl + ")";
                 
@@ -310,6 +362,7 @@ if (expression_modal_open) {
                 var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
                 array_insert(script_blocks, _insert_idx, _new_a);
                 update_block_height(_insert_idx);
+                focused_block = _insert_idx;
             }
             
             expression_modal_open = false;
@@ -345,6 +398,7 @@ if (action_modal_open) {
                 else if (!_is_gen) {
                     if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
                     if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
+                    if (!action_modal_char_onstage && string_pos("turn", _aname) > 0) _disabled = true;
                 }
             }
             
@@ -1750,7 +1804,15 @@ if (mouse_check_button_pressed(mb_left)) {
         // POSE Button Click (disabled for Narrator)
         var _is_narrator = (characters[selected_character_index].name == "NARRATOR");
         if (!_is_narrator && _mx > btn_pose_x && _mx < btn_pose_x + btn_pose_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h) {
-            pose_modal_temp_pose = selected_pose;
+            var _active_pose = selected_pose;
+            for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                if (preview_actors[pa].char_index == selected_character_index) {
+                    _active_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : selected_pose;
+                    break;
+                }
+            }
+            pose_modal_temp_pose = _active_pose;
+            pose_modal_locked_pose = _active_pose;
             pose_modal_open = true;
             return;
         }
@@ -1760,7 +1822,14 @@ if (mouse_check_button_pressed(mb_left)) {
 
         // EXPRESSION Button Click (disabled for Narrator)
         if (!_is_narrator && _mx > btn_expression_x && _mx < btn_expression_x + btn_expression_w && _my > btn_expression_y && _my < btn_expression_y + btn_expression_h) {
-            expression_modal_temp_expr = selected_expression;
+            var _active_expr = selected_expression;
+            for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                if (preview_actors[pa].char_index == selected_character_index) {
+                    _active_expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : selected_expression;
+                    break;
+                }
+            }
+            expression_modal_temp_expr = _active_expr;
             expression_modal_open = true;
             return;
         }
@@ -2010,6 +2079,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 else if (_is_action) {
                     var _aname_u = string_upper(_block.action_name);
                     var _is_move = (string_pos("MOVE", _aname_u) > 0 || string_pos("ENTER", _aname_u) > 0 || string_pos("EXIT", _aname_u) > 0);
+                    var _is_pose = (string_pos("POSES", _aname_u) > 0);
                     
                     if (_is_move) {
                         move_modal_open = true;
@@ -2028,6 +2098,21 @@ if (mouse_check_button_pressed(mb_left)) {
                                 break;
                             }
                         }
+                    } else if (_is_pose) {
+                        pose_modal_open = true;
+                        pose_modal_target_index = i;
+                        pose_modal_edit_mode = true;
+                        selected_character_index = _block.char_index;
+                        
+                        var _p_start = string_pos("poses ", string_lower(_block.action_name)) + 6;
+                        var _p_end = string_pos(" ", string_copy(_block.action_name, _p_start, 999));
+                        if (_p_end > 0) {
+                            var _str_dig = string_digits(string_copy(_block.action_name, _p_start, _p_end));
+                            pose_modal_locked_pose = (_str_dig != "") ? real(_str_dig) : 1;
+                        } else {
+                            pose_modal_locked_pose = 1;
+                        }
+                        pose_modal_temp_pose = pose_modal_locked_pose;
                     }
                 }
                 else if (_is_voice) {
@@ -2072,18 +2157,11 @@ if (mouse_check_button_pressed(mb_left)) {
                     scene_edit_mode = !scene_edit_mode; // Toggle
                     insertion_idx = -1; // Turn off Splice Mode
                     if (scene_edit_mode) {
-                        active_scene_block_idx = i;
-                    // Refresh preview actors to match THIS scene specifically
-                    preview_actors = [];
-                    if (variable_struct_exists(_block, "actors")) {
-                        for(var a=0; a<array_length(_block.actors); a++) {
-                            var _act = _block.actors[a];
-                            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-                            array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face });
+                        update_preview_actors_for_block(i, true);
+                        if (active_scene_block_idx != -1) {
+                            current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
+                            set_scene_dimensions(current_scene_sprite);
                         }
-                    }
-                    current_scene_sprite = get_scene_sprite(_block.internal_name);
-                        set_scene_dimensions(current_scene_sprite);
                     }
                     return;
                 }
@@ -2091,6 +2169,12 @@ if (mouse_check_button_pressed(mb_left)) {
                 // Other Blocks (Dialogue/Action) - Disable Staging
                 if (playing_block_index == -1 && _mx > box_x + 55 && _mx < box_x + 55 + _wrap_w + 20 && _my > _box_y && _my < _box_y + (_bh - 55)) {
                     focused_block = i;
+                    
+                    update_preview_actors_for_block(i, true);
+                    if (active_scene_block_idx != -1) {
+                        current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
+                        set_scene_dimensions(current_scene_sprite);
+                    }
                     
                     if (variable_struct_exists(_block, "char_index")) {
                         selected_character_index = _block.char_index;
@@ -2288,6 +2372,14 @@ if (!_overlay_active) {
                     var _c = characters[selected_character_index];
                     selected_pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
                     selected_expression = variable_struct_exists(_c, "expression") ? _c.expression : 17;
+
+                    for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                        if (preview_actors[pa].char_index == i) {
+                            selected_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : selected_pose;
+                            selected_expression = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : selected_expression;
+                            break;
+                        }
+                    }
 
                     // Sync staging selection
                     if (scene_edit_mode && active_scene_block_idx != -1) {
@@ -2563,90 +2655,7 @@ if (scene_edit_mode && focused_block != active_scene_block_idx) {
 
 // Compute preview_actors
 if (playing_block_index == -1) {
-    preview_actors = [];
-    if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
-        _scene = script_blocks[active_scene_block_idx];
-        if (variable_struct_exists(_scene, "actors")) {
-            for(var a=0; a<array_length(_scene.actors); a++) {
-                var _act = _scene.actors[a];
-                var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-                array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, facing: _face });
-            }
-        }
-        
-        if (_ref_idx != -1) {
-            for (var i = active_scene_block_idx + 1; i <= _ref_idx; i++) {
-                var _b = script_blocks[i];
-                var _is_action = (variable_struct_exists(_b, "type") && _b.type == "action");
-                if (_is_action) {
-                    var _aname = string_lower(_b.action_name);
-                    var _is_enter = (string_pos("enter", _aname) > 0);
-                    var _is_exit = (string_pos("exit", _aname) > 0);
-                    var _is_left = (string_pos("left", _aname) > 0);
-                    var _moon = (variable_struct_exists(_b, "moonwalk") && _b.moonwalk) || (string_pos("[moonwalk]", _aname) > 0);
-                    
-                    if (_is_enter) {
-                        var _spr = get_character_sprite(_b.char_index);
-                        var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 1.5) / 450) : 100;
-                        var _x = _is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20;
-                        var _found = false;
-                        var _pa_idx = -1;
-                        for(var pa=0; pa<array_length(preview_actors); pa++) {
-                            if (preview_actors[pa].char_index == _b.char_index) { _found = true; _pa_idx = pa; break; }
-                        }
-                        if (!_found) {
-                            var _final_x = variable_struct_exists(_b, "target_x") ? _b.target_x : _x;
-                            var _final_y = variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h;
-                            var _base_f = _is_left ? -1 : 1;
-                            var _face = _moon ? -_base_f : _base_f;
-                            array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, facing: _face });
-                        } else {
-                            // If already onstage, update position and handle auto-facing
-                            if (variable_struct_exists(_b, "target_x")) {
-                                var _base_f = (_b.target_x > preview_actors[_pa_idx].x) ? -1 : 1;
-                                preview_actors[_pa_idx].facing = _moon ? -_base_f : _base_f;
-                                preview_actors[_pa_idx].x = _b.target_x;
-                                preview_actors[_pa_idx].y = _b.target_y;
-                            }
-                            // Explicit side mention overrides auto-facing
-                            if (string_pos("left", _aname) > 0) {
-                                var _base_f = -1;
-                                preview_actors[_pa_idx].facing = _moon ? -_base_f : _base_f;
-                            } else if (string_pos("right", _aname) > 0) {
-                                var _base_f = 1;
-                                preview_actors[_pa_idx].facing = _moon ? -_base_f : _base_f;
-                            }
-                        }
-                    } else if (_is_exit) {
-                        for(var pa=0; pa<array_length(preview_actors); pa++) {
-                            if (preview_actors[pa].char_index == _b.char_index) { array_delete(preview_actors, pa, 1); break; }
-                        }
-                    } else if (string_pos("turn", _aname) > 0) {
-                        for(var pa=0; pa<array_length(preview_actors); pa++) {
-                            if (preview_actors[pa].char_index == _b.char_index) { 
-                                if (!variable_struct_exists(preview_actors[pa], "facing")) preview_actors[pa].facing = 1;
-                                preview_actors[pa].facing *= -1; 
-                                break; 
-                            }
-                        }
-                    } else if (string_pos("moves", _aname) > 0) {
-                        for(var pa=0; pa<array_length(preview_actors); pa++) {
-                            if (preview_actors[pa].char_index == _b.char_index) { 
-                                if (variable_struct_exists(_b, "target_x")) {
-                                    // Auto-face movement direction
-                                    var _base_f = (_b.target_x > preview_actors[pa].x) ? -1 : 1;
-                                    preview_actors[pa].facing = _moon ? -_base_f : _base_f;
-                                    preview_actors[pa].x = _b.target_x;
-                                    preview_actors[pa].y = _b.target_y;
-                                }
-                                break; 
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    update_preview_actors_for_block(_ref_idx, true);
 }
 
 // 3. Re-apply drag state AFTER recomputing

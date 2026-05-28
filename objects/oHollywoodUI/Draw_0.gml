@@ -600,6 +600,13 @@ for (var i = 0; i < array_length(characters); i++) {
     var _c_ch = characters[i];
     var _sel_pose = variable_struct_exists(_c_ch, "pose") ? _c_ch.pose : 1;
     var _sel_expr = variable_struct_exists(_c_ch, "expression") ? _c_ch.expression : 17;
+    for (var pa = 0; pa < array_length(preview_actors); pa++) {
+        if (preview_actors[pa].char_index == i) {
+            _sel_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : _sel_pose;
+            _sel_expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : _sel_expr;
+            break;
+        }
+    }
     var _sprs_ch = get_composite_character_sprite(i, _sel_pose, _sel_expr, 1);
     var _spr = (_sprs_ch[0] != -1) ? _sprs_ch[0] : get_character_sprite(i);
     var _spr_ch_over = _sprs_ch[1];
@@ -1293,6 +1300,7 @@ if (action_modal_open) {
             else if (!_is_gen) {
                 if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
                 if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
+                if (!action_modal_char_onstage && string_pos("turn", _aname) > 0) _disabled = true;
             }
         }
         
@@ -1532,7 +1540,7 @@ if (move_modal_open) {
 
 if (pose_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    var _m_w = 400; var _m_h = 320;
+    var _m_w = 650; var _m_h = 320;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     draw_set_color(make_color_rgb(30, 30, 40)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
     draw_set_color(c_aqua); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
@@ -1541,13 +1549,52 @@ if (pose_modal_open) {
     
     for (var i = 1; i <= 4; i++) {
         var _by = _m_y + 70 + ((i-1) * 45);
-        var _is_sel = (pose_modal_temp_pose == i);
+        var _is_locked = (pose_modal_locked_pose == i);
+        var _is_preview = (pose_modal_temp_pose == i);
         var _hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40);
         
-        draw_set_color(_is_sel ? c_aqua : (_hov ? make_color_rgb(60,60,80) : make_color_rgb(45,45,55)));
+        var _bg_col = make_color_rgb(45,45,55);
+        if (_hov) _bg_col = make_color_rgb(80,80,100);
+        else if (_is_preview) _bg_col = make_color_rgb(60,60,80);
+        
+        draw_set_color(_bg_col);
         draw_rectangle(_m_x + 50, _by, _m_x + 350, _by + 40, false);
-        draw_set_color(_is_sel ? c_black : c_white);
+        
+        if (_is_locked) {
+            draw_set_color(c_aqua);
+            draw_rectangle(_m_x + 50, _by, _m_x + 350, _by + 40, true);
+            draw_rectangle(_m_x + 51, _by + 1, _m_x + 349, _by + 39, true);
+        }
+        
+        draw_set_color(c_white);
         draw_text(_m_x + 60, _by + 10, pose_names[i-1]);
+        if (_is_locked) {
+            draw_set_color(c_aqua);
+            draw_text(_m_x + 270, _by + 10, "LOCKED");
+        }
+    }
+    
+    // Draw Large Preview of Selected Pose
+    draw_set_color(make_color_rgb(20, 20, 30));
+    draw_roundrect_ext(_m_x + 380, _m_y + 50, _m_x + 610, _m_y + 280, 10, 10, false);
+    draw_set_color(make_color_rgb(40, 40, 60));
+    draw_roundrect_ext(_m_x + 380, _m_y + 50, _m_x + 610, _m_y + 280, 10, 10, true);
+    
+    if (selected_character_index != -1) {
+        var _sprs = get_composite_character_sprite(selected_character_index, pose_modal_temp_pose, selected_expression, 1);
+        if (_sprs[0] != -1) {
+            var _csh = sprite_get_height(_sprs[0]);
+            var _csw = sprite_get_width(_sprs[0]);
+            
+            var _sc = 200 / _csh;
+            var _draw_x = _m_x + 495 - (_csw * _sc / 2);
+            var _draw_y = _m_y + 270 - 200;
+            
+            draw_sprite_ext(_sprs[0], 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, 1);
+            if (_sprs[1] != -1) {
+                draw_sprite_ext(_sprs[1], 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, 1);
+            }
+        }
     }
     
     // APPLY Button (Left)

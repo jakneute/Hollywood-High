@@ -64,6 +64,9 @@ btn_dictionary_y = scene_win_y - 45;
 // --- 2b. POSE & EXPRESSION PARAMETERS STATE ---
 pose_modal_open = false;
 pose_modal_temp_pose = 1;
+pose_modal_locked_pose = 1;
+pose_modal_edit_mode = false;
+pose_modal_target_index = -1;
 expression_modal_open = false;
 expression_modal_temp_expr = 17;
 selected_pose = 1;
@@ -697,15 +700,9 @@ if (array_length(all_voices) > 0) {
     array_push(warmup_requests, tts_speak(".", all_voices[0].voice_id, 50, 50, 0, 0));
 }
 
-/**
- * Starts playback from a specific block, calculating proper scene state.
- */
-play_from_index = function(_idx) {
+update_preview_actors_for_block = function(_idx, _inclusive) {
+    preview_actors = [];
     if (_idx < 0 || _idx >= array_length(script_blocks)) return;
-    
-    // Disable splicing and staging modes before playback starts
-    scene_edit_mode = false;
-    insertion_idx = -1;
     
     // 1. Find the last scene heading
     active_scene_block_idx = -1;
@@ -717,7 +714,6 @@ play_from_index = function(_idx) {
     }
     
     // 2. Initialize actors from that scene
-    preview_actors = [];
     if (active_scene_block_idx != -1) {
         var _scene = script_blocks[active_scene_block_idx];
         if (variable_struct_exists(_scene, "actors")) {
@@ -732,7 +728,8 @@ play_from_index = function(_idx) {
         }
         
         // 3. Fast-forward through actions up to the target index
-        for (var j = active_scene_block_idx + 1; j < _idx; j++) {
+        var _limit = _inclusive ? _idx : (_idx - 1);
+        for (var j = active_scene_block_idx + 1; j <= _limit; j++) {
             var _b = script_blocks[j];
             if (variable_struct_exists(_b, "type") && _b.type == "action") {
                 var _aname = string_lower(_b.action_name);
@@ -825,6 +822,19 @@ play_from_index = function(_idx) {
             }
         }
     }
+};
+
+/**
+ * Starts playback from a specific block, calculating proper scene state.
+ */
+play_from_index = function(_idx) {
+    if (_idx < 0 || _idx >= array_length(script_blocks)) return;
+    
+    // Disable splicing and staging modes before playback starts
+    scene_edit_mode = false;
+    insertion_idx = -1;
+    
+    update_preview_actors_for_block(_idx, false);
     
     // 4. Start playback
     playing_block_index = _idx;
