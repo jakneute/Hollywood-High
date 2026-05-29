@@ -112,7 +112,7 @@ if (theater_mode) {
 		for (var i = 0; i < array_length(preview_actors); i++) {
 			var _act = preview_actors[i];
 			var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
-			var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 17;
+			var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 21;
 			var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
 
 			var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
@@ -356,7 +356,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				if (_is_being_dragged) continue;
 				
 				var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
-				var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 17;
+				var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 21;
 				var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
 
 				var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
@@ -600,7 +600,7 @@ for (var i = 0; i < array_length(characters); i++) {
     // Use composite sprite reflecting current pose/expression; facing 1 (right) is the default selector view
     var _c_ch = characters[i];
     var _sel_pose = variable_struct_exists(_c_ch, "pose") ? _c_ch.pose : 1;
-    var _sel_expr = variable_struct_exists(_c_ch, "expression") ? _c_ch.expression : 17;
+    var _sel_expr = variable_struct_exists(_c_ch, "expression") ? _c_ch.expression : 21;
     for (var pa = 0; pa < array_length(preview_actors); pa++) {
         if (preview_actors[pa].char_index == i) {
             _sel_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : _sel_pose;
@@ -649,19 +649,19 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         _char_id = preview_actors[dragging_preview_idx].char_index;
     }
     var _pose = 1;
-    var _expr = 17;
+    var _expr = 21;
     if (dragging_char_index != -1) {
         var _c = characters[dragging_char_index];
         _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
-        _expr = variable_struct_exists(_c, "expression") ? _c.expression : 17;
+        _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
     } else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
         var _sa = script_blocks[active_scene_block_idx].actors[dragging_actor_idx];
         _pose = variable_struct_exists(_sa, "pose") ? _sa.pose : 1;
-        _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 17;
+        _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 21;
     } else if (dragging_preview_idx != -1) {
         var _sa = preview_actors[dragging_preview_idx];
         _pose = variable_struct_exists(_sa, "pose") ? _sa.pose : 1;
-        _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 17;
+        _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 21;
     }
     
     _mx = mouse_x;
@@ -1539,7 +1539,7 @@ if (move_modal_open) {
 
 if (pose_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    var _m_w = 650; var _m_h = 320;
+    var _m_w = 800; var _m_h = 420;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     draw_set_color(make_color_rgb(30, 30, 40)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
     draw_set_color(c_aqua); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
@@ -1547,74 +1547,113 @@ if (pose_modal_open) {
     draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "SELECT CHARACTER POSE");
     
     for (var i = 1; i <= 4; i++) {
-        var _by = _m_y + 70 + ((i-1) * 45);
+        var _by = _m_y + 80 + ((i-1) * 60);
         var _is_locked = (pose_modal_locked_pose == i);
         var _is_preview = (pose_modal_temp_pose == i);
-        var _hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40);
+        var _hov = (_mx > _m_x + 50 && _mx < _m_x + 380 && _my > _by && _my < _by + 50);
         
         var _bg_col = make_color_rgb(45,45,55);
         if (_hov) _bg_col = make_color_rgb(80,80,100);
         else if (_is_preview) _bg_col = make_color_rgb(60,60,80);
         
         draw_set_color(_bg_col);
-        draw_rectangle(_m_x + 50, _by, _m_x + 350, _by + 40, false);
+        draw_rectangle(_m_x + 50, _by, _m_x + 380, _by + 50, false);
         
         if (_is_locked) {
             draw_set_color(c_aqua);
-            draw_rectangle(_m_x + 50, _by, _m_x + 350, _by + 40, true);
-            draw_rectangle(_m_x + 51, _by + 1, _m_x + 349, _by + 39, true);
+            draw_rectangle(_m_x + 50, _by, _m_x + 380, _by + 50, true);
+            draw_rectangle(_m_x + 51, _by + 1, _m_x + 379, _by + 49, true);
         }
         
         draw_set_color(c_white);
-        draw_text(_m_x + 60, _by + 10, pose_names[i-1]);
-        if (_is_locked) {
-            draw_set_color(c_aqua);
-            draw_text(_m_x + 270, _by + 10, "LOCKED");
-        }
+        draw_text(_m_x + 60, _by + 15, pose_names[i-1]);
     }
     
-    // Draw Large Preview of Selected Pose
+    // Draw Large Preview of Selected Pose (Enlarged)
+    var _pre_x = _m_x + 420;
+    var _pre_y = _m_y + 60;
+    var _pre_w = 330;
+    var _pre_h = 280;
+
     draw_set_color(make_color_rgb(20, 20, 30));
-    draw_roundrect_ext(_m_x + 380, _m_y + 50, _m_x + 610, _m_y + 280, 10, 10, false);
+    draw_roundrect_ext(_pre_x, _pre_y, _pre_x + _pre_w, _pre_y + _pre_h, 10, 10, false);
     draw_set_color(make_color_rgb(40, 40, 60));
-    draw_roundrect_ext(_m_x + 380, _m_y + 50, _m_x + 610, _m_y + 280, 10, 10, true);
+    draw_roundrect_ext(_pre_x, _pre_y, _pre_x + _pre_w, _pre_y + _pre_h, 10, 10, true);
     
     if (selected_character_index != -1) {
-        var _layers = get_composite_character_sprite(selected_character_index, pose_modal_temp_pose, selected_expression);
+        var _expr = selected_expression;
+        if (pose_modal_edit_mode && pose_modal_target_index != -1 && pose_modal_target_index < array_length(script_blocks)) {
+            var _act_name = script_blocks[pose_modal_target_index].action_name;
+            var _open_p = string_pos("(", _act_name);
+            var _close_p = string_pos(")", _act_name);
+            if (_open_p > 0 && _close_p > _open_p) {
+                var _mood_str = string_copy(_act_name, _open_p + 1, _close_p - _open_p - 1);
+                _mood_str = string_upper(_mood_str);
+                for (var m = 0; m < array_length(mood_names); m++) {
+                    if (mood_names[m] == _mood_str) {
+                        _expr = m + 1;
+                        break;
+                    }
+                }
+            }
+        } else {
+            for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                if (preview_actors[pa].char_index == selected_character_index) {
+                    _expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : _expr;
+                    break;
+                }
+            }
+        }
+        
+        var _aface = undefined;
+        for (var pa = 0; pa < array_length(preview_actors); pa++) {
+            if (preview_actors[pa].char_index == selected_character_index) {
+                _aface = variable_struct_exists(preview_actors[pa], "facing") ? preview_actors[pa].facing : _aface;
+                break;
+            }
+        }
+        if (_aface == undefined && selected_character_index >= 0 && selected_character_index < array_length(characters)) {
+            _aface = char_facings[selected_character_index];
+        }
+
+        var _layers = get_composite_character_sprite(selected_character_index, pose_modal_temp_pose, _expr, _aface);
         if (_layers[0].spr != -1) {
             var _csh = sprite_get_height(_layers[0].spr);
             var _csw = sprite_get_width(_layers[0].spr);
             var _face_above_pm = max(0, -_layers[1].dy);
             var _total_h_pm = _csh + _face_above_pm;
-            var _avail_pm = 210; // preview box inner height
+            var _avail_pm = 260; // preview box inner height (increased from 210)
             var _sc = _avail_pm / _total_h_pm;
-            var _draw_x = _m_x + 495 - (_csw * _sc / 2);
+            var _draw_x = _pre_x + (_pre_w / 2) - (_csw * _sc / 2);
             // Bottom-anchor body inside the preview box
-            var _draw_y = _m_y + 275 - _csh * _sc;
+            var _draw_y = _pre_y + _pre_h - 10 - _csh * _sc;
+            gpu_set_texfilter(true);
             for (var _li = 0; _li < array_length(_layers); _li++) {
                 var _l = _layers[_li];
                 if (_l.spr != -1) draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, 1);
             }
+            gpu_set_texfilter(false);
         }
     }
     
+    // Centered APPLY & CANCEL Buttons (under the 800px modal width)
     // APPLY Button (Left)
-    var _ap_hov = (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    var _ap_hov = (_mx > _m_x + 210 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
     draw_set_color(_ap_hov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 40, _m_y + _m_h - 60, _m_x + 180, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + 85, _m_y + _m_h - 50, "APPLY");
+    draw_rectangle(_m_x + 210, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 260, _m_y + _m_h - 50, "APPLY");
     
     // CANCEL Button (Right)
-    var _can_hov = (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    var _can_hov = (_mx > _m_x + 440 && _mx < _m_x + 590 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
     draw_set_color(_can_hov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 220, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + 255, _m_y + _m_h - 50, "CANCEL");
+    draw_rectangle(_m_x + 440, _m_y + _m_h - 60, _m_x + 590, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 485, _m_y + _m_h - 50, "CANCEL");
 }
 
 if (expression_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    // 21 expressions: 4 cols × 6 rows (last row has 1 cell = NEUTRAL)
-    var _m_w = 700; var _m_h = 460;
+    // 20 expressions: 4 cols × 5 rows
+    var _m_w = 950; var _m_h = 460;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     draw_set_color(make_color_rgb(20, 30, 25)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
     draw_set_color(c_lime); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
@@ -1627,37 +1666,117 @@ if (expression_modal_open) {
     var _gx = _m_x + 20;
     var _gy = _m_y + 55;
 
-    for (var e = 1; e <= 21; e++) {
+    for (var e = 1; e <= 20; e++) {
         var _col = (e - 1) % _cols_em;
         var _row = floor((e - 1) / _cols_em);
         var _ex = _gx + _col * _col_w;
         var _ey = _gy + _row * _row_h;
 
-        var _is_sel = (expression_modal_temp_expr == e);
+        var _is_locked = (expression_modal_locked_expr == e);
+        var _is_preview = (expression_modal_temp_expr == e);
         var _hov_e = (_mx > _ex && _mx < _ex + _col_w && _my > _ey && _my < _ey + _row_h);
 
-        draw_set_color(e == 21
-            ? (_is_sel ? c_lime : (_hov_e ? make_color_rgb(50, 70, 50) : make_color_rgb(30, 40, 30)))
-            : (_is_sel ? c_lime : (_hov_e ? make_color_rgb(40, 80, 50) : make_color_rgb(30, 45, 35))));
+        var _bg_col = make_color_rgb(30, 45, 35);
+        if (_hov_e) _bg_col = make_color_rgb(50, 95, 62);
+        else if (_is_preview) _bg_col = make_color_rgb(38, 70, 48);
+
+        draw_set_color(_bg_col);
         draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w - 2, _ey + _row_h - 2, false);
 
-        draw_set_color(_is_sel ? c_black : c_white);
+        if (_is_locked) {
+            draw_set_color(c_lime);
+            draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w - 2, _ey + _row_h - 2, true);
+            draw_rectangle(_ex + 3, _ey + 3, _ex + _col_w - 3, _ey + _row_h - 3, true);
+        }
+
+        draw_set_color(_is_preview ? c_white : c_ltgray);
         draw_set_halign(fa_center);
         draw_text(_ex + _col_w/2, _ey + (_row_h/2) - 8, mood_names[e - 1]);
         draw_set_halign(fa_left);
     }
+
+    // --- Draw Large Preview Panel (Right Side) ---
+    var _pre_x = _m_x + 700;
+    var _pre_y = _m_y + 55;
+    var _pre_w = 230;
+    var _pre_h = 320;
+
+    draw_set_color(c_white);
+    draw_text(_pre_x, _pre_y - 25, "PREVIEW");
+
+    draw_set_color(make_color_rgb(10, 20, 15));
+    draw_roundrect_ext(_pre_x, _pre_y, _pre_x + _pre_w, _pre_y + _pre_h, 10, 10, false);
+    draw_set_color(make_color_rgb(30, 80, 45));
+    draw_roundrect_ext(_pre_x, _pre_y, _pre_x + _pre_w, _pre_y + _pre_h, 10, 10, true);
+
+    if (selected_character_index != -1) {
+        var _expr = expression_modal_temp_expr;
+        
+        var _aface = undefined;
+        for (var pa = 0; pa < array_length(preview_actors); pa++) {
+            if (preview_actors[pa].char_index == selected_character_index) {
+                _aface = variable_struct_exists(preview_actors[pa], "facing") ? preview_actors[pa].facing : _aface;
+                break;
+            }
+        }
+        if (_aface == undefined && selected_character_index >= 0 && selected_character_index < array_length(characters)) {
+            _aface = char_facings[selected_character_index];
+        }
+
+        var _active_pose = selected_pose;
+        for (var pa = 0; pa < array_length(preview_actors); pa++) {
+            if (preview_actors[pa].char_index == selected_character_index) {
+                _active_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : selected_pose;
+                break;
+            }
+        }
+
+        var _layers = get_composite_character_sprite(selected_character_index, _active_pose, _expr, _aface);
+        if (_layers[1].spr != -1) {
+            var _face_w = sprite_get_width(_layers[1].spr);
+            var _face_h = sprite_get_height(_layers[1].spr);
+            var _sc = min(_pre_w / _face_w, _pre_h / _face_h) * 0.85;
+            var _box_cx = _pre_x + _pre_w / 2;
+            var _box_cy = _pre_y + _pre_h / 2;
+            var _head_cx = _layers[1].dx + _face_w / 2;
+            var _head_cy = _layers[1].dy + _face_h / 2;
+            var _draw_x = _box_cx - _head_cx * _sc;
+            var _draw_y = _box_cy - _head_cy * _sc;
+            
+            gpu_set_texfilter(true);
+            for (var _li = 1; _li <= 3; _li++) {
+                var _l = _layers[_li];
+                if (_l.spr != -1) {
+                    draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, 1);
+                }
+            }
+            gpu_set_texfilter(false);
+        } else if (_layers[0].spr != -1) {
+            // Fallback: draw full body centered
+            var _body_w = sprite_get_width(_layers[0].spr);
+            var _body_h = sprite_get_height(_layers[0].spr);
+            var _sc = min(_pre_w / _body_w, _pre_h / _body_h) * 0.85;
+            var _draw_x = _pre_x + (_pre_w - _body_w * _sc) / 2;
+            var _draw_y = _pre_y + (_pre_h - _body_h * _sc) / 2;
+            
+            gpu_set_texfilter(true);
+            draw_sprite_ext(_layers[0].spr, 0, _draw_x, _draw_y, _sc, _sc, 0, c_white, 1);
+            gpu_set_texfilter(false);
+        }
+    }
     
+    // Centered APPLY & CANCEL Buttons (under the 950px modal width)
     // APPLY Button (Left)
-    var _ap_hov = (_mx > _m_x + 100 && _mx < _m_x + 250 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    var _ap_hov = (_mx > _m_x + 275 && _mx < _m_x + 425 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
     draw_set_color(_ap_hov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 100, _m_y + _m_h - 60, _m_x + 250, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + 150, _m_y + _m_h - 50, "APPLY");
+    draw_rectangle(_m_x + 275, _m_y + _m_h - 60, _m_x + 425, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 325, _m_y + _m_h - 50, "APPLY");
     
     // CANCEL Button (Right)
-    var _can_hov = (_mx > _m_x + 350 && _mx < _m_x + 500 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
+    var _can_hov = (_mx > _m_x + 525 && _mx < _m_x + 675 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
     draw_set_color(_can_hov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 350, _m_y + _m_h - 60, _m_x + 500, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + 395, _m_y + _m_h - 50, "CANCEL");
+    draw_rectangle(_m_x + 525, _m_y + _m_h - 60, _m_x + 675, _m_y + _m_h - 20, false);
+    draw_set_color(c_black); draw_text(_m_x + 570, _m_y + _m_h - 50, "CANCEL");
 }
 
 // ── EXPRESSION TILE CONFIGURATOR MODAL ──
@@ -1673,6 +1792,15 @@ if (expr_cfg_open) {
 
     var _lx = _m_x + 12; var _ly = _m_y + 12;
     var _c_ec = characters[expr_cfg_char_idx];
+
+    // Load offsets.json for left panel total offset displays
+    var _folder_ec2 = datafiles_path + "images/characters/" + _c_ec.name + "/";
+    var _off_data = undefined;
+    if (file_exists(_folder_ec2 + "offsets.json")) {
+        var _s = ""; var _f = file_text_open_read(_folder_ec2 + "offsets.json");
+        while (!file_text_eof(_f)) { _s += file_text_readln(_f); }
+        file_text_close(_f); _off_data = json_parse(_s);
+    }
 
     // Title
     draw_set_color(c_white);
@@ -1722,6 +1850,13 @@ if (expr_cfg_open) {
     var _layer_y0 = _dir_y + 38;
     var _layer_names_ec = ["BODY", "FACE", "EYES", "MOUTH"];
     var _layer_cols = [make_color_rgb(160,120,60), make_color_rgb(100,160,255), make_color_rgb(80,200,80), make_color_rgb(255,160,60)];
+    
+    var _ai_ec = variable_struct_exists(_c_ec, "act_index") ? _c_ec.act_index : 1;
+    var _sfx_off_ec = expr_cfg_high ? 50 : 0;
+    var _pfx_ec = string(_ai_ec) + string(expr_cfg_pose);
+    var _ec_mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+    var _derived_mood_ec = _ec_mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
+
     for (var _li = 0; _li <= 3; _li++) {
         var _lby = _layer_y0 + _li * 52;
         var _l_sel = (expr_cfg_selected_layer == _li);
@@ -1733,10 +1868,83 @@ if (expr_cfg_open) {
         draw_set_color(c_white); draw_text(_lx + 8, _lby + 4, _layer_names_ec[_li]);
         if (_pc_ec != undefined) {
             var _ldx = 0; var _ldy = 0;
-            if (_li == 0) { _ldx = variable_struct_exists(_pc_ec, "body_dx") ? _pc_ec.body_dx : 0; _ldy = variable_struct_exists(_pc_ec, "body_dy") ? _pc_ec.body_dy : 0; }
-            if (_li == 1) { _ldx = _pc_ec.face_dx;  _ldy = _pc_ec.face_dy; }
-            if (_li == 2) { _ldx = _pc_ec.eyes_dx;  _ldy = _pc_ec.eyes_dy; }
-            if (_li == 3) { _ldx = _pc_ec.mouth_dx; _ldy = _pc_ec.mouth_dy; }
+            
+            // Resolve currently active file for this layer
+            var _cur_file_li = "";
+            var _layer_key_li = "";
+            switch (_li) {
+                case 0:
+                    _cur_file_li = _pc_ec.body_file;
+                    _layer_key_li = "body";
+                    break;
+                case 1:
+                    _cur_file_li = _pc_ec.face_file;
+                    _layer_key_li = "face";
+                    break;
+                case 2:
+                    var _eyes_file_li = "";
+                    if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "eyes_files")) {
+                        var _ef_li = _pc_ec.eyes_files;
+                        var _ef_ek = string(expr_cfg_preview_expr);
+                        if (variable_struct_exists(_ef_li, _ef_ek) && _ef_li[$ _ef_ek] != "") _eyes_file_li = _ef_li[$ _ef_ek];
+                    }
+                    if (_eyes_file_li == "") {
+                        var _eyes_n_li = 10 + expr_cfg_preview_expr + _sfx_off_ec;
+                        _eyes_file_li = "pose_" + _pfx_ec + ((_eyes_n_li < 10 ? "0" : "") + string(_eyes_n_li)) + ".png";
+                    }
+                    _cur_file_li = _eyes_file_li;
+                    _layer_key_li = "eyes";
+                    break;
+                case 3:
+                    var _mouth_file_li = "";
+                    if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files")) {
+                        var _mf_li = _pc_ec.mouth_files;
+                        var _expr_key = string(expr_cfg_preview_expr);
+                        var _mood_key = string(_derived_mood_ec);
+                        if (variable_struct_exists(_mf_li, _expr_key) && _mf_li[$ _expr_key] != "") {
+                            _mouth_file_li = _mf_li[$ _expr_key];
+                        } else if (variable_struct_exists(_mf_li, _mood_key) && _mf_li[$ _mood_key] != "") {
+                            _mouth_file_li = _mf_li[$ _mood_key];
+                        }
+                    }
+                    if (_mouth_file_li == "") {
+                        var _mouth_n_li = 31 + _derived_mood_ec + _sfx_off_ec;
+                        _mouth_file_li = "pose_" + _pfx_ec + ((_mouth_n_li < 10 ? "0" : "") + string(_mouth_n_li)) + ".png";
+                    }
+                    _cur_file_li = _mouth_file_li;
+                    _layer_key_li = "mouth";
+                    break;
+            }
+            
+            // Base offset from offsets.json
+            var _lo_ox_li = 0; var _lo_oy_li = 0;
+            if (_off_data != undefined && _pc_ec.body_file != "") {
+                var _bk_li = string_replace(_pc_ec.body_file, ".png", "");
+                if (variable_struct_exists(_off_data, _bk_li)) { var _bv_li = _off_data[$ _bk_li]; _lo_ox_li = _bv_li[0]; _lo_oy_li = _bv_li[1]; }
+            }
+            
+            var _file_ok_li = string_replace(_cur_file_li, ".png", "");
+            if (_off_data != undefined && variable_struct_exists(_off_data, _file_ok_li)) {
+                var _fov_li = _off_data[$ _file_ok_li]; _ldx = _fov_li[0] - _lo_ox_li; _ldy = _fov_li[1] - _lo_oy_li;
+            }
+            
+            // Add custom nudge delta offset
+            var _expr_key_li = string(expr_cfg_preview_expr);
+            if ((_layer_key_li == "eyes" || _layer_key_li == "mouth") && variable_struct_exists(_pc_ec, _layer_key_li + "_dx_expr_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_li + "_dx_expr_offsets"], _expr_key_li)) {
+                _ldx += _pc_ec[$ _layer_key_li + "_dx_expr_offsets"][$ _expr_key_li];
+            } else if (variable_struct_exists(_pc_ec, _layer_key_li + "_dx_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_li + "_dx_offsets"], _cur_file_li)) {
+                _ldx += _pc_ec[$ _layer_key_li + "_dx_offsets"][$ _cur_file_li];
+            } else if (variable_struct_exists(_pc_ec, _layer_key_li + "_dx")) {
+                _ldx = _pc_ec[$ _layer_key_li + "_dx"];
+            }
+            if ((_layer_key_li == "eyes" || _layer_key_li == "mouth") && variable_struct_exists(_pc_ec, _layer_key_li + "_dy_expr_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_li + "_dy_expr_offsets"], _expr_key_li)) {
+                _ldy += _pc_ec[$ _layer_key_li + "_dy_expr_offsets"][$ _expr_key_li];
+            } else if (variable_struct_exists(_pc_ec, _layer_key_li + "_dy_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_li + "_dy_offsets"], _cur_file_li)) {
+                _ldy += _pc_ec[$ _layer_key_li + "_dy_offsets"][$ _cur_file_li];
+            } else if (variable_struct_exists(_pc_ec, _layer_key_li + "_dy")) {
+                _ldy = _pc_ec[$ _layer_key_li + "_dy"];
+            }
+            
             draw_set_color(c_ltgray); draw_text(_lx + 8, _lby + 24, "dx:" + string(_ldx) + "  dy:" + string(_ldy));
         }
     }
@@ -1745,10 +1953,76 @@ if (expr_cfg_open) {
     var _nudge_y = _layer_y0 + 4 * 52 + 6;
     if (_pc_ec != undefined) {
         var _n_ldx = 0; var _n_ldy = 0;
-        if (expr_cfg_selected_layer == 0) { _n_ldx = variable_struct_exists(_pc_ec, "body_dx") ? _pc_ec.body_dx : 0; _n_ldy = variable_struct_exists(_pc_ec, "body_dy") ? _pc_ec.body_dy : 0; }
-        if (expr_cfg_selected_layer == 1) { _n_ldx = _pc_ec.face_dx;  _n_ldy = _pc_ec.face_dy; }
-        if (expr_cfg_selected_layer == 2) { _n_ldx = _pc_ec.eyes_dx;  _n_ldy = _pc_ec.eyes_dy; }
-        if (expr_cfg_selected_layer == 3) { _n_ldx = _pc_ec.mouth_dx; _n_ldy = _pc_ec.mouth_dy; }
+        
+        // Resolve currently active file for selected layer
+        var _cur_file_sel = "";
+        var _layer_key_sel = "";
+        switch (expr_cfg_selected_layer) {
+            case 0:
+                _cur_file_sel = _pc_ec.body_file;
+                _layer_key_sel = "body";
+                break;
+            case 1:
+                _cur_file_sel = _pc_ec.face_file;
+                _layer_key_sel = "face";
+                break;
+            case 2:
+                var _eyes_file_sel = "";
+                if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "eyes_files")) {
+                    var _ef_sel = _pc_ec.eyes_files;
+                    var _ef_ek = string(expr_cfg_preview_expr);
+                    if (variable_struct_exists(_ef_sel, _ef_ek) && _ef_sel[$ _ef_ek] != "") _eyes_file_sel = _ef_sel[$ _ef_ek];
+                }
+                if (_eyes_file_sel == "") {
+                    var _eyes_n_sel = 10 + expr_cfg_preview_expr + _sfx_off_ec;
+                    _eyes_file_sel = "pose_" + _pfx_ec + ((_eyes_n_sel < 10 ? "0" : "") + string(_eyes_n_sel)) + ".png";
+                }
+                _cur_file_sel = _eyes_file_sel;
+                _layer_key_sel = "eyes";
+                break;
+            case 3:
+                var _mouth_file_sel = "";
+                if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files")) {
+                    var _mf_sel = _pc_ec.mouth_files;
+                    var _expr_key = string(expr_cfg_preview_expr);
+                    var _mood_key = string(_derived_mood_ec);
+                    if (variable_struct_exists(_mf_sel, _expr_key) && _mf_sel[$ _expr_key] != "") {
+                        _mouth_file_sel = _mf_sel[$ _expr_key];
+                    } else if (variable_struct_exists(_mf_sel, _mood_key) && _mf_sel[$ _mood_key] != "") {
+                        _mouth_file_sel = _mf_sel[$ _mood_key];
+                    }
+                }
+                if (_mouth_file_sel == "") {
+                    var _mouth_n_sel = 31 + _derived_mood_ec + _sfx_off_ec;
+                    _mouth_file_sel = "pose_" + _pfx_ec + ((_mouth_n_sel < 10 ? "0" : "") + string(_mouth_n_sel)) + ".png";
+                }
+                _cur_file_sel = _mouth_file_sel;
+                _layer_key_sel = "mouth";
+                break;
+        }
+        
+        var _lo_ox_sel = 0; var _lo_oy_sel = 0;
+        if (_off_data != undefined && _pc_ec.body_file != "") {
+            var _bk_sel = string_replace(_pc_ec.body_file, ".png", "");
+            if (variable_struct_exists(_off_data, _bk_sel)) { var _bv_sel = _off_data[$ _bk_sel]; _lo_ox_sel = _bv_sel[0]; _lo_oy_sel = _bv_sel[1]; }
+        }
+        
+        var _file_ok_sel = string_replace(_cur_file_sel, ".png", "");
+        if (_off_data != undefined && variable_struct_exists(_off_data, _file_ok_sel)) {
+            var _fov_sel = _off_data[$ _file_ok_sel]; _n_ldx = _fov_sel[0] - _lo_ox_sel; _n_ldy = _fov_sel[1] - _lo_oy_sel;
+        }
+        
+        if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dx_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dx_offsets"], _cur_file_sel)) {
+            _n_ldx += _pc_ec[$ _layer_key_sel + "_dx_offsets"][$ _cur_file_sel];
+        } else if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dx")) {
+            _n_ldx = _pc_ec[$ _layer_key_sel + "_dx"];
+        }
+        if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dy_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dy_offsets"], _cur_file_sel)) {
+            _n_ldy += _pc_ec[$ _layer_key_sel + "_dy_offsets"][$ _cur_file_sel];
+        } else if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dy")) {
+            _n_ldy = _pc_ec[$ _layer_key_sel + "_dy"];
+        }
+        
         var _axes = ["dx", "dy"]; var _vals = [_n_ldx, _n_ldy];
         for (var _ai2 = 0; _ai2 <= 1; _ai2++) {
             var _ny2 = _nudge_y + _ai2 * 34;
@@ -1788,7 +2062,7 @@ if (expr_cfg_open) {
         draw_text(_ex2 + _eboxw/2, _ey2 + 3, _expr_names_short[_ei - 1]);
         // Mouth-mood colour stripe
         var _em = _esel_mood_map[_ei - 1];
-        var _has_mouth = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files") && variable_struct_exists(_pc_ec.mouth_files, string(_em)) && _pc_ec.mouth_files[$ string(_em)] != "");
+        var _has_mouth = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files") && ((variable_struct_exists(_pc_ec.mouth_files, string(_ei)) && _pc_ec.mouth_files[$ string(_ei)] != "") || (variable_struct_exists(_pc_ec.mouth_files, string(_em)) && _pc_ec.mouth_files[$ string(_em)] != "")));
         var _has_eyes  = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "eyes_files")  && variable_struct_exists(_pc_ec.eyes_files,  string(_ei)) && _pc_ec.eyes_files[$  string(_ei)] != "");
         draw_set_color(_has_mouth ? _mood_col[_em] : make_color_rgb(40, 42, 55));
         draw_rectangle(_ex2 + 2, _ey2 + 26, _ex2 + _eboxw - 2, _ey2 + 33, false);
@@ -1820,12 +2094,50 @@ if (expr_cfg_open) {
     draw_set_color(make_color_rgb(35, 45, 75));
     draw_roundrect_ext(_px2, _py2, _px2 + _pw2, _py2 + _ph2, 8, 8, true);
 
+    // Layout and dimensions for character composite + file browser (declared early for hover logic)
+    var _char_preview_h = floor(_ph2 * 0.58);
+    var _file_browser_y = _py2 + _char_preview_h + 4;
+    var _file_browser_h = _ph2 - _char_preview_h - 8;
+    var _fb_list_y = _file_browser_y + 28;
+    var _fb_cols = 3;
+    var _fb_item_w = floor(_pw2 / _fb_cols);
+    var _fb_item_h = 22;
+    var _fb_vis_rows = floor((_file_browser_h - (_fb_list_y - _file_browser_y) - 2) / _fb_item_h);
+    var _fb_start = expr_cfg_file_scroll * _fb_cols;
+    var _fb_end = min(_fb_start + _fb_vis_rows * _fb_cols, array_length(expr_cfg_file_list));
+
+    // Determine if any file is hovered in the browser, to show it in the composite preview
+    var _hov_fname = "";
+    for (var _fi2 = _fb_start; _fi2 < _fb_end; _fi2++) {
+        var _fcol2  = (_fi2 - _fb_start) mod _fb_cols;
+        var _frow2  = floor((_fi2 - _fb_start) / _fb_cols);
+        var _fix2   = _px2 + 1 + _fcol2 * _fb_item_w;
+        var _fiy2   = _fb_list_y + _frow2 * _fb_item_h;
+        if (_mx > _fix2 && _mx < _fix2 + _fb_item_w && _my > _fiy2 && _my < _fiy2 + _fb_item_h) {
+            _hov_fname = expr_cfg_file_list[_fi2]; break;
+        }
+    }
+
+    var _hov_spr = -1;
+    if (_hov_fname != "") {
+        var _hk = _c_ec.name + "_" + _hov_fname;
+        if (ds_map_exists(char_sprites, _hk)) {
+            _hov_spr = char_sprites[? _hk];
+        } else {
+            var _hpath = datafiles_path + "images/characters/" + _c_ec.name + "/" + _hov_fname;
+            if (file_exists(_hpath)) {
+                _hov_spr = sprite_add(_hpath, 1, false, false, 0, 0);
+                ds_map_add(char_sprites, _hk, _hov_spr);
+            }
+        }
+    }
+
     // Get preview sprites
     var _body_spr_ec = -1;
     var _face_spr_ec = -1;
     var _eyes_spr_ec = -1;
     var _mouth_spr_ec = -1;
-    var _folder_ec2 = working_directory + "images/characters/" + _c_ec.name + "/";
+    var _folder_ec2 = datafiles_path + "images/characters/" + _c_ec.name + "/";
     var _ai_ec = variable_struct_exists(_c_ec, "act_index") ? _c_ec.act_index : 1;
     var _sfx_off_ec = expr_cfg_high ? 50 : 0;
     var _pfx_ec = string(_ai_ec) + string(expr_cfg_pose);
@@ -1877,8 +2189,13 @@ if (expr_cfg_open) {
     var _mouth_file_ec = "";
     if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files")) {
         var _mf_ec = _pc_ec.mouth_files;
-        var _mf_mk = string(_derived_mood_ec);
-        if (variable_struct_exists(_mf_ec, _mf_mk) && _mf_ec[$ _mf_mk] != "") _mouth_file_ec = _mf_ec[$ _mf_mk];
+        var _expr_key = string(expr_cfg_preview_expr);
+        var _mood_key = string(_derived_mood_ec);
+        if (variable_struct_exists(_mf_ec, _expr_key) && _mf_ec[$ _expr_key] != "") {
+            _mouth_file_ec = _mf_ec[$ _expr_key];
+        } else if (variable_struct_exists(_mf_ec, _mood_key) && _mf_ec[$ _mood_key] != "") {
+            _mouth_file_ec = _mf_ec[$ _mood_key];
+        }
     }
     if (_mouth_file_ec == "") {
         var _mouth_n_ec = 31 + _derived_mood_ec + _sfx_off_ec;
@@ -1892,10 +2209,16 @@ if (expr_cfg_open) {
         ds_map_add(char_sprites, _mk3, _mouth_spr_ec);
     }
 
+    // If hovering a file list item, temporarily override the active layer with the hovered sprite
+    if (_hov_spr != -1) {
+        if (expr_cfg_selected_layer == 0) _body_spr_ec = _hov_spr;
+        else if (expr_cfg_selected_layer == 1) _face_spr_ec = _hov_spr;
+        else if (expr_cfg_selected_layer == 2) _eyes_spr_ec = _hov_spr;
+        else if (expr_cfg_selected_layer == 3) _mouth_spr_ec = _hov_spr;
+    }
+
     // ── Split preview panel: top 58% = composite, bottom 42% = file browser ──
-    var _char_preview_h = floor(_ph2 * 0.58);
-    var _file_browser_y = _py2 + _char_preview_h + 4;
-    var _file_browser_h = _ph2 - _char_preview_h - 8;
+    // (Layout variables _char_preview_h, _file_browser_y, and _file_browser_h are declared early)
 
     // ── Character composite preview ──
     var _bdw2 = (_body_spr_ec != -1) ? sprite_get_width(_body_spr_ec) : 80;
@@ -1914,16 +2237,124 @@ if (expr_cfg_open) {
     gpu_set_scissor(_px2 + 2, _py2 + 2, _pw2 - 4, _char_preview_h - 4);
     gpu_set_texfilter(true);
     var _prev_sprs = [_body_spr_ec, _face_spr_ec, _eyes_spr_ec, _mouth_spr_ec];
-    var _body_dx_ec = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "body_dx") ? _pc_ec.body_dx : 0);
-    var _body_dy_ec = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "body_dy") ? _pc_ec.body_dy : 0);
-    var _prev_dx = [_body_dx_ec,
-        (_pc_ec != undefined ? _pc_ec.face_dx  + _body_dx_ec : 0),
-        (_pc_ec != undefined ? _pc_ec.eyes_dx  + _body_dx_ec : 0),
-        (_pc_ec != undefined ? _pc_ec.mouth_dx + _body_dx_ec : 0)];
-    var _prev_dy = [_body_dy_ec,
-        (_pc_ec != undefined ? _pc_ec.face_dy  + _body_dy_ec : 0),
-        (_pc_ec != undefined ? _pc_ec.eyes_dy  + _body_dy_ec : 0),
-        (_pc_ec != undefined ? _pc_ec.mouth_dy + _body_dy_ec : 0)];
+    
+    // Compute total offset dx/dy for each layer in the preview panel (including base + custom delta nudges)
+    var _bdx_prev = 0; var _bdy_prev = 0;
+    var _fdx_prev = 0; var _fdy_prev = 0;
+    var _edx_prev = 0; var _edy_prev = 0;
+    var _mdx_prev = 0; var _mdy_prev = 0;
+    
+    var _lo_ox_p = 0; var _lo_oy_p = 0;
+    if (_off_data != undefined && _pc_ec.body_file != "") {
+        var _bk_p = string_replace(_pc_ec.body_file, ".png", "");
+        if (variable_struct_exists(_off_data, _bk_p)) { var _bv_p = _off_data[$ _bk_p]; _lo_ox_p = _bv_p[0]; _lo_oy_p = _bv_p[1]; }
+    }
+    
+    if (_pc_ec != undefined) {
+        // BODY
+        var _body_file_prev = _pc_ec.body_file;
+        var _body_ok_p = string_replace(_body_file_prev, ".png", "");
+        if (_off_data != undefined && variable_struct_exists(_off_data, _body_ok_p)) {
+            var _bv_p = _off_data[$ _body_ok_p]; _bdx_prev = _bv_p[0] - _lo_ox_p; _bdy_prev = _bv_p[1] - _lo_oy_p;
+        }
+        if (variable_struct_exists(_pc_ec, "body_dx_offsets") && variable_struct_exists(_pc_ec.body_dx_offsets, _body_file_prev)) {
+            _bdx_prev += _pc_ec.body_dx_offsets[$ _body_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "body_dx")) {
+            _bdx_prev = _pc_ec.body_dx;
+        }
+        if (variable_struct_exists(_pc_ec, "body_dy_offsets") && variable_struct_exists(_pc_ec.body_dy_offsets, _body_file_prev)) {
+            _bdy_prev += _pc_ec.body_dy_offsets[$ _body_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "body_dy")) {
+            _bdy_prev = _pc_ec.body_dy;
+        }
+        
+        // FACE
+        var _face_file_prev = _pc_ec.face_file;
+        var _face_ok_p = string_replace(_face_file_prev, ".png", "");
+        if (_off_data != undefined && variable_struct_exists(_off_data, _face_ok_p)) {
+            var _fov_p = _off_data[$ _face_ok_p]; _fdx_prev = _fov_p[0] - _lo_ox_p; _fdy_prev = _fov_p[1] - _lo_oy_p;
+        }
+        if (variable_struct_exists(_pc_ec, "face_dx_offsets") && variable_struct_exists(_pc_ec.face_dx_offsets, _face_file_prev)) {
+            _fdx_prev += _pc_ec.face_dx_offsets[$ _face_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "face_dx")) {
+            _fdx_prev = _pc_ec.face_dx;
+        }
+        if (variable_struct_exists(_pc_ec, "face_dy_offsets") && variable_struct_exists(_pc_ec.face_dy_offsets, _face_file_prev)) {
+            _fdy_prev += _pc_ec.face_dy_offsets[$ _face_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "face_dy")) {
+            _fdy_prev = _pc_ec.face_dy;
+        }
+        
+        // EYES
+        var _eyes_file_prev = "";
+        if (variable_struct_exists(_pc_ec, "eyes_files")) {
+            var _ef_prev = _pc_ec.eyes_files;
+            var _ef_ek_prev = string(expr_cfg_preview_expr);
+            if (variable_struct_exists(_ef_prev, _ef_ek_prev) && _ef_prev[$ _ef_ek_prev] != "") _eyes_file_prev = _ef_prev[$ _ef_ek_prev];
+        }
+        if (_eyes_file_prev == "") {
+            var _eyes_n_prev = 10 + expr_cfg_preview_expr + _sfx_off_ec;
+            _eyes_file_prev = "pose_" + _pfx_ec + ((_eyes_n_prev < 10 ? "0" : "") + string(_eyes_n_prev)) + ".png";
+        }
+        var _eyes_ok_p = string_replace(_eyes_file_prev, ".png", "");
+        if (_off_data != undefined && variable_struct_exists(_off_data, _eyes_ok_p)) {
+            var _eov_p = _off_data[$ _eyes_ok_p]; _edx_prev = _eov_p[0] - _lo_ox_p; _edy_prev = _eov_p[1] - _lo_oy_p;
+        }
+        var _expr_key_prev = string(expr_cfg_preview_expr);
+        if (variable_struct_exists(_pc_ec, "eyes_dx_expr_offsets") && variable_struct_exists(_pc_ec.eyes_dx_expr_offsets, _expr_key_prev)) {
+            _edx_prev += _pc_ec.eyes_dx_expr_offsets[$ _expr_key_prev];
+        } else if (variable_struct_exists(_pc_ec, "eyes_dx_offsets") && variable_struct_exists(_pc_ec.eyes_dx_offsets, _eyes_file_prev)) {
+            _edx_prev += _pc_ec.eyes_dx_offsets[$ _eyes_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "eyes_dx")) {
+            _edx_prev = _pc_ec.eyes_dx;
+        }
+        if (variable_struct_exists(_pc_ec, "eyes_dy_expr_offsets") && variable_struct_exists(_pc_ec.eyes_dy_expr_offsets, _expr_key_prev)) {
+            _edy_prev += _pc_ec.eyes_dy_expr_offsets[$ _expr_key_prev];
+        } else if (variable_struct_exists(_pc_ec, "eyes_dy_offsets") && variable_struct_exists(_pc_ec.eyes_dy_offsets, _eyes_file_prev)) {
+            _edy_prev += _pc_ec.eyes_dy_offsets[$ _eyes_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "eyes_dy")) {
+            _edy_prev = _pc_ec.eyes_dy;
+        }
+        
+        // MOUTH
+        var _mouth_file_prev = "";
+        if (variable_struct_exists(_pc_ec, "mouth_files")) {
+            var _mf_prev = _pc_ec.mouth_files;
+            var _expr_key = string(expr_cfg_preview_expr);
+            var _mood_key = string(_derived_mood_ec);
+            if (variable_struct_exists(_mf_prev, _expr_key) && _mf_prev[$ _expr_key] != "") {
+                _mouth_file_prev = _mf_prev[$ _expr_key];
+            } else if (variable_struct_exists(_mf_prev, _mood_key) && _mf_prev[$ _mood_key] != "") {
+                _mouth_file_prev = _mf_prev[$ _mood_key];
+            }
+        }
+        if (_mouth_file_prev == "") {
+            var _mouth_n_prev = 31 + _derived_mood_ec + _sfx_off_ec;
+            _mouth_file_prev = "pose_" + _pfx_ec + ((_mouth_n_prev < 10 ? "0" : "") + string(_mouth_n_prev)) + ".png";
+        }
+        var _mouth_ok_p = string_replace(_mouth_file_prev, ".png", "");
+        if (_off_data != undefined && variable_struct_exists(_off_data, _mouth_ok_p)) {
+            var _mov_p = _off_data[$ _mouth_ok_p]; _mdx_prev = _mov_p[0] - _lo_ox_p; _mdy_prev = _mov_p[1] - _lo_oy_p;
+        }
+        var _expr_key_prev = string(expr_cfg_preview_expr);
+        if (variable_struct_exists(_pc_ec, "mouth_dx_expr_offsets") && variable_struct_exists(_pc_ec.mouth_dx_expr_offsets, _expr_key_prev)) {
+            _mdx_prev += _pc_ec.mouth_dx_expr_offsets[$ _expr_key_prev];
+        } else if (variable_struct_exists(_pc_ec, "mouth_dx_offsets") && variable_struct_exists(_pc_ec.mouth_dx_offsets, _mouth_file_prev)) {
+            _mdx_prev += _pc_ec.mouth_dx_offsets[$ _mouth_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "mouth_dx")) {
+            _mdx_prev = _pc_ec.mouth_dx;
+        }
+        if (variable_struct_exists(_pc_ec, "mouth_dy_expr_offsets") && variable_struct_exists(_pc_ec.mouth_dy_expr_offsets, _expr_key_prev)) {
+            _mdy_prev += _pc_ec.mouth_dy_expr_offsets[$ _expr_key_prev];
+        } else if (variable_struct_exists(_pc_ec, "mouth_dy_offsets") && variable_struct_exists(_pc_ec.mouth_dy_offsets, _mouth_file_prev)) {
+            _mdy_prev += _pc_ec.mouth_dy_offsets[$ _mouth_file_prev];
+        } else if (variable_struct_exists(_pc_ec, "mouth_dy")) {
+            _mdy_prev = _pc_ec.mouth_dy;
+        }
+    }
+    
+    var _prev_dx = [_bdx_prev, _fdx_prev + _bdx_prev, _edx_prev + _bdx_prev, _mdx_prev + _bdx_prev];
+    var _prev_dy = [_bdy_prev, _fdy_prev + _bdy_prev, _edy_prev + _bdy_prev, _mdy_prev + _bdy_prev];
     for (var _li2 = 0; _li2 <= 3; _li2++) {
         var _ls2 = _prev_sprs[_li2];
         var _lsx = _drawx2 + _prev_dx[_li2] * _cfg_sc;
@@ -1934,7 +2365,9 @@ if (expr_cfg_open) {
             draw_set_color(_is_sel_l ? c_yellow : make_color_rgb(35, 40, 60));
             draw_rectangle(_lsx, _lsy, _lsx + 64, _lsy + 28, _is_sel_l);
             draw_set_color(_is_sel_l ? c_black : _layer_cols[_li2]);
-            draw_text(_lsx + 4, _lsy + 7, _layer_names_ec[_li2] + " ?");
+            var _lbl = _layer_names_ec[_li2] + " ?";
+            if (_is_sel_l && _hov_fname != "") _lbl += " (PREVIEW)";
+            draw_text(_lsx + 4, _lsy + 7, _lbl);
             continue;
         }
         if (_is_sel_l) {
@@ -1943,7 +2376,10 @@ if (expr_cfg_open) {
             gpu_set_blendmode(bm_normal);
         }
         draw_sprite_ext(_ls2, 0, _lsx, _lsy, _cfg_sc, _cfg_sc, 0, _is_sel_l ? c_yellow : c_white, 1.0);
-        draw_set_color(_layer_cols[_li2]); draw_text(_lsx + 2, _lsy - 13, _layer_names_ec[_li2]);
+        draw_set_color(_layer_cols[_li2]);
+        var _lbl = _layer_names_ec[_li2];
+        if (_is_sel_l && _hov_fname != "") _lbl += " (PREVIEW)";
+        draw_text(_lsx + 2, _lsy - 13, _lbl);
     }
 
     // Zoom Indicator
@@ -1967,29 +2403,48 @@ if (expr_cfg_open) {
     draw_rectangle(_px2 + 1, _file_browser_y, _px2 + _pw2 - 1, _file_browser_y + 26, false);
     draw_set_color(c_white);
     var _fb_layer_name = _layer_names_ec[expr_cfg_selected_layer];
-    draw_text(_px2 + 6, _file_browser_y + 5, "SELECT FILE  ·  " + _fb_layer_name);
+    var _hdr_text = "SELECT FILE  ·  " + _fb_layer_name;
+    if (_hov_fname != "") {
+        draw_set_color(c_lime);
+        _hdr_text += "  [PREVIEWING: " + _hov_fname + "]";
+    }
+    draw_text(_px2 + 6, _file_browser_y + 5, _hdr_text);
+    draw_set_color(c_white);
 
-    var _fb_list_y = _file_browser_y + 28;
+    // File list grid (3 columns) - (Local layout variables are declared early)
 
-    // File list grid (3 columns)
-    var _fb_cols = 3;
-    var _fb_item_w = floor(_pw2 / _fb_cols);
-    var _fb_item_h = 22;
-    var _fb_vis_rows = floor((_file_browser_h - (_fb_list_y - _file_browser_y) - 2) / _fb_item_h);
-    var _fb_start = expr_cfg_file_scroll * _fb_cols;
-    var _fb_end = min(_fb_start + _fb_vis_rows * _fb_cols, array_length(expr_cfg_file_list));
-
-    // Determine currently assigned file for selected layer/slot
-    var _fb_cur_file = "";
+    // Determine currently assigned file for all 4 layers
+    var _active_body_file = "";
+    var _active_face_file = "";
+    var _active_eyes_file = "";
+    var _active_mouth_file = "";
+    
     if (_pc_ec != undefined) {
-        if (expr_cfg_selected_layer == 0) _fb_cur_file = _pc_ec.body_file;
-        else if (expr_cfg_selected_layer == 1) _fb_cur_file = _pc_ec.face_file;
-        else if (expr_cfg_selected_layer == 2 && variable_struct_exists(_pc_ec, "eyes_files")) {
+        _active_body_file = _pc_ec.body_file;
+        _active_face_file = _pc_ec.face_file;
+        
+        if (variable_struct_exists(_pc_ec, "eyes_files")) {
             var _ef2 = _pc_ec.eyes_files; var _ek4 = string(expr_cfg_preview_expr);
-            if (variable_struct_exists(_ef2, _ek4)) _fb_cur_file = _ef2[$ _ek4];
-        } else if (expr_cfg_selected_layer == 3 && variable_struct_exists(_pc_ec, "mouth_files")) {
-            var _mf2 = _pc_ec.mouth_files; var _mk4 = string(_derived_mood_ec);
-            if (variable_struct_exists(_mf2, _mk4)) _fb_cur_file = _mf2[$ _mk4];
+            if (variable_struct_exists(_ef2, _ek4) && _ef2[$ _ek4] != "") _active_eyes_file = _ef2[$ _ek4];
+        }
+        if (_active_eyes_file == "") {
+            var _eyes_n_ec = 10 + expr_cfg_preview_expr + _sfx_off_ec;
+            _active_eyes_file = "pose_" + _pfx_ec + ((_eyes_n_ec < 10 ? "0" : "") + string(_eyes_n_ec)) + ".png";
+        }
+        
+        if (variable_struct_exists(_pc_ec, "mouth_files")) {
+            var _mf2 = _pc_ec.mouth_files;
+            var _expr_key = string(expr_cfg_preview_expr);
+            var _mood_key = string(_derived_mood_ec);
+            if (variable_struct_exists(_mf2, _expr_key) && _mf2[$ _expr_key] != "") {
+                _active_mouth_file = _mf2[$ _expr_key];
+            } else if (variable_struct_exists(_mf2, _mood_key) && _mf2[$ _mood_key] != "") {
+                _active_mouth_file = _mf2[$ _mood_key];
+            }
+        }
+        if (_active_mouth_file == "") {
+            var _mouth_n_ec = 31 + _derived_mood_ec + _sfx_off_ec;
+            _active_mouth_file = "pose_" + _pfx_ec + ((_mouth_n_ec < 10 ? "0" : "") + string(_mouth_n_ec)) + ".png";
         }
     }
 
@@ -2001,67 +2456,120 @@ if (expr_cfg_open) {
         var _fitem_x = _px2 + 1 + _fcol * _fb_item_w;
         var _fitem_y = _fb_list_y + _frow * _fb_item_h;
         var _fhov = (!theater_mode && _mx > _fitem_x && _mx < _fitem_x + _fb_item_w && _my > _fitem_y && _my < _fitem_y + _fb_item_h);
-        var _fsel = (_fname == _fb_cur_file);
-        draw_set_color(_fsel ? make_color_rgb(50,80,160) : (_fhov ? make_color_rgb(30,38,58) : make_color_rgb(16,18,26)));
+        
+        var _is_body  = (_fname == _active_body_file);
+        var _is_face  = (_fname == _active_face_file);
+        var _is_eyes  = (_fname == _active_eyes_file);
+        var _is_mouth = (_fname == _active_mouth_file);
+        
+        // Check if this file is the active file for the currently selected layer
+        var _is_sel_layer_file = false;
+        if (expr_cfg_selected_layer == 0 && _is_body) _is_sel_layer_file = true;
+        else if (expr_cfg_selected_layer == 1 && _is_face) _is_sel_layer_file = true;
+        else if (expr_cfg_selected_layer == 2 && _is_eyes) _is_sel_layer_file = true;
+        else if (expr_cfg_selected_layer == 3 && _is_mouth) _is_sel_layer_file = true;
+        
+        // Define colors
+        var _col_body  = make_color_rgb(255, 180, 100);
+        var _col_head  = make_color_rgb(100, 180, 255);
+        var _col_eyes  = make_color_rgb(120, 255, 120);
+        var _col_mouth = make_color_rgb(255, 120, 120);
+        
+        var _bg_body  = make_color_rgb(45, 38, 25);
+        var _bg_head  = make_color_rgb(25, 38, 48);
+        var _bg_eyes  = make_color_rgb(22, 45, 28);
+        var _bg_mouth = make_color_rgb(48, 38, 25);
+        
+        // Collect tags
+        var _tags = [];
+        if (_is_body)  array_push(_tags, { text: "BODY",  col: _col_body,  bg: make_color_rgb(80, 50, 20) });
+        if (_is_face)  array_push(_tags, { text: "HEAD",  col: _col_head,  bg: make_color_rgb(20, 50, 80) });
+        if (_is_eyes)  array_push(_tags, { text: "EYES",  col: _col_eyes,  bg: make_color_rgb(20, 70, 30) });
+        if (_is_mouth) array_push(_tags, { text: "MOUTH", col: _col_mouth, bg: make_color_rgb(80, 30, 30) });
+        
+        var _bg_col = make_color_rgb(16, 18, 26);
+        var _text_col = make_color_rgb(130, 140, 160);
+        
+        // Background color logic
+        if (_is_sel_layer_file) {
+            _bg_col = make_color_rgb(30, 50, 90); // Slate blue selected background
+            _text_col = c_white;
+        } else if (array_length(_tags) > 0) {
+            // Harmonic background tint based on role
+            if (_is_body)       _bg_col = _bg_body;
+            else if (_is_face)  _bg_col = _bg_head;
+            else if (_is_eyes)  _bg_col = _bg_eyes;
+            else if (_is_mouth) _bg_col = _bg_mouth;
+            _text_col = c_ltgray;
+        }
+        
+        // Hover state
+        if (_fhov) {
+            if (_is_sel_layer_file) {
+                _bg_col = make_color_rgb(45, 75, 130);
+            } else if (array_length(_tags) > 0) {
+                _bg_col = make_color_rgb(color_get_red(_bg_col) + 12, color_get_green(_bg_col) + 12, color_get_blue(_bg_col) + 12);
+            } else {
+                _bg_col = make_color_rgb(30, 38, 58);
+            }
+            _text_col = c_white;
+        }
+        
+        // Draw background
+        draw_set_color(_bg_col);
         draw_rectangle(_fitem_x, _fitem_y, _fitem_x + _fb_item_w - 2, _fitem_y + _fb_item_h - 1, false);
-        draw_set_color(_fsel ? c_yellow : (_fhov ? c_white : c_ltgray));
-        // Trim filename to fit cell
-        var _disp = _fname; if (string_length(_disp) > 22) _disp = string_copy(_disp, 1, 20) + "..";
-        draw_text(_fitem_x + 3, _fitem_y + 3, _disp);
+        
+        // Draw borders for selected/hovered files
+        if (_is_sel_layer_file) {
+            draw_set_color(make_color_rgb(100, 180, 255));
+            draw_rectangle(_fitem_x, _fitem_y, _fitem_x + _fb_item_w - 2, _fitem_y + _fb_item_h - 1, true);
+        } else if (_fhov) {
+            draw_set_color(make_color_rgb(80, 90, 110));
+            draw_rectangle(_fitem_x, _fitem_y, _fitem_x + _fb_item_w - 2, _fitem_y + _fb_item_h - 1, true);
+        }
+        
+        // Draw tag badges starting from right to left
+        var _bx = _fitem_x + _fb_item_w - 6;
+        for (var _ti = array_length(_tags) - 1; _ti >= 0; _ti--) {
+            var _t = _tags[_ti];
+            var _badge_w = string_width(_t.text) + 8;
+            var _badge_h = 14;
+            var _by = _fitem_y + (_fb_item_h - _badge_h) / 2;
+            
+            // Draw badge background
+            draw_set_color(_t.bg);
+            draw_roundrect_ext(_bx - _badge_w, _by, _bx, _by + _badge_h, 3, 3, false);
+            
+            // Draw badge border
+            draw_set_color(_t.col);
+            draw_roundrect_ext(_bx - _badge_w, _by, _bx, _by + _badge_h, 3, 3, true);
+            
+            // Draw badge text
+            draw_set_color(_t.col);
+            draw_set_halign(fa_center);
+            draw_text_transformed(_bx - _badge_w / 2, _by + 1, _t.text, 0.7, 0.7, 0);
+            draw_set_halign(fa_left);
+            
+            _bx -= _badge_w + 4;
+        }
+        
+        // Strip .png and dynamically truncate filename to fit left panel remaining space
+        var _disp_name = string_replace(_fname, ".png", "");
+        var _max_w = _bx - 4 - (_fitem_x + 6);
+        if (string_width(_disp_name) > _max_w) {
+            while (string_length(_disp_name) > 0 && string_width(_disp_name + "..") > _max_w) {
+                _disp_name = string_copy(_disp_name, 1, string_length(_disp_name) - 1);
+            }
+            _disp_name += "..";
+        }
+        
+        // Draw filename
+        draw_set_color(_text_col);
+        draw_text(_fitem_x + 6, _fitem_y + 3, _disp_name);
     }
     gpu_set_scissor(0, 0, 1280, 960);
 
-    // ── File hover preview ──
-    // When hovering any file in the browser, show a sprite preview near the mouse
-    var _hov_fname = "";
-    for (var _fi2 = _fb_start; _fi2 < _fb_end; _fi2++) {
-        var _fcol2  = (_fi2 - _fb_start) mod _fb_cols;
-        var _frow2  = floor((_fi2 - _fb_start) / _fb_cols);
-        var _fix2   = _px2 + 1 + _fcol2 * _fb_item_w;
-        var _fiy2   = _fb_list_y + _frow2 * _fb_item_h;
-        if (_mx > _fix2 && _mx < _fix2 + _fb_item_w && _my > _fiy2 && _my < _fiy2 + _fb_item_h) {
-            _hov_fname = expr_cfg_file_list[_fi2]; break;
-        }
-    }
-    if (_hov_fname != "") {
-        var _hk = _c_ec.name + "_" + _hov_fname;
-        var _hov_spr = -1;
-        if (ds_map_exists(char_sprites, _hk)) {
-            _hov_spr = char_sprites[? _hk];
-        } else {
-            var _hpath = working_directory + "images/characters/" + _c_ec.name + "/" + _hov_fname;
-            if (file_exists(_hpath)) {
-                _hov_spr = sprite_add(_hpath, 1, false, false, 0, 0);
-                ds_map_add(char_sprites, _hk, _hov_spr);
-            }
-        }
-        if (_hov_spr != -1 && sprite_exists(_hov_spr)) {
-            var _hw = sprite_get_width(_hov_spr);
-            var _hh = sprite_get_height(_hov_spr);
-            // Scale so preview fits within 160×160
-            var _hsc = min(160 / max(_hw, 1), 160 / max(_hh, 1), 3.0);
-            var _hdw = _hw * _hsc; var _hdh = _hh * _hsc;
-            // Anchor to the right of the mouse, clamped inside the modal
-            var _hpx = clamp(_mx + 14, _m_x + 4, _m_x + _m_w - _hdw - 8);
-            var _hpy = clamp(_my - _hdh / 2, _m_y + 4, _m_y + _m_h - _hdh - 8);
-            // Shadow panel
-            draw_set_alpha(0.88);
-            draw_set_color(make_color_rgb(8, 10, 18));
-            draw_rectangle(_hpx - 4, _hpy - 4, _hpx + _hdw + 4, _hpy + _hdh + 16, false);
-            draw_set_alpha(1.0);
-            draw_set_color(make_color_rgb(70, 110, 200));
-            draw_rectangle(_hpx - 4, _hpy - 4, _hpx + _hdw + 4, _hpy + _hdh + 16, true);
-            // Sprite
-            gpu_set_texfilter(true);
-            draw_sprite_ext(_hov_spr, 0, _hpx, _hpy, _hsc, _hsc, 0, c_white, 1.0);
-            gpu_set_texfilter(false);
-            // Filename label
-            draw_set_color(c_ltgray); draw_set_halign(fa_center);
-            var _disp_h = _hov_fname; if (string_length(_disp_h) > 26) _disp_h = string_copy(_disp_h, 1, 24) + "..";
-            draw_text(_hpx + _hdw/2, _hpy + _hdh + 2, _disp_h);
-            draw_set_halign(fa_left);
-        }
-    }
+    // ── File hover preview (handled in-context in preview pane) ──
 
     // Scrollbar for file browser
     var _total_rows = ceil(array_length(expr_cfg_file_list) / _fb_cols);

@@ -134,6 +134,67 @@ if (expr_cfg_open) {
 
     // Get body spr + scale for drag calculations
     var _pc_s = expr_cfg_get_pc();
+    
+    // Resolve currently active file for selected layer (defined early for nudges/dragging)
+    var get_active_layer_file = function() {
+        var _c_s = characters[expr_cfg_char_idx];
+        var _pc_s = expr_cfg_get_pc();
+        var _cur_file_s = "";
+        var _layer_key_s = "";
+        switch (expr_cfg_selected_layer) {
+            case 0:
+                _cur_file_s = _pc_s.body_file;
+                _layer_key_s = "body";
+                break;
+            case 1:
+                _cur_file_s = _pc_s.face_file;
+                _layer_key_s = "face";
+                break;
+            case 2:
+                var _eyes_file_s = "";
+                if (_pc_s != undefined && variable_struct_exists(_pc_s, "eyes_files")) {
+                    var _ef_s = _pc_s.eyes_files;
+                    var _ef_ek = string(expr_cfg_preview_expr);
+                    if (variable_struct_exists(_ef_s, _ef_ek) && _ef_s[$ _ef_ek] != "") _eyes_file_s = _ef_s[$ _ef_ek];
+                }
+                if (_eyes_file_s == "") {
+                    var _ai_s = variable_struct_exists(_c_s, "act_index") ? _c_s.act_index : 1;
+                    var _sfx_off_s = expr_cfg_high ? 50 : 0;
+                    var _pfx_s = string(_ai_s) + string(expr_cfg_pose);
+                    var _eyes_n_s = 10 + expr_cfg_preview_expr + _sfx_off_s;
+                    _eyes_file_s = "pose_" + _pfx_s + ((_eyes_n_s < 10 ? "0" : "") + string(_eyes_n_s)) + ".png";
+                }
+                _cur_file_s = _eyes_file_s;
+                _layer_key_s = "eyes";
+                break;
+            case 3:
+                var _s_mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+                var _derived_mood_s = _s_mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
+                var _mouth_file_s = "";
+                if (_pc_s != undefined && variable_struct_exists(_pc_s, "mouth_files")) {
+                    var _mf_s = _pc_s.mouth_files;
+                    var _expr_key = string(expr_cfg_preview_expr);
+                    var _mood_key = string(_derived_mood_s);
+                    if (variable_struct_exists(_mf_s, _expr_key) && _mf_s[$ _expr_key] != "") {
+                        _mouth_file_s = _mf_s[$ _expr_key];
+                    } else if (variable_struct_exists(_mf_s, _mood_key) && _mf_s[$ _mood_key] != "") {
+                        _mouth_file_s = _mf_s[$ _mood_key];
+                    }
+                }
+                if (_mouth_file_s == "") {
+                    var _ai_s = variable_struct_exists(_c_s, "act_index") ? _c_s.act_index : 1;
+                    var _sfx_off_s = expr_cfg_high ? 50 : 0;
+                    var _pfx_s = string(_ai_s) + string(expr_cfg_pose);
+                    var _mouth_n_s = 31 + _derived_mood_s + _sfx_off_s;
+                    _mouth_file_s = "pose_" + _pfx_s + ((_mouth_n_s < 10 ? "0" : "") + string(_mouth_n_s)) + ".png";
+                }
+                _cur_file_s = _mouth_file_s;
+                _layer_key_s = "mouth";
+                break;
+        }
+        return { file: _cur_file_s, key: _layer_key_s };
+    };
+
     var _body_spr_s = -1;
     if (_pc_s != undefined && _pc_s.body_file != "") {
         var _bks = _c_s.name + "_" + _pc_s.body_file;
@@ -168,7 +229,6 @@ if (expr_cfg_open) {
             var _pbxs = _lx + 45 + (_pi - 1) * 58;
             if (_mx > _pbxs && _mx < _pbxs + 48 && _my > _pose_ys && _my < _pose_ys + 28) {
                 expr_cfg_pose = _pi;
-                expr_cfg_file_scroll = 0;
             }
         }
 
@@ -210,10 +270,8 @@ if (expr_cfg_open) {
                         _pc_s.eyes_files[$ string(expr_cfg_preview_expr)] = _chosen;
                         break;
                     case 3:
-                        var _s_mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
-                        var _derived_mood_s = _s_mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
                         if (!variable_struct_exists(_pc_s, "mouth_files")) _pc_s.mouth_files = {};
-                        _pc_s.mouth_files[$ string(_derived_mood_s)] = _chosen;
+                        _pc_s.mouth_files[$ string(expr_cfg_preview_expr)] = _chosen;
                         break;
                 }
                 // Invalidate the runtime cache for this character so results show right away
@@ -223,61 +281,33 @@ if (expr_cfg_open) {
             }
         }
 
-        // Preview area click → drag sprite or placeholder for selected layer
+        // Preview area click → drag currently selected layer (selected via left panel icons)
         if (_mx > _px_s && _mx < _px_s + _pw_s && _my > _py_s && _my < _py_s + _ph_s && _pc_s != undefined) {
-            var _body_dx_s = variable_struct_exists(_pc_s, "body_dx") ? _pc_s.body_dx : 0;
-            var _body_dy_s = variable_struct_exists(_pc_s, "body_dy") ? _pc_s.body_dy : 0;
-            var _layers_info_s = [
-                { dx: _body_dx_s,                   dy: _body_dy_s                   },
-                { dx: _pc_s.face_dx  + _body_dx_s,  dy: _pc_s.face_dy  + _body_dy_s  },
-                { dx: _pc_s.eyes_dx  + _body_dx_s,  dy: _pc_s.eyes_dy  + _body_dy_s  },
-                { dx: _pc_s.mouth_dx + _body_dx_s,  dy: _pc_s.mouth_dy + _body_dy_s  }
-            ];
-
-            // Build sprite refs for hit testing
-            var _ai_s2 = variable_struct_exists(_c_s, "act_index") ? _c_s.act_index : 1;
-            var _sfx_off_s = expr_cfg_high ? 50 : 0;
-            var _pfx_s = string(_ai_s2) + string(expr_cfg_pose);
-            var _layers_sprs = [_body_spr_s, -1, -1, -1];
-            if (_pc_s.face_file != "") {
-                var _fk_s = _c_s.name + "_" + _pc_s.face_file;
-                if (ds_map_exists(char_sprites, _fk_s)) _layers_sprs[1] = char_sprites[? _fk_s];
+            expr_cfg_drag  = true;
+            expr_cfg_drag_mx0 = _mx; expr_cfg_drag_my0 = _my;
+            
+            var _info = get_active_layer_file();
+            var _cur_file_s = _info.file;
+            var _layer_key_s = _info.key;
+            
+            var _dx_struct_key = _layer_key_s + "_dx_offsets";
+            var _dy_struct_key = _layer_key_s + "_dy_offsets";
+            var _offset_key = _cur_file_s;
+            if (_layer_key_s == "eyes" || _layer_key_s == "mouth") {
+                _dx_struct_key = _layer_key_s + "_dx_expr_offsets";
+                _dy_struct_key = _layer_key_s + "_dy_expr_offsets";
+                _offset_key = string(expr_cfg_preview_expr);
             }
-            var _en_s = 10 + expr_cfg_preview_expr + _sfx_off_s;
-            var _ek_s = _c_s.name + "_pose_" + _pfx_s + ((_en_s < 10 ? "0" : "") + string(_en_s)) + ".png";
-            if (ds_map_exists(char_sprites, _ek_s)) _layers_sprs[2] = char_sprites[? _ek_s];
-            var _mn_s = 31 + _sfx_off_s;
-            var _mk_s = _c_s.name + "_pose_" + _pfx_s + ((_mn_s < 10 ? "0" : "") + string(_mn_s)) + ".png";
-            if (ds_map_exists(char_sprites, _mk_s)) _layers_sprs[3] = char_sprites[? _mk_s];
-
-            // Hit-test: try real sprites first (smallest layers first), then placeholders
-            var _clicked_l = -1;
-            var _hit_order = [2, 3, 1, 0]; // eyes, mouth, face, body
-            for (var _co = 0; _co < 4; _co++) {
-                var _ci = _hit_order[_co];
-                var _cl_lx2 = _drawx_s + _layers_info_s[_ci].dx * _cfg_sc_s;
-                var _cl_ly2 = _drawy_s + _layers_info_s[_ci].dy * _cfg_sc_s;
-                var _cl_spr = _layers_sprs[_ci];
-                var _cl_rw = (_cl_spr != -1) ? sprite_get_width(_cl_spr)  * _cfg_sc_s : 64;
-                var _cl_rh = (_cl_spr != -1) ? sprite_get_height(_cl_spr) * _cfg_sc_s : 28;
-                if (_mx > _cl_lx2 && _mx < _cl_lx2 + _cl_rw && _my > _cl_ly2 && _my < _cl_ly2 + _cl_rh) {
-                    _clicked_l = _ci; break;
-                }
-            }
-
-            if (_clicked_l >= 0) {
-                expr_cfg_selected_layer = _clicked_l;
-                expr_cfg_drag  = true;
-                expr_cfg_drag_mx0 = _mx; expr_cfg_drag_my0 = _my;
-                switch (_clicked_l) {
-                    case 0:
-                        if (!variable_struct_exists(_pc_s,"body_dx")) { _pc_s.body_dx=0; _pc_s.body_dy=0; }
-                        expr_cfg_drag_dx0 = _pc_s.body_dx;  expr_cfg_drag_dy0 = _pc_s.body_dy;  break;
-                    case 1: expr_cfg_drag_dx0 = _pc_s.face_dx;  expr_cfg_drag_dy0 = _pc_s.face_dy;  break;
-                    case 2: expr_cfg_drag_dx0 = _pc_s.eyes_dx;  expr_cfg_drag_dy0 = _pc_s.eyes_dy;  break;
-                    case 3: expr_cfg_drag_dx0 = _pc_s.mouth_dx; expr_cfg_drag_dy0 = _pc_s.mouth_dy; break;
-                }
-            }
+            
+            if (!variable_struct_exists(_pc_s, _dx_struct_key)) _pc_s[$ _dx_struct_key] = {};
+            if (!variable_struct_exists(_pc_s, _dy_struct_key)) _pc_s[$ _dy_struct_key] = {};
+            var _dx_map = _pc_s[$ _dx_struct_key];
+            var _dy_map = _pc_s[$ _dy_struct_key];
+            if (!variable_struct_exists(_dx_map, _offset_key)) _dx_map[$ _offset_key] = 0;
+            if (!variable_struct_exists(_dy_map, _offset_key)) _dy_map[$ _offset_key] = 0;
+            
+            expr_cfg_drag_dx0 = _dx_map[$ _offset_key];
+            expr_cfg_drag_dy0 = _dy_map[$ _offset_key];
         }
 
         // Bottom buttons: SAVE, CLOSE
@@ -299,12 +329,27 @@ if (expr_cfg_open) {
     if (expr_cfg_drag && mouse_check_button(mb_left) && _pc_s != undefined) {
         var _ddx = round((_mx - expr_cfg_drag_mx0) / _cfg_sc_s);
         var _ddy = round((_my - expr_cfg_drag_my0) / _cfg_sc_s);
-        switch (expr_cfg_selected_layer) {
-            case 0: _pc_s.body_dx  = expr_cfg_drag_dx0 + _ddx; _pc_s.body_dy  = expr_cfg_drag_dy0 + _ddy; break;
-            case 1: _pc_s.face_dx  = expr_cfg_drag_dx0 + _ddx; _pc_s.face_dy  = expr_cfg_drag_dy0 + _ddy; break;
-            case 2: _pc_s.eyes_dx  = expr_cfg_drag_dx0 + _ddx; _pc_s.eyes_dy  = expr_cfg_drag_dy0 + _ddy; break;
-            case 3: _pc_s.mouth_dx = expr_cfg_drag_dx0 + _ddx; _pc_s.mouth_dy = expr_cfg_drag_dy0 + _ddy; break;
+        
+        var _info = get_active_layer_file();
+        var _cur_file_s = _info.file;
+        var _layer_key_s = _info.key;
+        
+        var _dx_struct_key = _layer_key_s + "_dx_offsets";
+        var _dy_struct_key = _layer_key_s + "_dy_offsets";
+        var _offset_key = _cur_file_s;
+        if (_layer_key_s == "eyes" || _layer_key_s == "mouth") {
+            _dx_struct_key = _layer_key_s + "_dx_expr_offsets";
+            _dy_struct_key = _layer_key_s + "_dy_expr_offsets";
+            _offset_key = string(expr_cfg_preview_expr);
         }
+        
+        var _dx_map = _pc_s[$ _dx_struct_key];
+        var _dy_map = _pc_s[$ _dy_struct_key];
+        
+        _dx_map[$ _offset_key] = expr_cfg_drag_dx0 + _ddx;
+        _dy_map[$ _offset_key] = expr_cfg_drag_dy0 + _ddy;
+        
+        if (ds_map_exists(char_expr_cache, _c_s.name)) ds_map_delete(char_expr_cache, _c_s.name);
     }
 
     // Middle click to reset zoom
@@ -339,13 +384,23 @@ if (expr_cfg_open) {
             if (mouse_check_button_pressed(mb_left)) { _do_nudge = true; arrow_repeat_timer = 20; }
             else { arrow_repeat_timer--; if (arrow_repeat_timer <= 0) { _do_nudge = true; arrow_repeat_timer = 2; } }
             if (_do_nudge) {
-                switch (expr_cfg_selected_layer) {
-                    case 0: if (!variable_struct_exists(_pc_s,"body_dx")) { _pc_s.body_dx=0; _pc_s.body_dy=0; }
-                            if (_clicked_axis == 0) _pc_s.body_dx += _clicked_dir; else _pc_s.body_dy += _clicked_dir; break;
-                    case 1: if (_clicked_axis == 0) _pc_s.face_dx += _clicked_dir; else _pc_s.face_dy += _clicked_dir; break;
-                    case 2: if (_clicked_axis == 0) _pc_s.eyes_dx += _clicked_dir; else _pc_s.eyes_dy += _clicked_dir; break;
-                    case 3: if (_clicked_axis == 0) _pc_s.mouth_dx += _clicked_dir; else _pc_s.mouth_dy += _clicked_dir; break;
-                }
+                var _info = get_active_layer_file();
+                var _cur_file_s = _info.file;
+                var _layer_key_s = _info.key;
+                
+                var _dx_struct_key = _layer_key_s + "_dx_offsets";
+                var _dy_struct_key = _layer_key_s + "_dy_offsets";
+                if (!variable_struct_exists(_pc_s, _dx_struct_key)) _pc_s[$ _dx_struct_key] = {};
+                if (!variable_struct_exists(_pc_s, _dy_struct_key)) _pc_s[$ _dy_struct_key] = {};
+                var _dx_map = _pc_s[$ _dx_struct_key];
+                var _dy_map = _pc_s[$ _dy_struct_key];
+                if (!variable_struct_exists(_dx_map, _cur_file_s)) _dx_map[$ _cur_file_s] = 0;
+                if (!variable_struct_exists(_dy_map, _cur_file_s)) _dy_map[$ _cur_file_s] = 0;
+                
+                if (_clicked_axis == 0) _dx_map[$ _cur_file_s] += _clicked_dir;
+                else _dy_map[$ _cur_file_s] += _clicked_dir;
+                
+                if (ds_map_exists(char_expr_cache, _c_s.name)) ds_map_delete(char_expr_cache, _c_s.name);
             }
         }
     }
@@ -367,14 +422,23 @@ if (expr_cfg_open) {
                 var _kdx = 0; var _kdy = 0;
                 if (_rk == vk_left) _kdx = -1; if (_rk == vk_right) _kdx = 1;
                 if (_rk == vk_up) _kdy = -1;   if (_rk == vk_down)  _kdy = 1;
-        switch (expr_cfg_selected_layer) {
-            case 0:
-                if (!variable_struct_exists(_pc_s,"body_dx")) { _pc_s.body_dx=0; _pc_s.body_dy=0; }
-                _pc_s.body_dx += _kdx; _pc_s.body_dy += _kdy; break;
-            case 1: _pc_s.face_dx += _kdx; _pc_s.face_dy += _kdy; break;
-            case 2: _pc_s.eyes_dx += _kdx; _pc_s.eyes_dy += _kdy; break;
-            case 3: _pc_s.mouth_dx += _kdx; _pc_s.mouth_dy += _kdy; break;
-        }
+        var _info = get_active_layer_file();
+        var _cur_file_s = _info.file;
+        var _layer_key_s = _info.key;
+        
+        var _dx_struct_key = _layer_key_s + "_dx_offsets";
+        var _dy_struct_key = _layer_key_s + "_dy_offsets";
+        if (!variable_struct_exists(_pc_s, _dx_struct_key)) _pc_s[$ _dx_struct_key] = {};
+        if (!variable_struct_exists(_pc_s, _dy_struct_key)) _pc_s[$ _dy_struct_key] = {};
+        var _dx_map = _pc_s[$ _dx_struct_key];
+        var _dy_map = _pc_s[$ _dy_struct_key];
+        if (!variable_struct_exists(_dx_map, _cur_file_s)) _dx_map[$ _cur_file_s] = 0;
+        if (!variable_struct_exists(_dy_map, _cur_file_s)) _dy_map[$ _cur_file_s] = 0;
+        
+        _dx_map[$ _cur_file_s] += _kdx;
+        _dy_map[$ _cur_file_s] += _kdy;
+        
+        if (ds_map_exists(char_expr_cache, _c_s.name)) ds_map_delete(char_expr_cache, _c_s.name);
     }
         }
     }
@@ -440,14 +504,14 @@ if (move_modal_open) {
 }
 
 if (pose_modal_open) {
-    var _m_w = 650; var _m_h = 320;
+    var _m_w = 800; var _m_h = 420;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     
     // Hovering Logic
     var _hovered_pose = -1;
     for (var i = 1; i <= 4; i++) {
-        var _by = _m_y + 70 + ((i-1) * 45);
-        if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40) {
+        var _by = _m_y + 80 + ((i-1) * 60);
+        if (_mx > _m_x + 50 && _mx < _m_x + 380 && _my > _by && _my < _by + 50) {
             _hovered_pose = i;
             break;
         }
@@ -466,7 +530,7 @@ if (pose_modal_open) {
         }
         
         // APPLY Button (Left)
-        if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+        if (_mx > _m_x + 210 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             if (pose_modal_locked_pose != -1) selected_pose = pose_modal_locked_pose;
             else selected_pose = pose_modal_temp_pose;
             
@@ -502,10 +566,10 @@ if (pose_modal_open) {
             if ((_is_onstage || pose_modal_edit_mode) && !scene_edit_mode) {
                 var _pose_lbl = string(selected_pose);
                 
-                var _current_expr = 17;
+                var _current_expr = 21;
                 for (var pa = 0; pa < array_length(preview_actors); pa++) {
                     if (preview_actors[pa].char_index == selected_character_index) {
-                        _current_expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : 17;
+                        _current_expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : 21;
                         break;
                     }
                 }
@@ -546,7 +610,7 @@ if (pose_modal_open) {
         }
         
         // CANCEL Button (Right)
-        if (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+        if (_mx > _m_x + 440 && _mx < _m_x + 590 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             pose_modal_open = false;
             pose_modal_edit_mode = false;
             return;
@@ -556,7 +620,7 @@ if (pose_modal_open) {
 }
 
 if (expression_modal_open) {
-    var _m_w = 700; var _m_h = 460;
+    var _m_w = 950; var _m_h = 460;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
 
     var _cols_em = 4;
@@ -565,21 +629,34 @@ if (expression_modal_open) {
     var _gx = _m_x + 20;
     var _gy = _m_y + 55;
 
+    // Hovering Logic
+    var _hovered_expr = -1;
+    for (var e = 1; e <= 20; e++) {
+        var _col = (e - 1) % _cols_em;
+        var _row = floor((e - 1) / _cols_em);
+        var _ex = _gx + _col * _col_w;
+        var _ey = _gy + _row * _row_h;
+        if (_mx > _ex && _mx < _ex + _col_w && _my > _ey && _my < _ey + _row_h) {
+            _hovered_expr = e;
+            break;
+        }
+    }
+    
+    if (_hovered_expr != -1) {
+        expression_modal_temp_expr = _hovered_expr; // Always preview hovered
+    } else {
+        expression_modal_temp_expr = expression_modal_locked_expr; // Revert to locked
+    }
+
     if (mouse_check_button_pressed(mb_left)) {
-        // Grid option selection
-        for (var e = 1; e <= 21; e++) {
-            var _col = (e - 1) % _cols_em;
-            var _row = floor((e - 1) / _cols_em);
-            var _ex = _gx + _col * _col_w;
-            var _ey = _gy + _row * _row_h;
-            if (_mx > _ex && _mx < _ex + _col_w && _my > _ey && _my < _ey + _row_h) {
-                expression_modal_temp_expr = e;
-            }
+        if (_hovered_expr != -1) {
+            expression_modal_locked_expr = _hovered_expr;
+            expression_modal_temp_expr = _hovered_expr;
         }
 
         // APPLY Button (Left)
-        if (_mx > _m_x + 100 && _mx < _m_x + 250 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            selected_expression = expression_modal_temp_expr;
+        if (_mx > _m_x + 275 && _mx < _m_x + 425 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+            selected_expression = expression_modal_locked_expr;
             var _char = characters[selected_character_index];
             _char.expression = selected_expression;
             
@@ -639,7 +716,7 @@ if (expression_modal_open) {
         }
         
         // CANCEL Button (Right)
-        if (_mx > _m_x + 350 && _mx < _m_x + 500 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
+        if (_mx > _m_x + 525 && _mx < _m_x + 675 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             expression_modal_open = false;
             return;
         }
@@ -1273,7 +1350,7 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                         var _def_face = (_act.char_index >= 0 && _act.char_index < array_length(characters) && variable_struct_exists(characters[_act.char_index], "default_facing")) ? characters[_act.char_index].default_facing : 1;
                         var _face = variable_struct_exists(_act, "facing") ? _act.facing : _def_face;
                         var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
-                        var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 17;
+                        var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
                         array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
                         char_facings[_act.char_index] = _face;
                     }
@@ -1304,7 +1381,7 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                         var _target_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                         var _c = characters[_b.char_index];
                         var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
-                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 17;
+                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
                         array_push(preview_actors, { char_index: _b.char_index, x: _start_x, y: _target_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
                         action_animating = true;
                         array_push(active_animations, {
@@ -2110,6 +2187,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
             }
             expression_modal_temp_expr = _active_expr;
+            expression_modal_locked_expr = _active_expr;
             expression_modal_open = true;
             return;
         }
@@ -2651,7 +2729,7 @@ if (!_overlay_active) {
                     selected_character_index = i;
                     var _c = characters[selected_character_index];
                     selected_pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
-                    selected_expression = variable_struct_exists(_c, "expression") ? _c.expression : 17;
+                    selected_expression = variable_struct_exists(_c, "expression") ? _c.expression : 21;
 
                     for (var pa = 0; pa < array_length(preview_actors); pa++) {
                         if (preview_actors[pa].char_index == i) {
@@ -2747,7 +2825,7 @@ if (!_overlay_active && playing_block_index == -1 && dragging_char_index != -1) 
                         
                         var _c = characters[dragging_char_index];
                         var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
-                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 17;
+                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
                         
                         array_push(_scene.actors, { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face, pose: _pose, expression: _expr });
                         scene_edit_selected_actor_idx = array_length(_scene.actors) - 1;

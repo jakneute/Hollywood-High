@@ -69,8 +69,9 @@ pose_modal_edit_mode = false;
 pose_modal_target_index = -1;
 expression_modal_open = false;
 expression_modal_temp_expr = 21;
+expression_modal_locked_expr = 21;
 selected_pose = 1;
-selected_expression = 21; // Neutral
+selected_expression = 21; // Default NEUTRAL
 mood_names = [
     "HAPPY", "SAD", "ANGRY", "COOL", "FLIRTATIOUS",
     "SHY", "EMBARRASSED", "SURPRISED", "FRIGHTENED", "MISCHIEVOUS",
@@ -275,7 +276,7 @@ characters = [
     { name: "ED",        voice_id: all_voices[16].voice_id, pitch: 65, speed: 70, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 22, pose: 1, expression:  1, default_facing:  1 }, // happy
     { name: "LARRY",     voice_id: all_voices[0].voice_id,  pitch: 40, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 1,  pose: 1, expression: 13, default_facing: -1 }, // confused
     { name: "SID",       voice_id: all_voices[17].voice_id, pitch: 75, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 2,  pose: 1, expression:  4, default_facing: -1 }, // cool
-    { name: "TIFFANIE",  voice_id: all_voices[6].voice_id,  pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 3,  pose: 1, expression: 17, default_facing:  1 }, // pompous
+    { name: "TIFFANIE",  voice_id: all_voices[6].voice_id,  pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 3,  pose: 1, expression: 21, default_facing:  1 }, // pompous
     { name: "ARTIE",     voice_id: all_voices[11].voice_id, pitch: 30, speed: 45, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 4,  pose: 1, expression:  7, default_facing:  1 }, // embarrassed
     { name: "CHARLOTTE", voice_id: all_voices[1].voice_id,  pitch: 80, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 5,  pose: 1, expression: 15, default_facing: -1 }, // silly
     { name: "CHUCK",     voice_id: all_voices[14].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 6,  pose: 1, expression:  6, default_facing:  1 }, // shy
@@ -284,6 +285,12 @@ characters = [
     { name: "BEV",       voice_id: all_voices[7].voice_id,  pitch: 35, speed: 65, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 9,  pose: 1, expression: 11, default_facing:  1 }, // guilty
     { name: "LUCILLE",   voice_id: all_voices[13].voice_id, pitch: 50, speed: 25, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 10, pose: 1, expression:  2, default_facing: -1 }  // sad
 ];
+
+// Dynamic datafiles directory resolver (checks absolute project path for live development reads/writes)
+datafiles_path = "d:/Projects/Game Maker/Hollywood High/datafiles/";
+if (!directory_exists(datafiles_path)) {
+    datafiles_path = working_directory;
+}
 
 // Character sprites and per-sprite canvas offsets (loaded lazily from offsets.json)
 char_sprites      = ds_map_create();
@@ -294,7 +301,7 @@ get_character_sprite = function(_char_index) {
     if (_char_index < 0 || _char_index >= array_length(characters)) return -1;
     var _c = characters[_char_index];
     if (ds_map_exists(char_sprites, _c.name)) return char_sprites[? _c.name];
-    var _path = working_directory + "images/characters/" + string_lower(_c.name) + ".png";
+    var _path = datafiles_path + "images/characters/" + string_lower(_c.name) + ".png";
     if (file_exists(_path)) {
         var _spr = sprite_add(_path, 1, false, false, 0, 0);
         ds_map_add(char_sprites, _c.name, _spr);
@@ -330,15 +337,15 @@ get_composite_character_sprite = function(_char_index, _pose, _expression, _faci
     var _use_high = (_facing_override != undefined) && (_facing_override * _def_face == -1);
     var _sfx_off  = _use_high ? 50 : 0;
 
-    var _folder_path = working_directory + "images/characters/" + _c.name + "/";
+    var _folder_path = datafiles_path + "images/characters/" + _c.name + "/";
     if (!directory_exists(_folder_path)) {
-        _folder_path = working_directory + "images/characters/" + _dir_name + "/";
+        _folder_path = datafiles_path + "images/characters/" + _dir_name + "/";
     }
 
     // No pose folder — fallback to single root PNG
     if (!directory_exists(_folder_path)) {
-        var _bp = working_directory + "images/characters/" + _dir_name + ".png";
-        if (!file_exists(_bp)) _bp = working_directory + "images/characters/" + _c.name + ".png";
+        var _bp = datafiles_path + "images/characters/" + _dir_name + ".png";
+        if (!file_exists(_bp)) _bp = datafiles_path + "images/characters/" + _c.name + ".png";
         if (file_exists(_bp)) {
             var _fs;
             if (ds_map_exists(char_sprites, _c.name)) {
@@ -437,8 +444,8 @@ get_composite_character_sprite = function(_char_index, _pose, _expression, _faci
         }
         // Fallback to main character PNG if no specific body part found
         if (_lower_spr == -1) {
-            var _fb3 = working_directory + "images/characters/" + _dir_name + ".png";
-            if (!file_exists(_fb3)) _fb3 = working_directory + "images/characters/" + _c.name + ".png";
+            var _fb3 = datafiles_path + "images/characters/" + _dir_name + ".png";
+            if (!file_exists(_fb3)) _fb3 = datafiles_path + "images/characters/" + _c.name + ".png";
             if (file_exists(_fb3)) {
                 if (ds_map_exists(char_sprites, _c.name)) _lower_spr = char_sprites[? _c.name];
                 else { _lower_spr = sprite_add(_fb3, 1, false, false, 0, 0); ds_map_add(char_sprites, _c.name, _lower_spr); }
@@ -489,12 +496,20 @@ get_composite_character_sprite = function(_char_index, _pose, _expression, _faci
         }
     }
     var _face_dx = 0; var _face_dy = 0;
-    if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "face_dx")) {
-        _face_dx = _ecfg_pc.face_dx; _face_dy = _ecfg_pc.face_dy;
-    } else {
-        var _face_ok = "pose_" + _prefix + _face_sfx;
-        if (_off_data != undefined && variable_struct_exists(_off_data, _face_ok)) {
-            var _fov = _off_data[$ _face_ok]; _face_dx = _fov[0] - _lo_ox; _face_dy = _fov[1] - _lo_oy;
+    var _face_ok = string_replace(_face_file, ".png", "");
+    if (_off_data != undefined && variable_struct_exists(_off_data, _face_ok)) {
+        var _fov = _off_data[$ _face_ok]; _face_dx = _fov[0] - _lo_ox; _face_dy = _fov[1] - _lo_oy;
+    }
+    if (_ecfg_pc != undefined) {
+        if (variable_struct_exists(_ecfg_pc, "face_dx_offsets") && variable_struct_exists(_ecfg_pc.face_dx_offsets, _face_file)) {
+            _face_dx += _ecfg_pc.face_dx_offsets[$ _face_file];
+        } else if (variable_struct_exists(_ecfg_pc, "face_dx")) {
+            _face_dx = _ecfg_pc.face_dx;
+        }
+        if (variable_struct_exists(_ecfg_pc, "face_dy_offsets") && variable_struct_exists(_ecfg_pc.face_dy_offsets, _face_file)) {
+            _face_dy += _ecfg_pc.face_dy_offsets[$ _face_file];
+        } else if (variable_struct_exists(_ecfg_pc, "face_dy")) {
+            _face_dy = _ecfg_pc.face_dy;
         }
     }
 
@@ -502,8 +517,13 @@ get_composite_character_sprite = function(_char_index, _pose, _expression, _faci
     var _mouth_file = "pose_" + _prefix + _mouth_sfx + ".png";
     if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "mouth_files")) {
         var _mf_map = _ecfg_pc.mouth_files;
-        var _mf_key = string(_mouth_idx);
-        if (variable_struct_exists(_mf_map, _mf_key) && _mf_map[$ _mf_key] != "") _mouth_file = _mf_map[$ _mf_key];
+        var _expr_key = string(_expression);
+        var _mood_key = string(_mouth_idx);
+        if (variable_struct_exists(_mf_map, _expr_key) && _mf_map[$ _expr_key] != "") {
+            _mouth_file = _mf_map[$ _expr_key];
+        } else if (variable_struct_exists(_mf_map, _mood_key) && _mf_map[$ _mood_key] != "") {
+            _mouth_file = _mf_map[$ _mood_key];
+        }
     }
     var _mouth_spr = -1;
     if (file_exists(_folder_path + _mouth_file)) {
@@ -516,12 +536,25 @@ get_composite_character_sprite = function(_char_index, _pose, _expression, _faci
         }
     }
     var _mouth_dx = 0; var _mouth_dy = 0;
-    if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "mouth_dx")) {
-        _mouth_dx = _ecfg_pc.mouth_dx; _mouth_dy = _ecfg_pc.mouth_dy;
-    } else {
-        var _mouth_ok = "pose_" + _prefix + _mouth_sfx;
-        if (_off_data != undefined && variable_struct_exists(_off_data, _mouth_ok)) {
-            var _mov = _off_data[$ _mouth_ok]; _mouth_dx = _mov[0] - _lo_ox; _mouth_dy = _mov[1] - _lo_oy;
+    var _mouth_ok = string_replace(_mouth_file, ".png", "");
+    if (_off_data != undefined && variable_struct_exists(_off_data, _mouth_ok)) {
+        var _mov = _off_data[$ _mouth_ok]; _mouth_dx = _mov[0] - _lo_ox; _mouth_dy = _mov[1] - _lo_oy;
+    }
+    if (_ecfg_pc != undefined) {
+        var _expr_key = string(_expression);
+        if (variable_struct_exists(_ecfg_pc, "mouth_dx_expr_offsets") && variable_struct_exists(_ecfg_pc.mouth_dx_expr_offsets, _expr_key)) {
+            _mouth_dx += _ecfg_pc.mouth_dx_expr_offsets[$ _expr_key];
+        } else if (variable_struct_exists(_ecfg_pc, "mouth_dx_offsets") && variable_struct_exists(_ecfg_pc.mouth_dx_offsets, _mouth_file)) {
+            _mouth_dx += _ecfg_pc.mouth_dx_offsets[$ _mouth_file];
+        } else if (variable_struct_exists(_ecfg_pc, "mouth_dx")) {
+            _mouth_dx = _ecfg_pc.mouth_dx;
+        }
+        if (variable_struct_exists(_ecfg_pc, "mouth_dy_expr_offsets") && variable_struct_exists(_ecfg_pc.mouth_dy_expr_offsets, _expr_key)) {
+            _mouth_dy += _ecfg_pc.mouth_dy_expr_offsets[$ _expr_key];
+        } else if (variable_struct_exists(_ecfg_pc, "mouth_dy_offsets") && variable_struct_exists(_ecfg_pc.mouth_dy_offsets, _mouth_file)) {
+            _mouth_dy += _ecfg_pc.mouth_dy_offsets[$ _mouth_file];
+        } else if (variable_struct_exists(_ecfg_pc, "mouth_dy")) {
+            _mouth_dy = _ecfg_pc.mouth_dy;
         }
     }
 
@@ -543,18 +576,46 @@ get_composite_character_sprite = function(_char_index, _pose, _expression, _faci
         }
     }
     var _eyes_dx = 0; var _eyes_dy = 0;
-    if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "eyes_dx")) {
-        _eyes_dx = _ecfg_pc.eyes_dx; _eyes_dy = _ecfg_pc.eyes_dy;
-    } else {
-        var _eyes_ok = "pose_" + _prefix + _eyes_sfx;
-        if (_off_data != undefined && variable_struct_exists(_off_data, _eyes_ok)) {
-            var _eov = _off_data[$ _eyes_ok]; _eyes_dx = _eov[0] - _lo_ox; _eyes_dy = _eov[1] - _lo_oy;
+    var _eyes_ok = string_replace(_eyes_file, ".png", "");
+    if (_off_data != undefined && variable_struct_exists(_off_data, _eyes_ok)) {
+        var _eov = _off_data[$ _eyes_ok]; _eyes_dx = _eov[0] - _lo_ox; _eyes_dy = _eov[1] - _lo_oy;
+    }
+    if (_ecfg_pc != undefined) {
+        var _expr_key = string(_expression);
+        if (variable_struct_exists(_ecfg_pc, "eyes_dx_expr_offsets") && variable_struct_exists(_ecfg_pc.eyes_dx_expr_offsets, _expr_key)) {
+            _eyes_dx += _ecfg_pc.eyes_dx_expr_offsets[$ _expr_key];
+        } else if (variable_struct_exists(_ecfg_pc, "eyes_dx_offsets") && variable_struct_exists(_ecfg_pc.eyes_dx_offsets, _eyes_file)) {
+            _eyes_dx += _ecfg_pc.eyes_dx_offsets[$ _eyes_file];
+        } else if (variable_struct_exists(_ecfg_pc, "eyes_dx")) {
+            _eyes_dx = _ecfg_pc.eyes_dx;
+        }
+        if (variable_struct_exists(_ecfg_pc, "eyes_dy_expr_offsets") && variable_struct_exists(_ecfg_pc.eyes_dy_expr_offsets, _expr_key)) {
+            _eyes_dy += _ecfg_pc.eyes_dy_expr_offsets[$ _expr_key];
+        } else if (variable_struct_exists(_ecfg_pc, "eyes_dy_offsets") && variable_struct_exists(_ecfg_pc.eyes_dy_offsets, _eyes_file)) {
+            _eyes_dy += _ecfg_pc.eyes_dy_offsets[$ _eyes_file];
+        } else if (variable_struct_exists(_ecfg_pc, "eyes_dy")) {
+            _eyes_dy = _ecfg_pc.eyes_dy;
         }
     }
 
     // body_dx/dy shifts the whole composite (anchor correction)
-    var _bdx_c = (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "body_dx")) ? _ecfg_pc.body_dx : 0;
-    var _bdy_c = (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "body_dy")) ? _ecfg_pc.body_dy : 0;
+    var _bdx_c = 0; var _bdy_c = 0;
+    var _body_ok = string_replace(_lower_file, ".png", "");
+    if (_off_data != undefined && variable_struct_exists(_off_data, _body_ok)) {
+        var _bv = _off_data[$ _body_ok]; _bdx_c = _bv[0] - _lo_ox; _bdy_c = _bv[1] - _lo_oy;
+    }
+    if (_ecfg_pc != undefined) {
+        if (variable_struct_exists(_ecfg_pc, "body_dx_offsets") && variable_struct_exists(_ecfg_pc.body_dx_offsets, _lower_file)) {
+            _bdx_c += _ecfg_pc.body_dx_offsets[$ _lower_file];
+        } else if (variable_struct_exists(_ecfg_pc, "body_dx")) {
+            _bdx_c = _ecfg_pc.body_dx;
+        }
+        if (variable_struct_exists(_ecfg_pc, "body_dy_offsets") && variable_struct_exists(_ecfg_pc.body_dy_offsets, _lower_file)) {
+            _bdy_c += _ecfg_pc.body_dy_offsets[$ _lower_file];
+        } else if (variable_struct_exists(_ecfg_pc, "body_dy")) {
+            _bdy_c = _ecfg_pc.body_dy;
+        }
+    }
 
     return [
         { spr: _lower_spr, dx: _bdx_c,              dy: _bdy_c              },
@@ -888,7 +949,7 @@ update_preview_actors_for_block = function(_idx, _inclusive) {
                 var _sa = _scene.actors[a];
                 var _face = variable_struct_exists(_sa, "facing") ? _sa.facing : 1;
                 var _pose = variable_struct_exists(_sa, "pose") ? _sa.pose : 1;
-                var _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 17;
+                var _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 21;
                 array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
                 char_facings[_sa.char_index] = _face;
             }
@@ -923,7 +984,7 @@ update_preview_actors_for_block = function(_idx, _inclusive) {
                         
                         var _c = characters[_b.char_index];
                         var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
-                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 17;
+                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
                         char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                         array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
                     } else {
@@ -1104,7 +1165,7 @@ expr_cfg_auto_fill = function(_pose_num, _is_high) {
     var _ai_af = variable_struct_exists(_c_af, "act_index") ? _c_af.act_index : 1;
     var _sfx_off_af = _is_high ? 50 : 0;
     var _pfx_af = string(_ai_af) + string(_pose_num);
-    var _folder_af = working_directory + "images/characters/" + _c_af.name + "/";
+    var _folder_af = datafiles_path + "images/characters/" + _c_af.name + "/";
 
     // Load offsets.json
     var _off_af = undefined;
@@ -1188,7 +1249,7 @@ open_expr_configurator = function(_char_idx) {
 
     // Load existing config
     var _c_oc = characters[_char_idx];
-    var _folder_oc = working_directory + "images/characters/" + _c_oc.name + "/";
+    var _folder_oc = datafiles_path + "images/characters/" + _c_oc.name + "/";
     var _path_oc = _folder_oc + "expressions_config.json";
     var _existing = {};
     if (file_exists(_path_oc)) {
@@ -1210,7 +1271,7 @@ open_expr_configurator = function(_char_idx) {
     expr_cfg_file_list   = [];
     expr_cfg_file_scroll = 0;
     expr_cfg_preview_mood = 0;
-    var _scan_folder = working_directory + "images/characters/" + characters[_char_idx].name + "/";
+    var _scan_folder = datafiles_path + "images/characters/" + characters[_char_idx].name + "/";
     var _scan_f = file_find_first(_scan_folder + "*.png", 0);
     while (_scan_f != "") {
         array_push(expr_cfg_file_list, _scan_f);
@@ -1230,7 +1291,7 @@ expr_cfg_pending_save_data = "";
 
 save_expr_config = function() {
     var _c_sv = characters[expr_cfg_char_idx];
-    var _folder_sv = working_directory + "images/characters/" + _c_sv.name + "/";
+    var _folder_sv = datafiles_path + "images/characters/" + _c_sv.name + "/";
     var _out = {};
     for (var _p3 = 1; _p3 <= 4; _p3++) {
         for (var _d3 = 0; _d3 <= 1; _d3++) {
