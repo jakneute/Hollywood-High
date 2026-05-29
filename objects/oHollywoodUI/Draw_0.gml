@@ -1,4 +1,4 @@
-/// @description Professional Editor UI Renderer (With Hover Effects)
+﻿/// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
 var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || expr_cfg_open);
@@ -153,30 +153,44 @@ if (theater_mode) {
 					var _spk_speed = variable_struct_exists(_spk_b, "speed") ? _spk_b.speed : 50;
 					var _mouth_ms  = max(100, 300 - _spk_speed * 2);
 					if (array_length(current_viseme_data) > 0) {
-						// Viseme-based: find the mouth shape code at current speech progress.
-						// speaking_index caps at string_length long before TTS finishes, so once
-						// _prog >= 0.95 the estimation has run out — just keep cycling rather than
-						// trusting the trailing-silence viseme that SAPI5 always ends with.
 						var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
 						var _prog    = speaking_index / _txt_len;
+						var _cur_v = 0;
 						if (_prog >= 0.95) {
-							_mouth_open = true;
+							_cur_v = 1; // near end — treat as open
 						} else {
-							var _cur_v = 0;
 							for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
 								if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
 							}
-							_mouth_open = (_cur_v != 0);
 						}
-					} else {
-						_mouth_open = true; // no viseme data yet — cycle continuously
+						_mouth_open = (_cur_v != 0);
+						if (_mouth_open) {
+							// Map SAPI5 viseme (0-21) to jaw openness: 0=closed,1=small,2=open,3=wide
+							// Plosives/fricatives (p,b,m,f,v,s,t,d) → 0; most consonants → 1; short vowels → 2; open vowels (ah,aw) → 3
+							var _vg = [0,2,3,2,1,1,1,1,1,2,1,2,1,1,0,0,1,0,0,0,1,0];
+							_manim_fi = clamp(_vg[clamp(_cur_v, 0, 21)], 0, array_length(_mouth_anim) - 1);
+						}
+					} else if (speaking_has_progress) {
+						_mouth_open = true; // no viseme data — cycle once audio has started
+						_manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
 					}
-					if (_mouth_open) _manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
 				}
 				for (var _li = 0; _li < array_length(_layers); _li++) {
-					var _l    = _layers[_li];
-					var _lspr = (_li == 2 && _has_manim && _mouth_open) ? _mouth_anim[_manim_fi] : _l.spr;
-					if (_lspr != -1) draw_sprite_ext(_lspr, 0, _draw_x + _l.dx * _asc, _draw_y + _l.dy * _asc, _asc, _asc, 0, c_white, 1);
+					var _l       = _layers[_li];
+					var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open;
+					var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
+					var _lspr    = _is_anim ? _ae.spr : _l.spr;
+					var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
+					var _ldy     = _l.dy + (_is_anim ? _ae.dy : 0);
+					if (_lspr != -1) {
+						if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) {
+							shader_set(shd_defringe);
+							var _uvs = sprite_get_uvs(_lspr, 0);
+							shader_set_uniform_f(defringe_u_texel, (_uvs[2]-_uvs[0])/sprite_get_width(_lspr), (_uvs[3]-_uvs[1])/sprite_get_height(_lspr));
+						}
+						draw_sprite_ext(_lspr, 0, _draw_x + _ldx * _asc, _draw_y + _ldy * _asc, _asc, _asc, 0, c_white, 1);
+						if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) shader_reset();
+					}
 				}
 
 			}
@@ -427,26 +441,45 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 						if (array_length(current_viseme_data) > 0) {
 							var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
 							var _prog    = speaking_index / _txt_len;
+							var _cur_v = 0;
 							if (_prog >= 0.95) {
-								_mouth_open = true;
+								_cur_v = 1; // near end — treat as open
 							} else {
-								var _cur_v = 0;
 								for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
 									if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
 								}
-								_mouth_open = (_cur_v != 0);
+							}
+							_mouth_open = (_cur_v != 0);
+							if (_mouth_open) {
+								// Map SAPI5 viseme (0-21) to jaw openness: 0=closed,1=small,2=open,3=wide
+								// Plosives/fricatives (p,b,m,f,v,s,t,d) → 0; most consonants → 1; short vowels → 2; open vowels (ah,aw) → 3
+								var _vg = [0,2,3,2,1,1,1,1,1,2,1,2,1,1,0,0,1,0,0,0,1,0];
+								_manim_fi = clamp(_vg[clamp(_cur_v, 0, 21)], 0, array_length(_mouth_anim) - 1);
 							}
 						} else {
 							_mouth_open = true;
+							_manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
 						}
-						if (_mouth_open) _manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
 					}
 					if (_draw_sprite) {
 						for (var _li = 0; _li < array_length(_layers); _li++) {
-							var _l    = _layers[_li];
-							var _lspr = (_li == 2 && _has_manim && _mouth_open) ? _mouth_anim[_manim_fi] : _l.spr;
-							if (_lspr != -1) draw_sprite_ext(_lspr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, _alpha);
+							var _l       = _layers[_li];
+							var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open;
+							var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
+							var _lspr    = _is_anim ? _ae.spr : _l.spr;
+							var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
+							var _ldy     = _l.dy + (_is_anim ? _ae.dy : 0);
+							if (_lspr != -1) {
+								if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) {
+									shader_set(shd_defringe);
+									var _uvs = sprite_get_uvs(_lspr, 0);
+									shader_set_uniform_f(defringe_u_texel, (_uvs[2]-_uvs[0])/sprite_get_width(_lspr), (_uvs[3]-_uvs[1])/sprite_get_height(_lspr));
+								}
+								draw_sprite_ext(_lspr, 0, _draw_x + _ldx * _sc, _draw_y + _ldy * _sc, _sc, _sc, 0, c_white, _alpha);
+								if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) shader_reset();
+							}
 						}
+
 					}
 
 				}
@@ -1980,6 +2013,17 @@ if (expr_cfg_open) {
             }
             
             draw_set_color(c_ltgray); draw_text(_lx + 8, _lby + 24, "dx:" + string(_ldx) + "  dy:" + string(_ldy));
+            // Mouth anchor toggle button (MOUTH layer only)
+            if (_li == 3) {
+                var _maa     = (variable_struct_exists(_pc_ec, "mouth_anim_anchor") && _pc_ec.mouth_anim_anchor >= 1);
+                var _maa_hov = (!theater_mode && _mx > _lx + 148 && _mx < _lx + 278 && _my > _lby + 25 && _my < _lby + 44);
+                draw_set_color(_maa ? make_color_rgb(30, 70, 110) : (_maa_hov ? make_color_rgb(35, 40, 55) : make_color_rgb(22, 26, 38)));
+                draw_roundrect_ext(_lx + 148, _lby + 25, _lx + 278, _lby + 44, 3, 3, false);
+                draw_set_color(_maa ? c_aqua : make_color_rgb(80, 85, 100));
+                draw_set_halign(fa_center);
+                draw_text(_lx + 213, _lby + 27, _maa ? "ANCHOR: OPEN" : "ANCHOR: CLOSED");
+                draw_set_halign(fa_left);
+            }
         }
     }
 
@@ -2046,12 +2090,17 @@ if (expr_cfg_open) {
             var _fov_sel = _off_data[$ _file_ok_sel]; _n_ldx = _fov_sel[0] - _lo_ox_sel; _n_ldy = _fov_sel[1] - _lo_oy_sel;
         }
         
-        if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dx_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dx_offsets"], _cur_file_sel)) {
+        var _expr_key_sel = string(expr_cfg_preview_expr);
+        if ((_layer_key_sel == "eyes" || _layer_key_sel == "mouth") && variable_struct_exists(_pc_ec, _layer_key_sel + "_dx_expr_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dx_expr_offsets"], _expr_key_sel)) {
+            _n_ldx += _pc_ec[$ _layer_key_sel + "_dx_expr_offsets"][$ _expr_key_sel];
+        } else if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dx_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dx_offsets"], _cur_file_sel)) {
             _n_ldx += _pc_ec[$ _layer_key_sel + "_dx_offsets"][$ _cur_file_sel];
         } else if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dx")) {
             _n_ldx = _pc_ec[$ _layer_key_sel + "_dx"];
         }
-        if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dy_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dy_offsets"], _cur_file_sel)) {
+        if ((_layer_key_sel == "eyes" || _layer_key_sel == "mouth") && variable_struct_exists(_pc_ec, _layer_key_sel + "_dy_expr_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dy_expr_offsets"], _expr_key_sel)) {
+            _n_ldy += _pc_ec[$ _layer_key_sel + "_dy_expr_offsets"][$ _expr_key_sel];
+        } else if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dy_offsets") && variable_struct_exists(_pc_ec[$ _layer_key_sel + "_dy_offsets"], _cur_file_sel)) {
             _n_ldy += _pc_ec[$ _layer_key_sel + "_dy_offsets"][$ _cur_file_sel];
         } else if (variable_struct_exists(_pc_ec, _layer_key_sel + "_dy")) {
             _n_ldy = _pc_ec[$ _layer_key_sel + "_dy"];
@@ -2103,6 +2152,19 @@ if (expr_cfg_open) {
         if (_has_eyes) { draw_set_color(c_aqua); draw_circle(_ex2 + _eboxw - 6, _ey2 + 6, 3, false); }
         draw_set_halign(fa_left);
     }
+
+    // NOSE ON TOP toggle (face_over_mouth) — draws face layer after mouth so nose always overlays mouth frames
+    var _nom_y = _esel_y + 180;
+    var _nom_on = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "face_over_mouth") && _pc_ec.face_over_mouth);
+    var _nom_hov = (!theater_mode && _mx > _lx && _mx < _lx + 280 && _my > _nom_y && _my < _nom_y + 28);
+    draw_set_color(_nom_on ? make_color_rgb(35, 80, 45) : (_nom_hov ? make_color_rgb(38, 42, 50) : make_color_rgb(22, 25, 35)));
+    draw_roundrect_ext(_lx, _nom_y, _lx + 280, _nom_y + 28, 4, 4, false);
+    draw_set_color(_nom_on ? make_color_rgb(40, 100, 55) : make_color_rgb(55, 55, 70));
+    draw_roundrect_ext(_lx, _nom_y, _lx + 280, _nom_y + 28, 4, 4, true);
+    draw_set_color(_nom_on ? c_lime : c_ltgray);
+    draw_set_halign(fa_center);
+    draw_text(_lx + 140, _nom_y + 5, "NOSE ON TOP: " + (_nom_on ? "ON" : "OFF"));
+    draw_set_halign(fa_left);
 
     // Bottom buttons: SAVE, CLOSE
     var _btn_y2 = _m_y + _m_h - 52;
@@ -2265,8 +2327,8 @@ if (expr_cfg_open) {
 
     var _anch_x2 = _px2 + _pw2 / 2;
     var _anch_y2 = _py2 + _char_preview_h - 10;
-    var _drawx2 = _anch_x2 - _bdw2 * _cfg_sc / 2;
-    var _drawy2 = _anch_y2 - _bdh2 * _cfg_sc;
+    var _drawx2 = _anch_x2 - _bdw2 * _cfg_sc / 2 + expr_cfg_pan_x;
+    var _drawy2 = _anch_y2 - _bdh2 * _cfg_sc    + expr_cfg_pan_y;
 
     gpu_set_scissor(_px2 + 2, _py2 + 2, _pw2 - 4, _char_preview_h - 4);
     gpu_set_texfilter(true);
