@@ -3,11 +3,12 @@
 function get_character_sprite(_char_index) {
     if (_char_index < 0 || _char_index >= array_length(characters)) return -1;
     var _c = characters[_char_index];
-    if (ds_map_exists(char_sprites, _c.name)) return char_sprites[? _c.name];
-    var _path = datafiles_path + "images/characters/" + string_lower(_c.name) + ".png";
+    var _spr_nm = variable_struct_exists(_c, "sprite_name") ? _c.sprite_name : _c[$ "name"];
+    if (ds_map_exists(char_sprites, _spr_nm)) return char_sprites[? _spr_nm];
+    var _path = datafiles_path + "images/characters/" + string_lower(_spr_nm) + ".png";
     if (file_exists(_path)) {
         var _spr = sprite_add(_path, 1, false, false, 0, 0);
-        ds_map_add(char_sprites, _c.name, _spr);
+        ds_map_add(char_sprites, _spr_nm, _spr);
         return _spr;
     }
     return -1;
@@ -27,67 +28,68 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
         return [_null_layer, _null_layer, _null_layer, _null_layer];
     }
     var _c = characters[_char_index];
-    if (_c.name == "NARRATOR") {
+    var _spr_nm = variable_struct_exists(_c, "sprite_name") ? _c.sprite_name : _c[$ "name"];
+    if (_spr_nm == "NARRATOR") {
         return [_null_layer, _null_layer, _null_layer, _null_layer];
     }
 
     var _act_idx  = variable_struct_exists(_c, "act_index")     ? _c.act_index     : 1;
     var _def_face = variable_struct_exists(_c, "default_facing") ? _c.default_facing : 1;
-    var _dir_name = string_lower(_c.name);
+    var _dir_name = string_lower(_spr_nm);
 
     var _use_high = (_facing_override != undefined) && (_facing_override * _def_face == -1);
     var _sfx_off  = _use_high ? 50 : 0;
 
-    var _folder_path = datafiles_path + "images/characters/" + _c.name + "/";
+    var _folder_path = datafiles_path + "images/characters/" + _spr_nm + "/";
     if (!directory_exists(_folder_path)) {
         _folder_path = datafiles_path + "images/characters/" + _dir_name + "/";
     }
 
     if (!directory_exists(_folder_path)) {
         var _bp = datafiles_path + "images/characters/" + _dir_name + ".png";
-        if (!file_exists(_bp)) _bp = datafiles_path + "images/characters/" + _c.name + ".png";
+        if (!file_exists(_bp)) _bp = datafiles_path + "images/characters/" + _spr_nm + ".png";
         if (file_exists(_bp)) {
             var _fs;
-            if (ds_map_exists(char_sprites, _c.name)) {
-                _fs = char_sprites[? _c.name];
+            if (ds_map_exists(char_sprites, _spr_nm)) {
+                _fs = char_sprites[? _spr_nm];
             } else {
                 _fs = sprite_add(_bp, 1, false, false, 0, 0);
-                ds_map_add(char_sprites, _c.name, _fs);
+                ds_map_add(char_sprites, _spr_nm, _fs);
             }
             return [{ spr: _fs, dx: 0, dy: 0 }, _null_layer, _null_layer, _null_layer];
         }
         return [_null_layer, _null_layer, _null_layer, _null_layer];
     }
 
-    if (!ds_map_exists(char_offsets_cache, _c.name)) {
+    if (!ds_map_exists(char_offsets_cache, _spr_nm)) {
         var _off_path = _folder_path + "offsets.json";
         if (file_exists(_off_path)) {
             var _off_str = "";
             var _off_f = file_text_open_read(_off_path);
             while (!file_text_eof(_off_f)) { _off_str += file_text_readln(_off_f); }
             file_text_close(_off_f);
-            ds_map_add(char_offsets_cache, _c.name, json_parse(_off_str));
+            ds_map_add(char_offsets_cache, _spr_nm, json_parse(_off_str));
         } else {
-            ds_map_add(char_offsets_cache, _c.name, undefined);
+            ds_map_add(char_offsets_cache, _spr_nm, undefined);
         }
     }
-    var _off_data = char_offsets_cache[? _c.name];
+    var _off_data = char_offsets_cache[? _spr_nm];
 
     var _prefix = string(_act_idx) + string(_pose);
 
-    if (!ds_map_exists(char_expr_cache, _c.name)) {
+    if (!ds_map_exists(char_expr_cache, _spr_nm)) {
         var _ecfg_path = _folder_path + "expressions_config.json";
         if (file_exists(_ecfg_path)) {
             var _ecfg_str = "";
             var _ecfg_f = file_text_open_read(_ecfg_path);
             while (!file_text_eof(_ecfg_f)) { _ecfg_str += file_text_readln(_ecfg_f); }
             file_text_close(_ecfg_f);
-            ds_map_add(char_expr_cache, _c.name, json_parse(_ecfg_str));
+            ds_map_add(char_expr_cache, _spr_nm, json_parse(_ecfg_str));
         } else {
-            ds_map_add(char_expr_cache, _c.name, undefined);
+            ds_map_add(char_expr_cache, _spr_nm, undefined);
         }
     }
-    var _ecfg_data = char_expr_cache[? _c.name];
+    var _ecfg_data = char_expr_cache[? _spr_nm];
     var _ecfg_dir  = _use_high ? "high" : "low";
     var _ecfg_key  = "pose_" + string(_pose) + "_" + _ecfg_dir;
     var _ecfg_pc   = (_ecfg_data != undefined && variable_struct_exists(_ecfg_data, _ecfg_key)) ? _ecfg_data[$ _ecfg_key] : undefined;
@@ -99,7 +101,7 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
 
     if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "body_file") && _ecfg_pc.body_file != "") {
         _lower_file = _ecfg_pc.body_file;
-        var _lk_cfg = _c.name + "_" + _lower_file;
+        var _lk_cfg = _spr_nm + "_" + _lower_file;
         if (ds_map_exists(char_sprites, _lk_cfg)) {
             _lower_spr = char_sprites[? _lk_cfg];
         } else if (file_exists(_folder_path + _lower_file)) {
@@ -128,7 +130,7 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
             }
         }
         if (_lower_sz >= 2000) {
-            var _lk = _c.name + "_" + _lower_file;
+            var _lk = _spr_nm + "_" + _lower_file;
             if (ds_map_exists(char_sprites, _lk)) {
                 _lower_spr = char_sprites[? _lk];
             } else {
@@ -138,10 +140,10 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
         }
         if (_lower_spr == -1) {
             var _fb3 = datafiles_path + "images/characters/" + _dir_name + ".png";
-            if (!file_exists(_fb3)) _fb3 = datafiles_path + "images/characters/" + _c.name + ".png";
+            if (!file_exists(_fb3)) _fb3 = datafiles_path + "images/characters/" + _spr_nm + ".png";
             if (file_exists(_fb3)) {
-                if (ds_map_exists(char_sprites, _c.name)) _lower_spr = char_sprites[? _c.name];
-                else { _lower_spr = sprite_add(_fb3, 1, false, false, 0, 0); ds_map_add(char_sprites, _c.name, _lower_spr); }
+                if (ds_map_exists(char_sprites, _spr_nm)) _lower_spr = char_sprites[? _spr_nm];
+                else { _lower_spr = sprite_add(_fb3, 1, false, false, 0, 0); ds_map_add(char_sprites, _spr_nm, _lower_spr); }
             }
         }
         if (_lower_file != "" && _off_data != undefined) {
@@ -173,7 +175,7 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
     if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "face_file") && _ecfg_pc.face_file != "") _face_file = _ecfg_pc.face_file;
     var _face_spr = -1;
     if (file_exists(_folder_path + _face_file)) {
-        var _fk = _c.name + "_" + _face_file;
+        var _fk = _spr_nm + "_" + _face_file;
         if (ds_map_exists(char_sprites, _fk)) {
             _face_spr = char_sprites[? _fk];
         } else {
@@ -213,7 +215,7 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
     }
     var _mouth_spr = -1;
     if (file_exists(_folder_path + _mouth_file)) {
-        var _mk = _c.name + "_" + _mouth_file;
+        var _mk = _spr_nm + "_" + _mouth_file;
         if (ds_map_exists(char_sprites, _mk)) {
             _mouth_spr = char_sprites[? _mk];
         } else {
@@ -253,7 +255,7 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
     }
     var _eyes_spr = -1;
     if (file_exists(_folder_path + _eyes_file)) {
-        var _ek = _c.name + "_" + _eyes_file;
+        var _ek = _spr_nm + "_" + _eyes_file;
         if (ds_map_exists(char_sprites, _ek)) {
             _eyes_spr = char_sprites[? _ek];
         } else {
@@ -321,22 +323,23 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
 function get_mouth_anim_sprites(_char_index, _pose, _expression, _facing_override = undefined) {
     if (_char_index < 0 || _char_index >= array_length(characters)) return [];
     var _c = characters[_char_index];
-    if (_c.name == "NARRATOR") return [];
+    var _spr_nm = variable_struct_exists(_c, "sprite_name") ? _c.sprite_name : _c[$ "name"];
+    if (_spr_nm == "NARRATOR") return [];
     if (_expression < 1 || _expression > 20) return [];
 
     var _def_face = variable_struct_exists(_c, "default_facing") ? _c.default_facing : 1;
     var _use_high = (_facing_override != undefined) && (_facing_override * _def_face == -1);
     var _sfx_off  = _use_high ? 50 : 0;
 
-    var _dir_name    = string_lower(_c.name);
-    var _folder_path = datafiles_path + "images/characters/" + _c.name + "/";
+    var _dir_name    = string_lower(_spr_nm);
+    var _folder_path = datafiles_path + "images/characters/" + _spr_nm + "/";
     if (!directory_exists(_folder_path)) _folder_path = datafiles_path + "images/characters/" + _dir_name + "/";
     if (!directory_exists(_folder_path)) return [];
 
     var _act_idx = variable_struct_exists(_c, "act_index") ? _c.act_index : 1;
     var _prefix  = string(_act_idx) + string(_pose);
 
-    var _ecfg_data = ds_map_exists(char_expr_cache, _c.name) ? char_expr_cache[? _c.name] : undefined;
+    var _ecfg_data = ds_map_exists(char_expr_cache, _spr_nm) ? char_expr_cache[? _spr_nm] : undefined;
     var _ecfg_dir  = _use_high ? "high" : "low";
     var _ecfg_key  = "pose_" + string(_pose) + "_" + _ecfg_dir;
     var _ecfg_pc   = (_ecfg_data != undefined && variable_struct_exists(_ecfg_data, _ecfg_key)) ? _ecfg_data[$ _ecfg_key] : undefined;
@@ -357,7 +360,7 @@ function get_mouth_anim_sprites(_char_index, _pose, _expression, _facing_overrid
         }
     }
 
-    var _cache_key = _c.name + "_manim_" + _mouth_file;
+    var _cache_key = _spr_nm + "_manim_" + _mouth_file;
     if (ds_map_exists(mouth_anim_cache, _cache_key)) return mouth_anim_cache[? _cache_key];
 
     var _stem     = string_delete(_mouth_file, 1, 5);
@@ -415,7 +418,7 @@ function get_mouth_anim_sprites(_char_index, _pose, _expression, _facing_overrid
 
     // Per-frame position correction from offsets.json.
     // mouth_anim_anchor: 0 = base (closed) mouth is reference, 1 = first open frame is reference.
-    var _off_ma = ds_map_exists(char_offsets_cache, _c.name) ? char_offsets_cache[? _c.name] : undefined;
+    var _off_ma = ds_map_exists(char_offsets_cache, _spr_nm) ? char_offsets_cache[? _spr_nm] : undefined;
     var _anch   = (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "mouth_anim_anchor")) ? _ecfg_pc.mouth_anim_anchor : 0;
     var _bstem  = "pose_" + string(_base_num);
     var _base_ax = 0; var _base_ay = 0;
@@ -428,7 +431,7 @@ function get_mouth_anim_sprites(_char_index, _pose, _expression, _facing_overrid
         var _ff = "pose_" + string(_base_num + _f) + ".png";
         if (ds_map_exists(_all_bases, _ff)) break;
         if (!file_exists(_folder_path + _ff)) break;
-        var _fk = _c.name + "_" + _ff;
+        var _fk = _spr_nm + "_" + _ff;
         var _fspr;
         if (ds_map_exists(char_sprites, _fk)) {
             _fspr = char_sprites[? _fk];

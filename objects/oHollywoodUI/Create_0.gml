@@ -372,9 +372,13 @@ is_speaking          = false;
 speaking_has_progress = false; // true once the progress file appears, gating mouth animation
 check_timer          = 0;
 speaking_timer       = 0;
-current_viseme_data  = [];   // [{t:0-1, v:0-21}] from SAPI5 pre-analysis; empty = fall back to cycling
-current_viseme_req   = -1;   // request ID for which current_viseme_data was loaded
-speaking_pause_timer = 0;  
+current_viseme_data     = [];   // [{t:0-1, v:0-21}] from SAPI5 pre-analysis; empty = fall back to cycling
+current_viseme_req      = -1;   // request ID for which current_viseme_data was loaded
+current_viseme_total_ms = -1;   // total SAPI5 synthesis duration in ms; drives time-based viseme progress
+speak_start_time_ms     = -1;   // current_time (ms) when TTS playback started
+mouth_last_vis_time_ms  = -1;   // current_time when a non-zero viseme was last seen (for silence coasting)
+mouth_last_vis_value    = 0;    // the viseme value held during the coast window
+speaking_pause_timer    = 0;
 
 // --- 4. VISUAL HIGHLIGHTING ---
 speaking_word_start = -1;  // Starting index of the word currently being spoken
@@ -417,6 +421,13 @@ if (array_length(all_voices) > 0) {
 // ─────────────────────────────────────────────────────────────────
 // 4 poses × 2 directions (low = natural, high = flipped) = 8 configs per character.
 // Data saved to datafiles/images/characters/<Name>/expressions_config.json.
+
+// Set to false before shipping to hide the expression configurator entirely.
+SHOW_EXPR_CFG           = true;
+
+char_rename_active = false;  // true while the inline name editor is open
+char_rename_target = -1;    // index into characters[] being renamed
+char_rename_text   = "";    // text accumulated so far
 
 expr_cfg_open           = false;
 expr_cfg_char_idx       = 0;

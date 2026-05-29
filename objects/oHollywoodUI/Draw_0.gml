@@ -1,4 +1,4 @@
-﻿/// @description Professional Editor UI Renderer (With Hover Effects)
+/// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
 var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || expr_cfg_open);
@@ -153,25 +153,41 @@ if (theater_mode) {
 					var _spk_speed = variable_struct_exists(_spk_b, "speed") ? _spk_b.speed : 50;
 					var _mouth_ms  = max(100, 300 - _spk_speed * 2);
 					if (array_length(current_viseme_data) > 0) {
-						var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
-						var _prog    = speaking_index / _txt_len;
-						var _cur_v = 0;
-						if (_prog >= 0.95) {
-							_cur_v = 1; // near end — treat as open
+						// Time-based progress: elapsed ms vs SAPI5 total scaled for TalkIt speed.
+						// Falls back to CPS character position if duration file not yet received.
+						var _prog;
+						if (current_viseme_total_ms > 0 && speak_start_time_ms >= 0) {
+							var _t_speed_val = max(1, 50 + _spk_speed * 2.5);
+							var _adj_dur = current_viseme_total_ms * (175.0 / _t_speed_val);
+							_prog = clamp((current_time - speak_start_time_ms) / max(1, _adj_dur), 0, 2);
 						} else {
+							var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
+							_prog = speaking_index / _txt_len;
+						}
+						if (_prog >= 0.95) {
+							_mouth_open = true;
+							_manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
+						} else {
+							var _cur_v = 0;
 							for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
 								if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
 							}
-						}
-						_mouth_open = (_cur_v != 0);
-						if (_mouth_open) {
-							// Map SAPI5 viseme (0-21) to jaw openness: 0=closed,1=small,2=open,3=wide
-							// Plosives/fricatives (p,b,m,f,v,s,t,d) → 0; most consonants → 1; short vowels → 2; open vowels (ah,aw) → 3
-							var _vg = [0,2,3,2,1,1,1,1,1,2,1,2,1,1,0,0,1,0,0,0,1,0];
-							_manim_fi = clamp(_vg[clamp(_cur_v, 0, 21)], 0, array_length(_mouth_anim) - 1);
+							// Coast through SAPI5 inter-sentence silences — hold the last open
+							// shape for up to 300 ms so the mouth doesn't snap closed between sentences.
+							if (_cur_v != 0) {
+								mouth_last_vis_time_ms = current_time; mouth_last_vis_value = _cur_v;
+							} else if (mouth_last_vis_time_ms >= 0 && current_time - mouth_last_vis_time_ms < 300) {
+								_cur_v = mouth_last_vis_value;
+							}
+							_mouth_open = (_cur_v != 0);
+							if (_mouth_open) {
+								// Map SAPI5 viseme (0-21) to jaw openness: 0=closed,1=small,2=open,3=wide
+								var _vg = [0,2,3,2,1,1,1,1,1,2,1,2,1,1,0,0,1,0,0,0,1,0];
+								_manim_fi = clamp(_vg[clamp(_cur_v, 0, 21)], 0, array_length(_mouth_anim) - 1);
+							}
 						}
 					} else if (speaking_has_progress) {
-						_mouth_open = true; // no viseme data — cycle once audio has started
+						_mouth_open = true;
 						_manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
 					}
 				}
@@ -418,15 +434,21 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					
 					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
 						gpu_set_fog(true, c_yellow, 0, 1);
-						var _ow = 3; // Outline thickness
-						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y, _sc, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y, _sc, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y - _ow, _sc, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x, _draw_y + _ow, _sc, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y - _ow, _sc, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y - _ow, _sc, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x - _ow, _draw_y + _ow, _sc, _sc, 0, c_white, 1);
-						draw_sprite_ext(_spr, 0, _draw_x + _ow, _draw_y + _ow, _sc, _sc, 0, c_white, 1);
+						var _ow = 3;
+						for (var _ol = 0; _ol < array_length(_layers); _ol++) {
+							var _oll = _layers[_ol];
+							if (_oll.spr == -1) continue;
+							var _olx = _draw_x + _oll.dx * _sc;
+							var _oly = _draw_y + _oll.dy * _sc;
+							draw_sprite_ext(_oll.spr, 0, _olx - _ow, _oly,       _sc, _sc, 0, c_white, 1);
+							draw_sprite_ext(_oll.spr, 0, _olx + _ow, _oly,       _sc, _sc, 0, c_white, 1);
+							draw_sprite_ext(_oll.spr, 0, _olx,       _oly - _ow, _sc, _sc, 0, c_white, 1);
+							draw_sprite_ext(_oll.spr, 0, _olx,       _oly + _ow, _sc, _sc, 0, c_white, 1);
+							draw_sprite_ext(_oll.spr, 0, _olx - _ow, _oly - _ow, _sc, _sc, 0, c_white, 1);
+							draw_sprite_ext(_oll.spr, 0, _olx + _ow, _oly - _ow, _sc, _sc, 0, c_white, 1);
+							draw_sprite_ext(_oll.spr, 0, _olx - _ow, _oly + _ow, _sc, _sc, 0, c_white, 1);
+							draw_sprite_ext(_oll.spr, 0, _olx + _ow, _oly + _ow, _sc, _sc, 0, c_white, 1);
+						}
 						gpu_set_fog(false, c_black, 0, 0);
 					}
 
@@ -439,22 +461,36 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 						var _spk_speed = variable_struct_exists(_spk_b, "speed") ? _spk_b.speed : 50;
 						var _mouth_ms  = max(100, 300 - _spk_speed * 2);
 						if (array_length(current_viseme_data) > 0) {
-							var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
-							var _prog    = speaking_index / _txt_len;
-							var _cur_v = 0;
-							if (_prog >= 0.95) {
-								_cur_v = 1; // near end — treat as open
+							var _prog;
+							if (current_viseme_total_ms > 0 && speak_start_time_ms >= 0) {
+								var _t_speed_val = max(1, 50 + _spk_speed * 2.5);
+								var _adj_dur = current_viseme_total_ms * (175.0 / _t_speed_val);
+								_prog = clamp((current_time - speak_start_time_ms) / max(1, _adj_dur), 0, 2);
 							} else {
+								var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
+								_prog = speaking_index / _txt_len;
+							}
+							if (_prog >= 0.95) {
+								_mouth_open = true;
+								_manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
+							} else {
+								var _cur_v = 0;
 								for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
 									if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
 								}
-							}
-							_mouth_open = (_cur_v != 0);
-							if (_mouth_open) {
-								// Map SAPI5 viseme (0-21) to jaw openness: 0=closed,1=small,2=open,3=wide
-								// Plosives/fricatives (p,b,m,f,v,s,t,d) → 0; most consonants → 1; short vowels → 2; open vowels (ah,aw) → 3
-								var _vg = [0,2,3,2,1,1,1,1,1,2,1,2,1,1,0,0,1,0,0,0,1,0];
-								_manim_fi = clamp(_vg[clamp(_cur_v, 0, 21)], 0, array_length(_mouth_anim) - 1);
+								// Coast through SAPI5 inter-sentence silences — hold the last open
+								// shape for up to 300 ms so the mouth doesn't snap closed between sentences.
+								if (_cur_v != 0) {
+									mouth_last_vis_time_ms = current_time; mouth_last_vis_value = _cur_v;
+								} else if (mouth_last_vis_time_ms >= 0 && current_time - mouth_last_vis_time_ms < 300) {
+									_cur_v = mouth_last_vis_value;
+								}
+								_mouth_open = (_cur_v != 0);
+								if (_mouth_open) {
+									// Map SAPI5 viseme (0-21) to jaw openness: 0=closed,1=small,2=open,3=wide
+									var _vg = [0,2,3,2,1,1,1,1,1,2,1,2,1,1,0,0,1,0,0,0,1,0];
+									_manim_fi = clamp(_vg[clamp(_cur_v, 0, 21)], 0, array_length(_mouth_anim) - 1);
+								}
 							}
 						} else {
 							_mouth_open = true;
@@ -617,14 +653,15 @@ if (playing_block_index == -1 && scene_edit_mode && scene_edit_selected_actor_id
 }
 
 if (file_menu_open) {
-    var _fm_x = 10; var _fm_y = 45; var _fm_w = 150; var _fm_h = 70;
+    var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 105;
     draw_set_color(make_color_rgb(30, 30, 40)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, false);
     draw_set_color(c_aqua); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, true);
-    var _opts = ["SAVE SCRIPT", "LOAD SCRIPT"];
-    for (var i = 0; i < 2; i++) {
+    var _opts = ["SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY"];
+    for (var i = 0; i < 3; i++) {
         var _hov = (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + (i * 35) && _my < _fm_y + ((i + 1) * 35));
         if (_hov) { draw_set_color(make_color_rgb(60, 60, 100)); draw_rectangle(_fm_x + 1, _fm_y + (i * 35) + 1, _fm_x + _fm_w - 1, _fm_y + ((i + 1) * 35) - 1, false); }
-        draw_set_color(c_white); draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _opts[i]);
+        draw_set_color(i == 2 ? make_color_rgb(180, 220, 255) : c_white);
+        draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _opts[i]);
     }
 }
 
@@ -634,15 +671,17 @@ draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + cha
 draw_set_color(c_aqua); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, true);
 draw_set_color(c_white); draw_text(char_sel_x + 10, char_sel_y + 5, "CHARACTER SELECTOR");
 var _is_narrator_sel = (characters[selected_character_index].name == "NARRATOR");
-var _ecfg_btn_hov = (!_overlay_active && !_is_narrator_sel && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28);
-draw_set_color(_is_narrator_sel ? make_color_rgb(28, 28, 38) : (_ecfg_btn_hov ? make_color_rgb(100, 150, 255) : make_color_rgb(40, 60, 110)));
-draw_roundrect_ext(char_sel_x + 195, char_sel_y + 2, char_sel_x + char_sel_w - 6, char_sel_y + 28, 4, 4, false);
-draw_set_color(_is_narrator_sel ? make_color_rgb(55, 55, 65) : c_white); draw_set_halign(fa_center);
-draw_text((char_sel_x + 195 + char_sel_x + char_sel_w - 6) / 2, char_sel_y + 7, "EXPR CFG");
-draw_set_halign(fa_left);
+if (SHOW_EXPR_CFG) {
+    var _ecfg_btn_hov = (!_overlay_active && !_is_narrator_sel && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28);
+    draw_set_color(_is_narrator_sel ? make_color_rgb(28, 28, 38) : (_ecfg_btn_hov ? make_color_rgb(100, 150, 255) : make_color_rgb(40, 60, 110)));
+    draw_roundrect_ext(char_sel_x + 195, char_sel_y + 2, char_sel_x + char_sel_w - 6, char_sel_y + 28, 4, 4, false);
+    draw_set_color(_is_narrator_sel ? make_color_rgb(55, 55, 65) : c_white); draw_set_halign(fa_center);
+    draw_text((char_sel_x + 195 + char_sel_x + char_sel_w - 6) / 2, char_sel_y + 7, "EXPR CFG");
+    draw_set_halign(fa_left);
+}
 
 // --- Character Pane Scrollbar ---
-var _c_total_h = ceil(array_length(characters) / 3) * 135;
+var _c_total_h = ceil(array_length(characters) / 2) * 135;
 var _c_view_h = char_sel_h - 35;
 if (_c_total_h > _c_view_h) {
     var _sb_w = 8; var _sb_x = char_sel_x + char_sel_w - _sb_w - 4;
@@ -655,7 +694,7 @@ if (_c_total_h > _c_view_h) {
 
 gpu_set_scissor(char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35);
 var _grid_x = char_sel_x + 10; var _grid_y = char_sel_y + 35;
-var _item_w = 105; var _item_h = 135; var _cols = 3;
+var _item_w = 165; var _item_h = 135; var _cols = 2;
 for (var i = 0; i < array_length(characters); i++) {
     var _ix = _grid_x + (i % _cols) * _item_w;
     var _iy = _grid_y + floor(i / _cols) * _item_h + char_sel_scroll_y;
@@ -701,9 +740,37 @@ for (var i = 0; i < array_length(characters); i++) {
         }
         gpu_set_texfilter(false);
     }
-    draw_set_color(_is_sel ? c_yellow : c_white);
-    var _disp_name = characters[i].name; if (string_length(_disp_name) > 10) _disp_name = string_copy(_disp_name, 1, 9) + ".";
-    draw_text(_ix + 4, _iy + _item_h - 20, _disp_name);
+    if (_is_sel && char_rename_active && char_rename_target == i) {
+        // Inline rename field
+        draw_set_color(c_white);
+        draw_rectangle(_ix + 2, _iy + _item_h - 23, _ix + _item_w - 7, _iy + _item_h - 4, false);
+        draw_set_color(make_color_rgb(20, 20, 30));
+        var _rt_disp = char_rename_text;
+        while (string_length(_rt_disp) > 0 && string_width(_rt_disp) > _item_w - 16) {
+            _rt_disp = string_copy(_rt_disp, 2, string_length(_rt_disp) - 1);
+        }
+        draw_text(_ix + 5, _iy + _item_h - 20, _rt_disp);
+        if ((current_time div 400) mod 2 == 0) {
+            var _cx = _ix + 5 + string_width(_rt_disp);
+            draw_line_width(_cx, _iy + _item_h - 20, _cx, _iy + _item_h - 6, 1);
+        }
+    } else {
+        var _has_pencil = (_is_sel && playing_block_index == -1 && characters[i].name != "NARRATOR");
+        var _nm_max_w = _item_w - 9 - (_has_pencil ? 20 : 4);
+        var _nm_full  = characters[i].name;
+        var _nm_scl   = min(1, _nm_max_w / max(1, string_width(_nm_full)));
+        draw_set_color(_is_sel ? c_yellow : c_white);
+        draw_text_transformed(_ix + 4, _iy + _item_h - 20, _nm_full, _nm_scl, 1, 0);
+        if (_has_pencil) {
+            var _penc_x = _ix + _item_w - 18; var _penc_y = _iy + _item_h - 22;
+            var _penc_hov = (!_overlay_active && _mx > _penc_x && _mx < _penc_x + 14 && _my > _penc_y && _my < _penc_y + 16 && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
+            draw_set_color(_penc_hov ? make_color_rgb(160, 180, 255) : make_color_rgb(80, 100, 160));
+            draw_rectangle(_penc_x, _penc_y, _penc_x + 14, _penc_y + 16, false);
+            draw_set_color(c_white); draw_set_halign(fa_center);
+            draw_text(_penc_x + 7, _penc_y + 2, "/");
+            draw_set_halign(fa_left);
+        }
+    }
 }
 gpu_set_scissor(0, 0, 1280, 960);
 if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_idx != -1) {
@@ -734,7 +801,21 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
     _mx = mouse_x;
     _my = mouse_y;
 
-    var _layers = get_composite_character_sprite(_char_id, _pose, _expr);
+    // Facing: new placements flip dynamically with mouse position (matching drop logic);
+    // existing in-scene or preview actors hold whatever facing they already have.
+    var _drag_face = undefined;
+    if (dragging_char_index != -1) {
+        var _ghost_is_left = (_mx < scene_win_x + scene_win_w / 2);
+        _drag_face = scene_edit_mode ? (_ghost_is_left ? -1 : 1) : (_ghost_is_left ? 1 : -1);
+    } else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+        var _da = script_blocks[active_scene_block_idx].actors[dragging_actor_idx];
+        _drag_face = variable_struct_exists(_da, "facing") ? _da.facing : undefined;
+    } else if (dragging_preview_idx != -1) {
+        var _dp = preview_actors[dragging_preview_idx];
+        _drag_face = variable_struct_exists(_dp, "facing") ? _dp.facing : undefined;
+    }
+
+    var _layers = get_composite_character_sprite(_char_id, _pose, _expr, _drag_face);
     var _spr    = _layers[0].spr;
 
     if (_spr != -1) {

@@ -33,7 +33,20 @@ function step_tts_playback() {
                         if (_f != -1) {
                             var _perc = file_text_read_real(_f);
                             file_text_close(_f);
-                            if (_perc > 0) speaking_index = max(speaking_index, _perc * string_length(_b.text));
+                            if (_perc > 0) {
+                                speaking_index = max(speaking_index, _perc * string_length(_b.text));
+                                // Snap time-based progress forward to the sentence boundary so the
+                                // viseme lookup catches up immediately instead of lagging behind.
+                                // Only advances speak_start_time_ms, never moves it backward.
+                                if (current_viseme_total_ms > 0 && speak_start_time_ms >= 0) {
+                                    var _spd2 = variable_struct_exists(_b, "speed") ? _b.speed : 50;
+                                    var _adj2 = current_viseme_total_ms * (175.0 / max(1, 50 + _spd2 * 2.5));
+                                    var _target_elapsed = _perc * _adj2;
+                                    if (_target_elapsed > (current_time - speak_start_time_ms)) {
+                                        speak_start_time_ms = current_time - _target_elapsed;
+                                    }
+                                }
+                            }
                         }
                     }
                     if (_req_to_check != current_viseme_req) {
@@ -51,6 +64,12 @@ function step_tts_playback() {
                                 }
                             }
                             file_delete(_vis_file);
+                            var _dur_file = working_directory + "talkit\\talkit_dur_" + string(_req_to_check) + ".tmp";
+                            if (file_exists(_dur_file)) {
+                                var _dff = file_text_open_read(_dur_file);
+                                if (_dff != -1) { current_viseme_total_ms = file_text_read_real(_dff); file_text_close(_dff); }
+                                file_delete(_dur_file);
+                            }
                         }
                     }
                 }
@@ -131,8 +150,10 @@ function step_tts_playback() {
                 array_delete(active_requests, _r, 1);
                 var _txt_file  = game_save_id + "talkit_text_" + string(_req) + ".tmp";
                 var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req) + ".tmp";
+                var _dur_file  = working_directory + "talkit\\talkit_dur_"  + string(_req) + ".tmp";
                 if (file_exists(_txt_file))  file_delete(_txt_file);
                 if (file_exists(_prog_file)) file_delete(_prog_file);
+                if (file_exists(_dur_file))  file_delete(_dur_file);
             } else { _all_done = false; }
         }
         if (_all_done) {
@@ -159,8 +180,10 @@ function step_tts_playback() {
                 array_delete(warmup_requests, _r, 1);
                 var _txt_file  = game_save_id + "talkit_text_" + string(_req) + ".tmp";
                 var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req) + ".tmp";
+                var _dur_file  = working_directory + "talkit\\talkit_dur_"  + string(_req) + ".tmp";
                 if (file_exists(_txt_file))  file_delete(_txt_file);
                 if (file_exists(_prog_file)) file_delete(_prog_file);
+                if (file_exists(_dur_file))  file_delete(_dur_file);
             }
         }
     }
@@ -363,10 +386,14 @@ function step_tts_playback() {
                         _b.tts_req = _req;
                         array_push(active_requests, _req);
                         if (!is_speaking) {
-                            is_speaking           = true;
-                            speaking_has_progress = false;
-                            current_viseme_data   = [];
-                            speaking_index        = 0;
+                            is_speaking             = true;
+                            speaking_has_progress   = false;
+                            current_viseme_data     = [];
+                            speaking_index          = 0;
+                            current_viseme_total_ms = -1;
+                            speak_start_time_ms     = current_time;
+                            mouth_last_vis_time_ms  = -1;
+                            mouth_last_vis_value    = 0;
                             var _v_len = max(1, string_length(_b.text));
                             var _p_len = max(1, string_length(_phonetic_text));
                             speaking_phonetic_ratio = _v_len / _p_len;

@@ -34,10 +34,27 @@ try {
     if ($script:_vis.Count -gt 0) {
         $lastMs = [double]($script:_vis[$script:_vis.Count - 1] -split ':')[0]
         if ($lastMs -gt 0) {
-            $out = ($script:_vis | ForEach-Object {
-                $p = $_ -split ':'; "$([Math]::Round([double]$p[0] / $lastMs, 3)):$($p[1])"
-            }) -join ','
-            $out | Set-Content -Path "$DllDir\talkit_vis_$Req.tmp" -NoNewline -Encoding UTF8
+            # Write total SAPI5 duration so GML can use elapsed wall-clock time for
+            # viseme progress instead of character-count-based estimation.
+            [Math]::Round($lastMs) | Set-Content -Path "$DllDir\talkit_dur_$Req.tmp" -NoNewline -Encoding UTF8
+
+            # Strip trailing silence events (viseme 0). SAPI5 always ends with a silence
+            # marker; keeping it causes the mouth to close early before TalkIt finishes —
+            # worse for longer sentences where the silence window is proportionally larger.
+            # We keep $lastMs from the original last event so the remaining timestamps
+            # stay correctly normalized to the full SAPI5 duration.
+            while ($script:_vis.Count -gt 0) {
+                $tail = $script:_vis[$script:_vis.Count - 1] -split ':'
+                if ($tail.Length -ge 2 -and [int]$tail[1] -eq 0) {
+                    $script:_vis.RemoveAt($script:_vis.Count - 1)
+                } else { break }
+            }
+            if ($script:_vis.Count -gt 0) {
+                $out = ($script:_vis | ForEach-Object {
+                    $p = $_ -split ':'; "$([Math]::Round([double]$p[0] / $lastMs, 3)):$($p[1])"
+                }) -join ','
+                $out | Set-Content -Path "$DllDir\talkit_vis_$Req.tmp" -NoNewline -Encoding UTF8
+            }
         }
     }
 } catch { }  # No SAPI5 voices or unavailable — mouth will cycle normally

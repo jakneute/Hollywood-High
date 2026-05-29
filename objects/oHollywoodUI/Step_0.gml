@@ -28,6 +28,46 @@ if (expression_modal_open) { step_modal_expression();  return; }
 
 if (action_modal_open)     { step_modal_action();      return; }
 
+// --- CHARACTER RENAME ---
+if (char_rename_active) {
+    if (string_length(keyboard_string) > 0) {
+        char_rename_text = string_copy(char_rename_text + string_upper(keyboard_string), 1, 20);
+        keyboard_string = "";
+    }
+    if (keyboard_check_pressed(vk_backspace) && string_length(char_rename_text) > 0)
+        char_rename_text = string_delete(char_rename_text, string_length(char_rename_text), 1);
+
+    var _rnm_ok  = keyboard_check_pressed(vk_return);
+    var _rnm_off = keyboard_check_pressed(vk_escape);
+    if (!_rnm_ok && !_rnm_off && mouse_check_button_pressed(mb_left)) {
+        if (_mx < char_sel_x || _mx > char_sel_x + char_sel_w || _my < char_sel_y || _my > char_sel_y + char_sel_h)
+            _rnm_ok = true;   // click outside pane → confirm
+        else
+            _rnm_off = true;  // click inside pane → cancel, let pane handle the click
+    }
+    if (_rnm_ok || _rnm_off) {
+        if (_rnm_ok && string_length(char_rename_text) > 0) {
+            var _old_nm = characters[char_rename_target].name;
+            var _new_nm = string_upper(char_rename_text);
+            if (_old_nm != _new_nm) {
+                if (!variable_struct_exists(characters[char_rename_target], "sprite_name"))
+                    characters[char_rename_target].sprite_name = _old_nm;
+                characters[char_rename_target].name = _new_nm;
+                for (var _ri = 0; _ri < array_length(script_blocks); _ri++) {
+                    var _rb = script_blocks[_ri];
+                    if (variable_struct_exists(_rb, "text") && string_pos(_old_nm, _rb.text) > 0) {
+                        _rb.text = string_replace_all(_rb.text, _old_nm, _new_nm);
+                        update_block_height(_ri);
+                    }
+                }
+            }
+        }
+        char_rename_active = false; char_rename_target = -1;
+        char_rename_text = ""; keyboard_string = "";
+        if (_rnm_ok) return;
+    }
+}
+
 // --- 0. SCRIPT HEIGHT CALCULATION ---
 // (Now handled on-demand via update_block_height and update_all_block_heights)
 
@@ -234,59 +274,124 @@ if (scene_modal_open) {
 // --- 2c2. FILE MENU ---
 if (file_menu_open) {
     if (mouse_check_button_pressed(mb_left)) {
-        var _fm_x = 10; var _fm_y = 45; var _fm_w = 150; var _fm_h = 70;
+        var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 105;
         var _clicked_option = false;
-        
+
+        // ── SAVE SCRIPT ──
         if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y && _my < _fm_y + 35) {
             var _file = get_save_filename("Hollywood High Script|*.hhi", "screenplay.hhi");
             if (_file != "") {
-                var _save_data = { version: 1, script: script_blocks, chars: characters, dict: dictionary_list };
+                // Version 2: chars array now carries sprite_name for renamed characters
+                var _save_data = { version: 2, script: script_blocks, chars: characters, dict: dictionary_list };
                 var _json = json_stringify(_save_data);
-                
-                // Create a buffer from the JSON string
-                var _buffer = buffer_create(string_byte_length(_json) + 1, buffer_fixed, 1);
-                buffer_write(_buffer, buffer_string, _json);
-                buffer_seek(_buffer, buffer_seek_start, 0); // Rewind buffer before compression
-                
-                // Compress the buffer
-                var _compressed_buffer = buffer_compress(_buffer, 0, buffer_get_size(_buffer));
-                
-                // Save the compressed buffer to a binary file
-                buffer_save(_compressed_buffer, _file);
-                
-                // Clean up memory
-                buffer_delete(_buffer);
-                buffer_delete(_compressed_buffer);
+                var _buf = buffer_create(string_byte_length(_json) + 1, buffer_fixed, 1);
+                buffer_write(_buf, buffer_string, _json);
+                buffer_seek(_buf, buffer_seek_start, 0);
+                var _cbuf = buffer_compress(_buf, 0, buffer_get_size(_buf));
+                buffer_save(_cbuf, _file);
+                buffer_delete(_buf); buffer_delete(_cbuf);
             }
             _clicked_option = true;
+
+        // ── LOAD SCRIPT ──
         } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 35 && _my < _fm_y + 70) {
             var _file = get_open_filename("Hollywood High Script|*.hhi", "");
             if (_file != "" && file_exists(_file)) {
                 try {
-                    // Load the binary file into a buffer, decompress it, and read the JSON string
-                    var _buffer = buffer_load(_file);
-                    var _decompressed_buffer = buffer_decompress(_buffer);
-                    var _json = buffer_read(_decompressed_buffer, buffer_string);
-                    buffer_delete(_buffer);
-                    buffer_delete(_decompressed_buffer);
-
+                    var _buf = buffer_load(_file);
+                    var _dbuf = buffer_decompress(_buf);
+                    var _json = buffer_read(_dbuf, buffer_string);
+                    buffer_delete(_buf); buffer_delete(_dbuf);
                     var _loaded = json_parse(_json);
                     if (is_array(_loaded)) script_blocks = _loaded;
                     else if (is_struct(_loaded)) {
-                        if (variable_struct_exists(_loaded, "script")) script_blocks = _loaded.script;
-                        if (variable_struct_exists(_loaded, "chars")) characters = _loaded.chars;
-                        if (variable_struct_exists(_loaded, "dict")) dictionary_list = _loaded.dict;
+                        if (variable_struct_exists(_loaded, "script")) script_blocks   = _loaded.script;
+                        if (variable_struct_exists(_loaded, "chars"))  characters      = _loaded.chars;
+                        if (variable_struct_exists(_loaded, "dict"))   dictionary_list = _loaded.dict;
                     }
+                    // Re-initialise runtime arrays so sizes match the loaded character list
+                    char_facings         = array_create(array_length(characters), 1);
+                    char_sel_layer_cache = array_create(array_length(characters), undefined);
+                    // Clear sprite caches — forces reload under each character's correct name/sprite_name
+                    ds_map_clear(char_sprites);
+                    ds_map_clear(char_offsets_cache);
+                    ds_map_clear(char_expr_cache);
+                    ds_map_clear(mouth_anim_cache);
                     update_all_block_heights();
                     focused_block = -1; playing_block_index = -1; playing_linked_index = -1;
                     scene_edit_mode = false; insertion_idx = -1;
                     selection_start = 0; selection_end = 0; is_selecting = false;
                     is_speaking = false; audio_stop_all(); tts_stop(); block_scroll_y = 0;
-                    if (array_length(script_blocks) > 0) { play_from_index(0); playing_block_index = -1; } else { preview_actors = []; current_scene_sprite = -1; set_scene_dimensions(-1); }
-                } catch(e) { show_message("Error loading script file! Invalid format."); }
+                    if (array_length(script_blocks) > 0) { play_from_index(0); playing_block_index = -1; }
+                    else { preview_actors = []; current_scene_sprite = -1; set_scene_dimensions(-1); }
+                } catch(_e) { show_message("Error loading script file! Invalid format."); }
+            }
+            _clicked_option = true;
+
+        // ── SAVE SCREENPLAY (export-only text file) ──
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 70 && _my < _fm_y + 105) {
+            var _file = get_save_filename("Screenplay Text|*.txt|Fountain Format|*.fountain", "screenplay.txt");
+            if (_file != "") {
+                var _sf = file_text_open_write(_file);
+                if (_sf != -1) {
+                    file_text_write_string(_sf, "FADE IN:\n\n\n");
+                    for (var _bi = 0; _bi < array_length(script_blocks); _bi++) {
+                        var _bl = script_blocks[_bi];
+                        var _btype = variable_struct_exists(_bl, "type") ? _bl.type : "voice";
+
+                        if (_btype == "scene") {
+                            file_text_write_string(_sf, "INT. " + string_upper(_bl.name) + " - DAY\n\n");
+
+                        } else if (_btype == "action") {
+                            var _aname = _bl.action_name;
+                            var _aname_u = string_upper(_aname);
+                            var _cn = (_bl.char_index >= 0 && _bl.char_index < array_length(characters))
+                                      ? characters[_bl.char_index].name : "";
+                            if (string_pos("WAIT", _aname_u) > 0) {
+                                // Silent pause — omit from screenplay prose
+                            } else if (string_pos("PLAY SFX", _aname_u) > 0) {
+                                var _sfx = variable_struct_exists(_bl, "sfx_path") ? _bl.sfx_path : "";
+                                file_text_write_string(_sf, "(SOUND EFFECT: " + _sfx + ")\n\n");
+                            } else if (string_pos("DISPLAY TITLE", _aname_u) > 0) {
+                                var _ttl = variable_struct_exists(_bl, "title_text") ? _bl.title_text : "";
+                                if (_ttl != "") file_text_write_string(_sf, "                    TITLE CARD: \"" + _ttl + "\"\n\n");
+                            } else {
+                                // Character action — build a readable sentence
+                                var _sent = _cn + " " + _aname;
+                                _sent = string_upper(string_char_at(_sent, 1)) + string_copy(_sent, 2, string_length(_sent) - 1);
+                                var _lc = string_char_at(_sent, string_length(_sent));
+                                if (_lc != "." && _lc != "!" && _lc != "?") _sent += ".";
+                                file_text_write_string(_sf, _sent + "\n\n");
+                            }
+
+                        } else {
+                            // Voice / dialogue block
+                            var _cn = (_bl.char_index >= 0 && _bl.char_index < array_length(characters))
+                                      ? characters[_bl.char_index].name : "UNKNOWN";
+                            var _txt = _bl.text;
+                            if (string_length(_txt) > 0) {
+                                if (_cn == "NARRATOR") {
+                                    // Narration reads as plain action prose
+                                    file_text_write_string(_sf, _txt + "\n\n");
+                                } else {
+                                    // Character name, then indented dialogue (indent each line)
+                                    file_text_write_string(_sf, "                      " + _cn + "\n");
+                                    var _dlines = string_split(_txt, "\n");
+                                    for (var _dli = 0; _dli < array_length(_dlines); _dli++) {
+                                        file_text_write_string(_sf, "            " + _dlines[_dli] + "\n");
+                                    }
+                                    file_text_write_string(_sf, "\n");
+                                }
+                            }
+                        }
+                    }
+                    file_text_write_string(_sf, "\n\nFADE OUT.\n\nTHE END\n");
+                    file_text_close(_sf);
+                }
             }
             _clicked_option = true;
         }
+
         file_menu_open = false;
         if (_clicked_option) return;
     }
@@ -302,15 +407,22 @@ if (mouse_check_button_pressed(mb_left)) {
         selection_start = 0; selection_end = 0;
         var _grid_x = char_sel_x + 10;
         var _grid_y = char_sel_y + 35;
-        var _item_w = 105;
+        var _item_w = 165;
         var _item_h = 135;
-        var _cols = 3;
+        var _cols = 2;
         for (var i = 0; i < array_length(characters); i++) {
             var _ix = _grid_x + (i % _cols) * _item_w;
             var _iy = _grid_y + floor(i / _cols) * _item_h + char_sel_scroll_y;
             if (_my > char_sel_y + 30 && _mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h) {
+                var _was_sel = (i == selected_character_index);
                 selected_character_index = i;
                 dropdown_open = false;
+                if (_was_sel && characters[i].name != "NARRATOR" && playing_block_index == -1 &&
+                    _mx > _ix + _item_w - 18 && _my > _iy + _item_h - 22 && _my < _iy + _item_h - 6) {
+                    char_rename_active = true; char_rename_target = i;
+                    char_rename_text = characters[i].name; keyboard_string = "";
+                    return;
+                }
                 dragging_char_index = i; // Unified drag start
 
                 // Sync staging selection: focus character if they are in the scene, otherwise clear focus
@@ -352,7 +464,7 @@ if (playing_block_index == -1 && scene_edit_mode && active_scene_block_idx != -1
                         selected_character_index = _act.char_index; // Sync global selection
                         
                         // Auto-scroll character pane
-                        var _row = floor(selected_character_index / 3);
+                        var _row = floor(selected_character_index / 2);
                         var _iy = _row * 135;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
@@ -489,7 +601,7 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
                         selected_character_index = _act.char_index; // Sync global selection
                         
                         // Auto-scroll character pane
-                        var _row = floor(selected_character_index / 3);
+                        var _row = floor(selected_character_index / 2);
                         var _iy = _row * 135;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
@@ -630,7 +742,7 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     // EXPR CFG button in character panel header (Narrator has no sprite — skip)
-    if (!theater_mode && playing_block_index == -1 && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28) {
+    if (SHOW_EXPR_CFG && !theater_mode && playing_block_index == -1 && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28) {
         if (characters[selected_character_index].name != "NARRATOR") open_expr_configurator(selected_character_index);
         return;
     }
@@ -1025,7 +1137,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     
                     if (variable_struct_exists(_block, "char_index")) {
                         selected_character_index = _block.char_index;
-                        var _row = floor(selected_character_index / 3);
+                        var _row = floor(selected_character_index / 2);
                         var _iy_scroll = _row * 135;
                         if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
                         else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
@@ -1058,7 +1170,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 
                 if (variable_struct_exists(_block, "char_index")) {
                     selected_character_index = _block.char_index;
-                    var _row = floor(selected_character_index / 3);
+                    var _row = floor(selected_character_index / 2);
                     var _iy_scroll = _row * 135;
                     if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
                     else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
@@ -1196,7 +1308,7 @@ if (!_overlay_active) {
     
     if (_over_pane) {
         // Scroll the character selector
-        var _cols = 3; var _item_h = 135;
+        var _cols = 2; var _item_h = 135;
         var _total_h = ceil(array_length(characters) / _cols) * _item_h;
         var _max_visible_h = char_sel_h - 35;
         if (mouse_wheel_up()) char_sel_scroll_y = min(0, char_sel_scroll_y + _item_h);
@@ -1208,14 +1320,22 @@ if (!_overlay_active) {
         if (playing_block_index == -1 && mouse_check_button_pressed(mb_left)) {
             var _grid_x = char_sel_x + 10; var _grid_y = char_sel_y + 35;
             for (var i = 0; i < array_length(characters); i++) {
-                var _ix = _grid_x + (i % _cols) * 105;
+                var _iw2 = 165;
+                var _ix = _grid_x + (i % _cols) * _iw2;
                 var _iy = _grid_y + floor(i / _cols) * _item_h + char_sel_scroll_y;
-                if (_mx > _ix && _mx < _ix + 105 && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h) {
+                if (_mx > _ix && _mx < _ix + _iw2 && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h) {
+                    var _was_sel2 = (i == selected_character_index);
                     var _spr = get_character_sprite(i);
                     var _csh = (_spr != -1) ? sprite_get_height(_spr) : 100;
-                    var _scale = (scene_win_h * 1.5) / 450; 
-                    
+                    var _scale = (scene_win_h * 1.5) / 450;
+
                     selected_character_index = i;
+                    if (_was_sel2 && characters[i].name != "NARRATOR" &&
+                        _mx > _ix + _iw2 - 18 && _my > _iy + _item_h - 22 && _my < _iy + _item_h - 6) {
+                        char_rename_active = true; char_rename_target = i;
+                        char_rename_text = characters[i].name; keyboard_string = "";
+                        break;
+                    }
                     var _c = characters[selected_character_index];
                     selected_pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
                     selected_expression = variable_struct_exists(_c, "expression") ? _c.expression : 21;
@@ -1243,7 +1363,7 @@ if (!_overlay_active) {
                     drag_off_y = -(_csh * _scale) / 2;
                     
                     // Auto-scroll logic
-                    var _row = floor(selected_character_index / 3);
+                    var _row = floor(selected_character_index / 2);
                     var _iy_scroll = _row * 135;
                     if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
                     else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
