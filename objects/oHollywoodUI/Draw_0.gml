@@ -144,22 +144,41 @@ if (theater_mode) {
                     }
 				}
 
+				var _mouth_anim = _char_is_speaking ? get_mouth_anim_sprites(_act.char_index, _pose, _expr, _aface) : [];
+				var _has_manim  = array_length(_mouth_anim) > 0;
+				var _manim_fi   = 0;
+				var _mouth_open = false;
+				if (_has_manim && playing_block_index >= 0 && playing_block_index < array_length(script_blocks)) {
+					var _spk_b     = script_blocks[playing_block_index];
+					var _spk_speed = variable_struct_exists(_spk_b, "speed") ? _spk_b.speed : 50;
+					var _mouth_ms  = max(100, 300 - _spk_speed * 2);
+					if (array_length(current_viseme_data) > 0) {
+						// Viseme-based: find the mouth shape code at current speech progress.
+						// speaking_index caps at string_length long before TTS finishes, so once
+						// _prog >= 0.95 the estimation has run out — just keep cycling rather than
+						// trusting the trailing-silence viseme that SAPI5 always ends with.
+						var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
+						var _prog    = speaking_index / _txt_len;
+						if (_prog >= 0.95) {
+							_mouth_open = true;
+						} else {
+							var _cur_v = 0;
+							for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
+								if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
+							}
+							_mouth_open = (_cur_v != 0);
+						}
+					} else {
+						_mouth_open = true; // no viseme data yet — cycle continuously
+					}
+					if (_mouth_open) _manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
+				}
 				for (var _li = 0; _li < array_length(_layers); _li++) {
-					var _l = _layers[_li];
-					if (_l.spr != -1) draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _asc, _draw_y + _l.dy * _asc, _asc, _asc, 0, c_white, 1);
+					var _l    = _layers[_li];
+					var _lspr = (_li == 2 && _has_manim && _mouth_open) ? _mouth_anim[_manim_fi] : _l.spr;
+					if (_lspr != -1) draw_sprite_ext(_lspr, 0, _draw_x + _l.dx * _asc, _draw_y + _l.dy * _asc, _asc, _asc, 0, c_white, 1);
 				}
 
-				if (talking_glow_enabled && _char_is_speaking) {
-					var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
-					if (_pulse > 0) {
-						gpu_set_blendmode(bm_add);
-						for (var _gli = 0; _gli < array_length(_layers); _gli++) {
-							var _gl = _layers[_gli];
-							if (_gl.spr != -1) draw_sprite_ext(_gl.spr, 0, _draw_x + _gl.dx * _asc, _draw_y + _gl.dy * _asc, _asc, _asc, 0, c_yellow, _pulse);
-						}
-						gpu_set_blendmode(bm_normal);
-					}
-				}
 			}
 		}
 		gpu_set_texfilter(false);
@@ -397,24 +416,39 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 						gpu_set_fog(false, c_black, 0, 0);
 					}
 
+					var _mouth_anim = _char_is_speaking ? get_mouth_anim_sprites(_act.char_index, _pose, _expr, _aface) : [];
+					var _has_manim  = array_length(_mouth_anim) > 0;
+					var _manim_fi   = 0;
+					var _mouth_open = false;
+					if (_has_manim && playing_block_index >= 0 && playing_block_index < array_length(script_blocks)) {
+						var _spk_b     = script_blocks[playing_block_index];
+						var _spk_speed = variable_struct_exists(_spk_b, "speed") ? _spk_b.speed : 50;
+						var _mouth_ms  = max(100, 300 - _spk_speed * 2);
+						if (array_length(current_viseme_data) > 0) {
+							var _txt_len = variable_struct_exists(_spk_b, "text") ? max(1, string_length(_spk_b.text)) : 1;
+							var _prog    = speaking_index / _txt_len;
+							if (_prog >= 0.95) {
+								_mouth_open = true;
+							} else {
+								var _cur_v = 0;
+								for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
+									if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
+								}
+								_mouth_open = (_cur_v != 0);
+							}
+						} else {
+							_mouth_open = true;
+						}
+						if (_mouth_open) _manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
+					}
 					if (_draw_sprite) {
 						for (var _li = 0; _li < array_length(_layers); _li++) {
-							var _l = _layers[_li];
-							if (_l.spr != -1) draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, _alpha);
+							var _l    = _layers[_li];
+							var _lspr = (_li == 2 && _has_manim && _mouth_open) ? _mouth_anim[_manim_fi] : _l.spr;
+							if (_lspr != -1) draw_sprite_ext(_lspr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, _alpha);
 						}
 					}
 
-					if (_draw_sprite && talking_glow_enabled && _char_is_speaking) {
-						var _pulse = 0.4 + sin(current_time * 0.01) * 0.2;
-						if (_pulse > 0) {
-							gpu_set_blendmode(bm_add);
-							for (var _gli = 0; _gli < array_length(_layers); _gli++) {
-								var _gl = _layers[_gli];
-								if (_gl.spr != -1) draw_sprite_ext(_gl.spr, 0, _draw_x + _gl.dx * _sc, _draw_y + _gl.dy * _sc, _sc, _sc, 0, c_yellow, _pulse);
-							}
-							gpu_set_blendmode(bm_normal);
-						}
-					}
 				}
 			}
 			gpu_set_texfilter(false);

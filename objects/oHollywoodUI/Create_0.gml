@@ -296,6 +296,7 @@ if (!directory_exists(datafiles_path)) {
 char_sprites      = ds_map_create();
 char_offsets_cache = ds_map_create(); // char_name → struct parsed from offsets.json, or undefined
 char_expr_cache    = ds_map_create(); // char_name → struct parsed from expressions_config.json, or undefined
+mouth_anim_cache   = ds_map_create(); // "charName_manim_pose_NNNNN.png" → array of animation frame sprites
 char_sel_layer_cache = array_create(array_length(characters), undefined); // Per-character composite layer cache for the selector UI (avoids file_exists every frame)
 get_character_sprite = function(_char_index) {
     if (_char_index < 0 || _char_index >= array_length(characters)) return -1;
@@ -625,6 +626,133 @@ get_composite_character_sprite = function(_char_index, _pose, _expression, _faci
     ];
 }
 
+// Returns array of animation-frame sprites for the speaking mouth cycle.
+// Frame count is derived from the gap between same-range base mouth files so
+// trailing files (e.g. eye sprites packed after the last mouth group) are not
+// accidentally included. Results are cached per base-mouth file.
+get_mouth_anim_sprites = function(_char_index, _pose, _expression, _facing_override = undefined) {
+    if (_char_index < 0 || _char_index >= array_length(characters)) return [];
+    var _c = characters[_char_index];
+    if (_c.name == "NARRATOR") return [];
+    if (_expression < 1 || _expression > 20) return [];
+
+    var _def_face = variable_struct_exists(_c, "default_facing") ? _c.default_facing : 1;
+    var _use_high = (_facing_override != undefined) && (_facing_override * _def_face == -1);
+    var _sfx_off  = _use_high ? 50 : 0;
+
+    var _dir_name    = string_lower(_c.name);
+    var _folder_path = datafiles_path + "images/characters/" + _c.name + "/";
+    if (!directory_exists(_folder_path)) _folder_path = datafiles_path + "images/characters/" + _dir_name + "/";
+    if (!directory_exists(_folder_path)) return [];
+
+    var _act_idx = variable_struct_exists(_c, "act_index") ? _c.act_index : 1;
+    var _prefix  = string(_act_idx) + string(_pose);
+
+    var _ecfg_data = ds_map_exists(char_expr_cache, _c.name) ? char_expr_cache[? _c.name] : undefined;
+    var _ecfg_dir  = _use_high ? "high" : "low";
+    var _ecfg_key  = "pose_" + string(_pose) + "_" + _ecfg_dir;
+    var _ecfg_pc   = (_ecfg_data != undefined && variable_struct_exists(_ecfg_data, _ecfg_key)) ? _ecfg_data[$ _ecfg_key] : undefined;
+
+    // Resolve base mouth filename (mirrors get_composite_character_sprite logic)
+    var _mood_map   = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+    var _mouth_idx  = _mood_map[clamp(_expression - 1, 0, 19)];
+    var _mouth_n    = 31 + _mouth_idx + _sfx_off;
+    var _mouth_sfx  = (_mouth_n < 10 ? "0" : "") + string(_mouth_n);
+    var _mouth_file = "pose_" + _prefix + _mouth_sfx + ".png";
+    if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "mouth_files")) {
+        var _mf_map  = _ecfg_pc.mouth_files;
+        var _expr_key = string(_expression);
+        var _mood_key = string(_mouth_idx);
+        if (variable_struct_exists(_mf_map, _expr_key) && _mf_map[$ _expr_key] != "") {
+            _mouth_file = _mf_map[$ _expr_key];
+        } else if (variable_struct_exists(_mf_map, _mood_key) && _mf_map[$ _mood_key] != "") {
+            _mouth_file = _mf_map[$ _mood_key];
+        }
+    }
+
+    var _cache_key = _c.name + "_manim_" + _mouth_file;
+    if (ds_map_exists(mouth_anim_cache, _cache_key)) return mouth_anim_cache[? _cache_key];
+
+    // Extract numeric part from "pose_NNNNN.png"
+    var _stem     = string_delete(_mouth_file, 1, 5);
+    _stem         = string_delete(_stem, string_length(_stem) - 3, 4);
+    var _base_num = real(_stem);
+
+    // "Local range": the 50-file band this base belongs to (same pose + same direction).
+    // Low suffixes 00-49, high suffixes 50-99 — grouping by this prevents cross-direction
+    // or cross-pose bleed even when a config reuses a file from another pose.
+    var _hundred  = floor(_base_num / 100) * 100;
+    var _half_off = ((_base_num - _hundred) >= 50) ? 50 : 0;
+    var _range_lo = _hundred + _half_off;
+    var _range_hi = _range_lo + 49;
+
+    // One pass: build (a) global stop-boundary set and (b) sorted peer list for gap calc
+    var _all_bases = ds_map_create();
+    var _peers     = [];
+    if (_ecfg_data != undefined) {
+        var _pose_keys = variable_struct_get_names(_ecfg_data);
+        var _seen = ds_map_create();
+        for (var _pk = 0; _pk < array_length(_pose_keys); _pk++) {
+            var _pc = _ecfg_data[$ _pose_keys[_pk]];
+            if (variable_struct_exists(_pc, "mouth_files")) {
+                var _mf       = _pc.mouth_files;
+                var _mk_names = variable_struct_get_names(_mf);
+                for (var _mk = 0; _mk < array_length(_mk_names); _mk++) {
+                    var _mfn = _mf[$ _mk_names[_mk]];
+                    if (_mfn != "" && !ds_map_exists(_seen, _mfn)) {
+                        ds_map_add(_seen, _mfn, 1);
+                        var _ns = string_delete(_mfn, 1, 5);
+                        _ns    = string_delete(_ns, string_length(_ns) - 3, 4);
+                        var _n = real(_ns);
+                        ds_map_add(_all_bases, _mfn, 1);
+                        if (_n >= _range_lo && _n <= _range_hi) array_push(_peers, _n);
+                    }
+                }
+            }
+        }
+        ds_map_destroy(_seen);
+    }
+    array_sort(_peers, true);
+
+    // Derive max frame count from the gap between sorted same-range peers.
+    // For the last peer, mirror the previous gap so we don't over-scan into
+    // whatever happens to be packed after the final mouth group.
+    var _max_frames = 4; // safe fallback if no peer info
+    var _peer_pos   = -1;
+    for (var _pi = 0; _pi < array_length(_peers); _pi++) {
+        if (_peers[_pi] == _base_num) { _peer_pos = _pi; break; }
+    }
+    if (_peer_pos >= 0) {
+        if (_peer_pos < array_length(_peers) - 1) {
+            _max_frames = _peers[_peer_pos + 1] - _base_num - 1;     // gap to next peer
+        } else if (_peer_pos > 0) {
+            _max_frames = _base_num - _peers[_peer_pos - 1] - 1;     // mirror previous gap
+        }
+    }
+    _max_frames = clamp(_max_frames, 1, 6);
+
+    // Scan up to _max_frames consecutive files, also stopping at any known base
+    var _anim_frames = [];
+    for (var _f = 1; _f <= _max_frames; _f++) {
+        var _ff = "pose_" + string(_base_num + _f) + ".png";
+        if (ds_map_exists(_all_bases, _ff)) break;
+        if (!file_exists(_folder_path + _ff)) break;
+        var _fk = _c.name + "_" + _ff;
+        var _fspr;
+        if (ds_map_exists(char_sprites, _fk)) {
+            _fspr = char_sprites[? _fk];
+        } else {
+            _fspr = sprite_add(_folder_path + _ff, 1, false, false, 0, 0);
+            ds_map_add(char_sprites, _fk, _fspr);
+        }
+        array_push(_anim_frames, _fspr);
+    }
+
+    ds_map_destroy(_all_bases);
+    ds_map_add(mouth_anim_cache, _cache_key, _anim_frames);
+    return _anim_frames;
+}
+
 selected_character_index = 0;
 edit_mode = false; 
 modal_is_local_edit = false; // Tracks if we are editing a block or a character global
@@ -870,7 +998,6 @@ scene_modal_edit_mode = false;
 
 // --- 3bb. SCENE EDITING STATE ---
 scene_edit_mode = false;
-talking_glow_enabled = true; // New: Global toggle for character highlight while talking
 dragging_char_index = -1; // Index in 'characters' array
 dragging_actor_idx = -1;  // Index in the active scene's 'actors' array (Edit Mode)
 dragging_preview_idx = -1; // Index in preview_actors (Live Move Mode)
@@ -900,9 +1027,11 @@ file_menu_open = false;
 o_char_surface = -1;
 o_mask_surface = -1;
 
-is_speaking      = false;  
-check_timer      = 0;      
-speaking_timer   = 0;      
+is_speaking          = false;
+check_timer          = 0;
+speaking_timer       = 0;
+current_viseme_data  = [];   // [{t:0-1, v:0-21}] from SAPI5 pre-analysis; empty = fall back to cycling
+current_viseme_req   = -1;   // request ID for which current_viseme_data was loaded
 speaking_pause_timer = 0;  
 
 // --- 4. VISUAL HIGHLIGHTING ---

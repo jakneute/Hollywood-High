@@ -15,6 +15,33 @@ if (!$Text) { $Text = "Hello" }
 $HostPath = Join-Path $PSScriptRoot "TiSpeech.Host.exe"
 $DllDir = $PSScriptRoot
 
+# --- SAPI5 Viseme Pre-Analysis ---
+# Silently synthesizes the text using a Windows SAPI5 voice to capture phoneme
+# timing. Each VisemeReached event gives us a mouth-shape code (0-21) at a
+# millisecond offset. We normalize the offsets to 0.0-1.0 and write them to a
+# temp file that GML reads to drive mouth-open/closed animation instead of cycling.
+$script:_vis = [System.Collections.Generic.List[string]]::new()
+try {
+    Add-Type -AssemblyName System.Speech -ErrorAction Stop
+    $sapi = New-Object System.Speech.Synthesis.SpeechSynthesizer
+    $sapi.SetOutputToNull()
+    $sapi.add_VisemeReached({
+        param($s, $e)
+        $script:_vis.Add("$($e.AudioPosition.TotalMilliseconds):$([int]$e.Viseme)")
+    })
+    $sapi.Speak($Text)
+    $sapi.Dispose()
+    if ($script:_vis.Count -gt 0) {
+        $lastMs = [double]($script:_vis[$script:_vis.Count - 1] -split ':')[0]
+        if ($lastMs -gt 0) {
+            $out = ($script:_vis | ForEach-Object {
+                $p = $_ -split ':'; "$([Math]::Round([double]$p[0] / $lastMs, 3)):$($p[1])"
+            }) -join ','
+            $out | Set-Content -Path "$DllDir\talkit_vis_$Req.tmp" -NoNewline -Encoding UTF8
+        }
+    }
+} catch { }  # No SAPI5 voices or unavailable — mouth will cycle normally
+
 # Get parent process (the game) to monitor its life
 $Parent = $null
 try {

@@ -1118,6 +1118,24 @@ if (playing_block_index != -1 && playing_block_index < array_length(script_block
                         if (_perc > 0) speaking_index = max(speaking_index, _perc * string_length(_b.text));
                     }
                 }
+                // Read viseme timeline once per request (PS1 writes this before TalkIt speaks)
+                if (_req_to_check != current_viseme_req) {
+                    var _vis_file = working_directory + "talkit\\talkit_vis_" + string(_req_to_check) + ".tmp";
+                    if (file_exists(_vis_file)) {
+                        current_viseme_req  = _req_to_check;
+                        current_viseme_data = [];
+                        var _vf = file_text_open_read(_vis_file);
+                        if (_vf != -1) {
+                            var _vs = ""; while (!file_text_eof(_vf)) { _vs += file_text_readln(_vf); } file_text_close(_vf);
+                            var _pairs = string_split(_vs, ",");
+                            for (var _vi = 0; _vi < array_length(_pairs); _vi++) {
+                                var _vp = string_split(_pairs[_vi], ":");
+                                if (array_length(_vp) >= 2) array_push(current_viseme_data, { t: real(_vp[0]), v: real(_vp[1]) });
+                            }
+                        }
+                        file_delete(_vis_file);
+                    }
+                }
             }
         }
 
@@ -1527,8 +1545,9 @@ if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_p
                     _b.tts_req = _req;
                     array_push(active_requests, _req);
                     if (!is_speaking) {
-                        is_speaking = true;
-                        speaking_index = 0; // Reset progress for the primary line
+                        is_speaking         = true;
+                        current_viseme_data = []; // will be filled lazily from vis file
+                        speaking_index      = 0; // Reset progress for the primary line
                         var _v_len = max(1, string_length(_b.text));
                         var _p_len = max(1, string_length(_phonetic_text));
                         speaking_phonetic_ratio = _v_len / _p_len;
