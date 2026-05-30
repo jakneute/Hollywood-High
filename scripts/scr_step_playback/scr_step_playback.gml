@@ -378,6 +378,26 @@ function step_tts_playback() {
                             }
                             speaking_pause_timer = max(speaking_pause_timer, 6);
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                    } else if (string_pos("looks ", _aname) > 0) {
+                        if (_act_idx != -1) {
+                            var _lp = string_pos("looks ", _aname) + 6;
+                            var _ap = string_pos(" and pose ", _aname);
+                            var _mood_str = string_upper(string_trim(string_copy(_aname, _lp, (_ap > 0) ? _ap - _lp : 999)));
+                            for (var m = 0; m < array_length(mood_names); m++) {
+                                if (mood_names[m] == _mood_str) { preview_actors[_act_idx].expression = m + 1; break; }
+                            }
+                            if (_ap > 0) {
+                                var _pn = real(string_copy(_aname, _ap + 10, 1));
+                                if (_pn >= 1 && _pn <= 4) preview_actors[_act_idx].pose = _pn;
+                            }
+                            speaking_pause_timer = max(speaking_pause_timer, 6);
+                        } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                    } else if (string_pos("pose ", _aname) > 0) {
+                        if (_act_idx != -1) {
+                            var _pn = real(string_copy(_aname, string_pos("pose ", _aname) + 5, 1));
+                            if (_pn >= 1 && _pn <= 4) preview_actors[_act_idx].pose = _pn;
+                            speaking_pause_timer = max(speaking_pause_timer, 6);
+                        } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                     } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                 } else {
                     var _is_empty = true;

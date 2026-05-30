@@ -314,6 +314,14 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                         preview_actors[_act_idx].y = _b.target_y;
                         char_facings[_b.char_index] = preview_actors[_act_idx].facing;
                     }
+                } else if (string_pos("expression:", _aname) > 0) {
+                    if (_act_idx != -1) {
+                        var _colon_p = string_pos(":", _aname);
+                        var _mood_str = string_upper(string_trim(string_copy(_aname, _colon_p + 1, 999)));
+                        for (var m = 0; m < array_length(mood_names); m++) {
+                            if (mood_names[m] == _mood_str) { preview_actors[_act_idx].expression = m + 1; break; }
+                        }
+                    }
                 } else if (string_pos("poses", _aname) > 0) {
                     if (_act_idx != -1) {
                         var _p_pos = string_pos("poses ", _aname);
@@ -328,6 +336,24 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                                 if (mood_names[m] == _mood_str) { preview_actors[_act_idx].expression = m + 1; break; }
                             }
                         }
+                    }
+                } else if (string_pos("looks ", _aname) > 0) {
+                    if (_act_idx != -1) {
+                        var _lp = string_pos("looks ", _aname) + 6;
+                        var _ap = string_pos(" and pose ", _aname);
+                        var _mood_str = string_upper(string_trim(string_copy(_aname, _lp, (_ap > 0) ? _ap - _lp : 999)));
+                        for (var m = 0; m < array_length(mood_names); m++) {
+                            if (mood_names[m] == _mood_str) { preview_actors[_act_idx].expression = m + 1; break; }
+                        }
+                        if (_ap > 0) {
+                            var _pn = real(string_copy(_aname, _ap + 10, 1));
+                            if (_pn >= 1 && _pn <= 4) preview_actors[_act_idx].pose = _pn;
+                        }
+                    }
+                } else if (string_pos("pose ", _aname) > 0) {
+                    if (_act_idx != -1) {
+                        var _pn = real(string_copy(_aname, string_pos("pose ", _aname) + 5, 1));
+                        if (_pn >= 1 && _pn <= 4) preview_actors[_act_idx].pose = _pn;
                     }
                 }
             }

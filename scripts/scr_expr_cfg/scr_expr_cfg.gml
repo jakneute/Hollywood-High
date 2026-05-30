@@ -191,8 +191,7 @@ function expr_cfg_apply_baseline(_all = false) {
             var _ef_ok = file_exists(_folder + _ef);
             var _mf_ok = file_exists(_folder + _mf);
 
-            var _cfg = expr_cfg_configs[_p][_d];
-            if (_cfg == undefined) _cfg = expr_cfg_auto_fill(_p, _d == 1);
+            var _cfg = expr_cfg_configs[_p][_d] ?? expr_cfg_auto_fill(_p, _d == 1);
 
             if (!variable_struct_exists(_cfg, "eyes_files"))  _cfg.eyes_files  = {};
             if (!variable_struct_exists(_cfg, "mouth_files")) _cfg.mouth_files = {};

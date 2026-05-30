@@ -1,5 +1,15 @@
 /// @description Character sprite loading and compositing functions.
 
+function get_pose_label(_char_index, _pose_num) {
+    if (_char_index >= 0 && _char_index < array_length(characters)) {
+        var _c = characters[_char_index];
+        if (variable_struct_exists(_c, "pose_labels") && _pose_num >= 1 && _pose_num <= array_length(_c.pose_labels)) {
+            return _c.pose_labels[_pose_num - 1];
+        }
+    }
+    return "pose " + string(_pose_num);
+}
+
 function get_character_sprite(_char_index) {
     if (_char_index < 0 || _char_index >= array_length(characters)) return -1;
     var _c = characters[_char_index];
@@ -309,9 +319,12 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
     var _layer_mouth = { spr: _mouth_spr, dx: _mouth_dx + _bdx_c,  dy: _mouth_dy + _bdy_c,  is_mouth: true };
     var _layer_eyes  = { spr: _eyes_spr,  dx: _eyes_dx  + _bdx_c,  dy: _eyes_dy  + _bdy_c  };
 
-    // face_over_mouth: draw face after mouth so long noses always overlay mouth frames
-    if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "face_over_mouth") && _ecfg_pc.face_over_mouth) {
-        return [_layer_body, _layer_mouth, _layer_face, _layer_eyes];
+    // Body is always at index 0 so dimension lookups never break.
+    // Draw-order overrides are encoded as flags on the body layer and resolved in draw_composite_character_ext.
+    if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "body_over_face") && _ecfg_pc.body_over_face) {
+        _layer_body.body_over_face = true;
+    } else if (_ecfg_pc != undefined && variable_struct_exists(_ecfg_pc, "face_over_mouth") && _ecfg_pc.face_over_mouth) {
+        _layer_body.face_over_mouth = true;
     }
     return [_layer_body, _layer_face, _layer_mouth, _layer_eyes];
 }
@@ -532,8 +545,17 @@ function draw_composite_character_ext(_layers, _draw_x, _draw_y, _scale, _alpha,
     var _old_filter = gpu_get_texfilter();
     gpu_set_texfilter(false);
 
-    for (var _li = 0; _li < array_length(_layers); _li++) {
-        var _l = _layers[_li];
+    // Draw order: body always at index 0, flags on it control rendering sequence
+    var _ord = [0, 1, 2, 3];
+    if (array_length(_layers) == 4 && _layers[0].spr != -1) {
+        if (variable_struct_exists(_layers[0], "body_over_face") && _layers[0].body_over_face) {
+            _ord = [1, 2, 0, 3]; // face, mouth, body, eyes
+        } else if (variable_struct_exists(_layers[0], "face_over_mouth") && _layers[0].face_over_mouth) {
+            _ord = [0, 2, 1, 3]; // body, mouth, face, eyes
+        }
+    }
+    for (var _li = 0; _li < array_length(_ord); _li++) {
+        var _l = _layers[_ord[_li]];
         if (_l.spr != -1) {
             draw_sprite_ext(_l.spr, 0, _l.dx - _min_x, _l.dy - _min_y, 1, 1, 0, c_white, 1);
         }
@@ -553,17 +575,14 @@ function draw_composite_character_ext(_layers, _draw_x, _draw_y, _scale, _alpha,
     var _surf_draw_x = _draw_x + _min_x * _scale;
     var _surf_draw_y = _draw_y + _min_y * _scale;
 
-    // Draw outline around the pre-composed surface if enabled
     if (_outline) {
-        gpu_set_fog(true, _outline_color, 0, 1);
-        for (var _ox = -_outline_width; _ox <= _outline_width; _ox += _outline_width) {
-            for (var _oy = -_outline_width; _oy <= _outline_width; _oy += _outline_width) {
-                if (_ox != 0 || _oy != 0) {
-                    draw_surface_part_ext(global.composite_char_surface, 0, 0, _surf_w, _surf_h, _surf_draw_x + _ox, _surf_draw_y + _oy, _scale, _scale, c_white, _alpha);
-                }
-            }
+        var _ow = _outline_width;
+        var _out_offs = [[-_ow,0],[_ow,0],[0,-_ow],[0,_ow],[-_ow,-_ow],[_ow,-_ow],[-_ow,_ow],[_ow,_ow]];
+        for (var _oi = 0; _oi < 8; _oi++) {
+            draw_surface_part_ext(global.composite_char_surface, 0, 0, _surf_w, _surf_h,
+                _surf_draw_x + _out_offs[_oi][0], _surf_draw_y + _out_offs[_oi][1],
+                _scale, _scale, _outline_color, 1.0);
         }
-        gpu_set_fog(false, c_black, 0, 0);
     }
 
     // Draw the final seamless composite character

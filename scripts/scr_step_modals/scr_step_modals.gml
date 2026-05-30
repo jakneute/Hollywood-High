@@ -238,6 +238,108 @@ function step_modal_expression() {
     }
 }
 
+function step_modal_pose_expr() {
+    var _mx = mouse_x; var _my = mouse_y;
+    var _m_w = 1060; var _m_h = 520;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+
+    // Hover detection for pose
+    var _hov_pose = -1;
+    for (var i = 1; i <= 4; i++) {
+        var _by = _m_y + 38 + (i - 1) * 58;
+        if (_mx > _m_x + 12 && _mx < _m_x + 208 && _my > _by && _my < _by + 50) { _hov_pose = i; break; }
+    }
+
+    // Hover detection for expression
+    var _cols_ep = 4; var _col_w_ep = 118; var _row_h_ep = 44;
+    var _gx_ep = _m_x + 228; var _gy_ep = _m_y + 38;
+    var _hov_expr = -1;
+    for (var e = 1; e <= 20; e++) {
+        var _col = (e - 1) % _cols_ep; var _row = floor((e - 1) / _cols_ep);
+        var _ex = _gx_ep + _col * _col_w_ep; var _ey = _gy_ep + _row * _row_h_ep;
+        if (_mx > _ex + 2 && _mx < _ex + _col_w_ep - 2 && _my > _ey + 2 && _my < _ey + _row_h_ep - 2) { _hov_expr = e; break; }
+    }
+
+    // Update temp (hover preview)
+    pose_modal_temp_pose        = (_hov_pose != -1) ? _hov_pose : pose_modal_locked_pose;
+    expression_modal_temp_expr  = (_hov_expr != -1) ? _hov_expr : expression_modal_locked_expr;
+
+    if (mouse_check_button_pressed(mb_left)) {
+        if (_hov_pose != -1) { pose_modal_locked_pose = _hov_pose; pose_modal_temp_pose = _hov_pose; pose_expr_pose_touched = true; }
+        if (_hov_expr != -1) { expression_modal_locked_expr = _hov_expr; expression_modal_temp_expr = _hov_expr; pose_expr_expr_touched = true; }
+
+        // APPLY
+        var _can_apply = (pose_modal_locked_pose != -1 && expression_modal_locked_expr != -1);
+        var _ap_x = _m_x + 228; var _btn_y_pe = _m_y + _m_h - 52; var _btn_w_pe = 210; var _btn_h_pe = 40;
+        if (_can_apply && _mx > _ap_x && _mx < _ap_x + _btn_w_pe && _my > _btn_y_pe && _my < _btn_y_pe + _btn_h_pe) {
+            selected_pose       = pose_modal_locked_pose;
+            selected_expression = expression_modal_locked_expr;
+            var _char = characters[selected_character_index];
+            _char.pose       = selected_pose;
+            _char.expression = selected_expression;
+
+            // Apply to staging actors
+            if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                var _sb = script_blocks[active_scene_block_idx];
+                if (variable_struct_exists(_sb, "actors")) {
+                    for (var a = 0; a < array_length(_sb.actors); a++) {
+                        if (_sb.actors[a].char_index == selected_character_index) {
+                            _sb.actors[a].pose = selected_pose;
+                            _sb.actors[a].expression = selected_expression;
+                        }
+                    }
+                }
+            }
+            // Apply to preview actors
+            var _is_onstage = false;
+            for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                if (preview_actors[pa].char_index == selected_character_index) {
+                    preview_actors[pa].pose = selected_pose;
+                    preview_actors[pa].expression = selected_expression;
+                    _is_onstage = true;
+                }
+            }
+
+            // Insert/update action block
+            if ((_is_onstage || pose_modal_edit_mode || expression_modal_edit_mode) && !scene_edit_mode) {
+                var _expr_name = string_lower(mood_names[selected_expression - 1]);
+                var _action_text;
+                if (pose_expr_pose_touched && pose_expr_expr_touched) {
+                    _action_text = "looks " + _expr_name + " and pose " + string(selected_pose);
+                } else if (pose_expr_pose_touched) {
+                    _action_text = "pose " + string(selected_pose);
+                } else {
+                    _action_text = "looks " + _expr_name;
+                }
+                if (pose_modal_edit_mode && pose_modal_target_index != -1) {
+                    script_blocks[pose_modal_target_index].action_name = _action_text;
+                } else if (expression_modal_edit_mode && expression_modal_target_index != -1) {
+                    script_blocks[expression_modal_target_index].action_name = _action_text;
+                } else {
+                    var _new_a = { type: "action", char_index: selected_character_index, action_name: _action_text, height: 85 };
+                    var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                    array_insert(script_blocks, _insert_idx, _new_a);
+                    update_block_height(_insert_idx);
+                    focused_block = _insert_idx;
+                }
+            }
+
+            pose_expr_modal_open = false;
+            pose_modal_edit_mode = false; pose_modal_target_index = -1;
+            expression_modal_edit_mode = false; expression_modal_target_index = -1;
+            return;
+        }
+
+        // CANCEL
+        var _cx_pe = _ap_x + _btn_w_pe + 14;
+        if (_mx > _cx_pe && _mx < _cx_pe + _btn_w_pe && _my > _btn_y_pe && _my < _btn_y_pe + _btn_h_pe) {
+            pose_expr_modal_open = false;
+            pose_modal_edit_mode = false; expression_modal_edit_mode = false;
+            return;
+        }
+    }
+}
+
 function step_modal_action() {
     var _mx = mouse_x; var _my = mouse_y;
     var _mw = 900; var _mh = 550; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;

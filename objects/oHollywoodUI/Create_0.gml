@@ -73,6 +73,9 @@ expression_modal_temp_expr = 21;
 expression_modal_locked_expr = 21;
 expression_modal_edit_mode = false;
 expression_modal_target_index = -1;
+pose_expr_modal_open = false;
+pose_expr_pose_touched = false;
+pose_expr_expr_touched = false;
 selected_pose = 1;
 selected_expression = 21; // Default NEUTRAL
 mood_names = [
@@ -155,28 +158,28 @@ all_voices = tts_refresh_voices();
 // default_facing: 1 = low suffixes (03/05/06/11-22), -1 = high suffixes (53/55/56/61-72)
 characters = [
     { name: "NARRATOR",  voice_id: all_voices[0].voice_id,  pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1, act_index: 0,  pose: 1, expression: 21, default_facing:  1 },
-    { name: "GUS",       voice_id: all_voices[18].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1, act_index: 11, pose: 1, expression: 10, default_facing:  1 }, // mischievous
-    { name: "LILLY",     voice_id: all_voices[1].voice_id,  pitch: 60, speed: 45, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 12, pose: 1, expression:  1, default_facing: -1 }, // happy
-    { name: "MATT",      voice_id: all_voices[4].voice_id,  pitch: 40, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 13, pose: 1, expression:  6, default_facing:  1 }, // shy
-    { name: "JENNY",     voice_id: all_voices[2].voice_id,  pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 14, pose: 1, expression:  4, default_facing: -1 }, // cool
-    { name: "SUSAN",     voice_id: all_voices[7].voice_id,  pitch: 45, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 15, pose: 1, expression:  9, default_facing: -1 }, // frightened
-    { name: "GARY",      voice_id: all_voices[5].voice_id,  pitch: 30, speed: 35, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 16, pose: 1, expression:  8, default_facing:  1 }, // surprised
-    { name: "RUTH",      voice_id: all_voices[13].voice_id, pitch: 20, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 17, pose: 1, expression:  1, default_facing:  1 }, // happy
-    { name: "GLENN",     voice_id: all_voices[15].voice_id, pitch: 55, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 18, pose: 1, expression:  4, default_facing: -1 }, // cool
-    { name: "BABY",      voice_id: all_voices[3].voice_id,  pitch: 90, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 19, pose: 1, expression:  1, default_facing:  1 }, // happy
-    { name: "STELLA",    voice_id: all_voices[1].voice_id,  pitch: 55, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 20, pose: 1, expression:  1, default_facing:  1 }, // happy
-    { name: "ANNA",      voice_id: all_voices[2].voice_id,  pitch: 45, speed: 65, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 21, pose: 1, expression:  1, default_facing:  1 }, // happy
-    { name: "ED",        voice_id: all_voices[16].voice_id, pitch: 65, speed: 70, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 22, pose: 1, expression:  1, default_facing:  1 }, // happy
-    { name: "LARRY",     voice_id: all_voices[0].voice_id,  pitch: 40, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 1,  pose: 1, expression: 13, default_facing: -1 }, // confused
-    { name: "SID",       voice_id: all_voices[17].voice_id, pitch: 75, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 2,  pose: 1, expression:  4, default_facing: -1 }, // cool
-    { name: "TIFFANIE",  voice_id: all_voices[6].voice_id,  pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 3,  pose: 1, expression: 17, default_facing:  1 }, // pompous
-    { name: "ARTIE",     voice_id: all_voices[11].voice_id, pitch: 30, speed: 45, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 4,  pose: 1, expression:  7, default_facing:  1 }, // embarrassed
-    { name: "CHARLOTTE", voice_id: all_voices[1].voice_id,  pitch: 80, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 5,  pose: 1, expression: 15, default_facing: -1 }, // silly
-    { name: "CHUCK",     voice_id: all_voices[14].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 6,  pose: 1, expression:  6, default_facing:  1 }, // shy
-    { name: "BILLIE",    voice_id: all_voices[3].voice_id,  pitch: 85, speed: 70, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 7,  pose: 1, expression:  8, default_facing: -1 }, // surprised
-    { name: "JJ",        voice_id: all_voices[12].voice_id, pitch: 50, speed: 75, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 8,  pose: 1, expression:  5, default_facing:  1 }, // flirtatious
-    { name: "BEV",       voice_id: all_voices[7].voice_id,  pitch: 35, speed: 65, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 9,  pose: 1, expression: 11, default_facing:  1 }, // guilty
-    { name: "LUCILLE",   voice_id: all_voices[13].voice_id, pitch: 50, speed: 25, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 10, pose: 1, expression:  2, default_facing: -1 }  // sad
+    { name: "GUS",       voice_id: all_voices[18].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1, act_index: 11, pose: 1, expression: 10, default_facing:  1, pose_labels: ["stands straight", "leans back with arms crossed", "reads a magazine", "uses the phone"] }, // mischievous
+    { name: "LILLY",     voice_id: all_voices[1].voice_id,  pitch: 60, speed: 45, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 12, pose: 1, expression:  1, default_facing: -1, pose_labels: ["stands straight", "puts her hands on her hips", "holds some books", "uses the phone"] }, // happy
+    { name: "MATT",      voice_id: all_voices[4].voice_id,  pitch: 40, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 13, pose: 1, expression:  6, default_facing:  1, pose_labels: ["stands straight", "points", "crosses his arms", "uses the phone"] }, // shy
+    { name: "JENNY",     voice_id: all_voices[2].voice_id,  pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 14, pose: 1, expression:  4, default_facing: -1, pose_labels: ["stands straight", "points", "crosses her arms", "uses a microphone"] }, // cool
+    { name: "SUSAN",     voice_id: all_voices[7].voice_id,  pitch: 45, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 15, pose: 1, expression:  9, default_facing: -1, pose_labels: ["stands straight", "points", "puts her hands on her hips", "uses the phone"] }, // frightened
+    { name: "GARY",      voice_id: all_voices[5].voice_id,  pitch: 30, speed: 35, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 16, pose: 1, expression:  8, default_facing:  1, pose_labels: ["stands straight", "crosses his arms", "puts his hands on his hips", "uses the phone"] }, // surprised
+    { name: "RUTH",      voice_id: all_voices[13].voice_id, pitch: 20, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 17, pose: 1, expression:  1, default_facing:  1, pose_labels: ["stands straight", "crosses her arms", "puts her hands on her hips", "uses the phone"] }, // happy
+    { name: "GLENN",     voice_id: all_voices[15].voice_id, pitch: 55, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 18, pose: 1, expression:  4, default_facing: -1, pose_labels: ["stands straight", "crosses his arms", "puts his ", "uses the phone"] }, // cool
+    { name: "BABY",      voice_id: all_voices[3].voice_id,  pitch: 90, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 19, pose: 1, expression:  1, default_facing:  1, pose_labels: ["sits up straight", "leans to the side", "covers his eyes with his hands", "rests his chin in his hands"] }, // happy
+    { name: "STELLA",    voice_id: all_voices[1].voice_id,  pitch: 55, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 20, pose: 1, expression:  1, default_facing:  1, pose_labels: ["stands straight", "crosses her arms", "cups her hand", "uses the phone"] }, // happy
+    { name: "ANNA",      voice_id: all_voices[2].voice_id,  pitch: 45, speed: 65, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 21, pose: 1, expression:  1, default_facing:  1, pose_labels: ["stands straight", "holds some books", "puts her hands on her hips", "uses the phone"] }, // happy
+    { name: "ED",        voice_id: all_voices[16].voice_id, pitch: 65, speed: 70, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 22, pose: 1, expression:  1, default_facing:  1, pose_labels: ["stands straight", "puts his hands on his hips", "points", "uses the phone"] }, // happy
+    { name: "LARRY",     voice_id: all_voices[0].voice_id,  pitch: 40, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 1,  pose: 1, expression: 13, default_facing: -1, pose_labels: ["stands straight", "leans forward", "leans back and points", "uses the phone"] }, // confused
+    { name: "SID",       voice_id: all_voices[17].voice_id, pitch: 75, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 2,  pose: 1, expression:  4, default_facing: -1, pose_labels: ["stands straight", "leans forward and points", "leans back and crosses his arms", "uses the phone"] }, // cool
+    { name: "TIFFANIE",  voice_id: all_voices[6].voice_id,  pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 3,  pose: 1, expression: 17, default_facing:  1, pose_labels: ["stands straight", "points", "crosses her arms", "uses the phone"] }, // pompous
+    { name: "ARTIE",     voice_id: all_voices[11].voice_id, pitch: 30, speed: 45, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 4,  pose: 1, expression:  7, default_facing:  1, pose_labels: ["stands straight", "points", "leans back", "uses the phone"] }, // embarrassed
+    { name: "CHARLOTTE", voice_id: all_voices[1].voice_id,  pitch: 80, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 5,  pose: 1, expression: 15, default_facing: -1, pose_labels: ["stands straight", "leans forward and points", "crosses her arms", "uses the radio"] }, // silly
+    { name: "CHUCK",     voice_id: all_voices[14].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 6,  pose: 1, expression:  6, default_facing:  1, pose_labels: ["stands straight", "leans forward", "leans back", "uses the phone"] }, // shy
+    { name: "BILLIE",    voice_id: all_voices[3].voice_id,  pitch: 85, speed: 70, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 7,  pose: 1, expression:  8, default_facing: -1, pose_labels: ["stands straight", "leans forward", "leans back", "uses the phone"] }, // surprised
+    { name: "JJ",        voice_id: all_voices[12].voice_id, pitch: 50, speed: 75, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 8,  pose: 1, expression:  5, default_facing:  1, pose_labels: ["stands straight", "points", "leans back with arms crossed", "uses the phone"] }, // flirtatious
+    { name: "BEV",       voice_id: all_voices[7].voice_id,  pitch: 35, speed: 65, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 9,  pose: 1, expression: 11, default_facing:  1, pose_labels: ["stands straight", "leans forward", "leans back and points", "uses the phone"] }, // guilty
+    { name: "LUCILLE",   voice_id: all_voices[13].voice_id, pitch: 50, speed: 25, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 10, pose: 1, expression:  2, default_facing: -1, pose_labels: ["stands straight", "leans forward", "crosses her arms", "uses the phone"] }  // sad
 ];
 
 // Dynamic datafiles directory resolver (checks absolute project path for live development reads/writes)

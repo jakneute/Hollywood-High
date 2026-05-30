@@ -22,9 +22,7 @@ if (expr_cfg_open)         { step_modal_expr_cfg();    return; }
 
 if (move_modal_open)       { step_modal_movement();    return; }
 
-if (pose_modal_open)       { step_modal_pose();        return; }
-
-if (expression_modal_open) { step_modal_expression();  return; }
+if (pose_expr_modal_open)  { step_modal_pose_expr();   return; }
 
 if (action_modal_open)     { step_modal_action();      return; }
 
@@ -400,8 +398,8 @@ if (file_menu_open) {
 // --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
 if (mouse_check_button_pressed(mb_left)) {
     // Block interaction if any modal is open
-    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open);
-    
+    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open);
+
     if (!_overlay_active && playing_block_index == -1 && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
         if (!scene_edit_mode) focused_block = -1;
         selection_start = 0; selection_end = 0;
@@ -449,8 +447,8 @@ if (playing_block_index == -1 && scene_edit_mode && active_scene_block_idx != -1
         if (_mx > scene_win_x && _mx < scene_win_x + scene_win_w && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
             for (var a = array_length(_scene.actors) - 1; a >= 0; a--) {
                 var _act = _scene.actors[a];
-                var _spr = get_character_sprite(_act.char_index);
-                if (_spr == -1) { var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined); _spr = _tl[0].spr; }
+                var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined);
+                var _spr = _tl[0].spr;
                 if (_spr != -1) {
                     var _sw = sprite_get_width(_spr);
                     var _sh = sprite_get_height(_spr);
@@ -458,7 +456,8 @@ if (playing_block_index == -1 && scene_edit_mode && active_scene_block_idx != -1
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
                     var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-                    if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _ay - (_sh*_scale) && _my < _ay) {
+                    var _hit_top = _ay - (_sh + max(0, -_tl[1].dy)) * _scale;
+                    if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _hit_top && _my < _ay) {
                         dragging_actor_idx = a;
                         scene_edit_selected_actor_idx = a; // Select on click
                         selected_character_index = _act.char_index; // Sync global selection
@@ -578,15 +577,16 @@ if (!scene_edit_mode && !is_speaking && playing_block_index == -1 && active_scen
         if (_mx > scene_win_x && _mx < scene_win_x + scene_win_w && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
             for (var a = array_length(preview_actors) - 1; a >= 0; a--) {
                 var _act = preview_actors[a];
-                var _spr = get_character_sprite(_act.char_index);
-                if (_spr == -1) { var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined); _spr = _tl[0].spr; }
+                var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined);
+                var _spr = _tl[0].spr;
                 if (_spr != -1) {
                     var _sw = sprite_get_width(_spr);
                     var _sh = sprite_get_height(_spr);
                     var _scale = (scene_win_h * 1.5) / 450;
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
-                    if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _ay - (_sh*_scale) && _my < _ay) {
+                    var _hit_top = _ay - (_sh + max(0, -_tl[1].dy)) * _scale;
+                    if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _hit_top && _my < _ay) {
                         dragging_preview_idx = a;
                         drag_preview_char = _act.char_index;
                         drag_preview_x = _act.x;
@@ -759,41 +759,25 @@ if (mouse_check_button_pressed(mb_left)) {
             return;
         }
 
-        // POSE Button Click (disabled for Narrator)
+        // POSE / EXPR Combined Button Click (disabled for Narrator)
         var _is_narrator = (characters[selected_character_index].name == "NARRATOR");
-        if (!_is_narrator && _mx > btn_pose_x && _mx < btn_pose_x + btn_pose_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h) {
+        if (_mx > btn_pose_x && _mx < btn_expression_x + btn_expression_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h) {
+            if (_is_narrator) return;
             var _active_pose = selected_pose;
-            for (var pa = 0; pa < array_length(preview_actors); pa++) {
-                if (preview_actors[pa].char_index == selected_character_index) {
-                    _active_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : selected_pose;
-                    break;
-                }
-            }
-            pose_modal_temp_pose = _active_pose;
-            pose_modal_locked_pose = _active_pose;
-            pose_modal_open = true;
-            return;
-        }
-        if (_is_narrator && _mx > btn_pose_x && _mx < btn_pose_x + btn_pose_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h) {
-            return; // Silently block
-        }
-
-        // EXPRESSION Button Click (disabled for Narrator)
-        if (!_is_narrator && _mx > btn_expression_x && _mx < btn_expression_x + btn_expression_w && _my > btn_expression_y && _my < btn_expression_y + btn_expression_h) {
             var _active_expr = selected_expression;
             for (var pa = 0; pa < array_length(preview_actors); pa++) {
                 if (preview_actors[pa].char_index == selected_character_index) {
-                    _active_expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : selected_expression;
+                    _active_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : _active_pose;
+                    _active_expr = variable_struct_exists(preview_actors[pa], "expression") ? preview_actors[pa].expression : _active_expr;
                     break;
                 }
             }
-            expression_modal_temp_expr = _active_expr;
-            expression_modal_locked_expr = _active_expr;
-            expression_modal_open = true;
+            pose_modal_locked_pose       = _active_pose;  pose_modal_temp_pose       = _active_pose;
+            expression_modal_locked_expr = _active_expr;  expression_modal_temp_expr = _active_expr;
+            pose_expr_pose_touched = false;
+            pose_expr_expr_touched = false;
+            pose_expr_modal_open = true;
             return;
-        }
-        if (_is_narrator && _mx > btn_expression_x && _mx < btn_expression_x + btn_expression_w && _my > btn_expression_y && _my < btn_expression_y + btn_expression_h) {
-            return; // Silently block
         }
     }
 
@@ -902,7 +886,7 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     // EDIT VOICE Button
-    _overlay_active = (scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open);
+    _overlay_active = (scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open);
     if (!_overlay_active && !is_speaking && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
         focused_block = -1;
         selection_start = 0; selection_end = 0;
@@ -924,8 +908,8 @@ if (mouse_check_button_pressed(mb_left)) {
     var _wrap_w = box_w - 120; // Standardized wrap width
     
     var _found_block = focused_block;
-    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open);
-    
+    _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open);
+
     if (!_overlay_active && mouse_check_button_pressed(mb_left) && _mx > box_x - 50 && _mx < box_x + box_w && _my > box_y && _my < box_y + box_h) {
         var _cy = _clip_y + block_scroll_y;
         for (var i = 0; i < array_length(script_blocks); i++) {
@@ -1036,60 +1020,81 @@ if (mouse_check_button_pressed(mb_left)) {
                     }
                 }
                 else if (_is_action) {
-                    var _aname_u = string_upper(_block.action_name);
+                    var _aname_u  = string_upper(_block.action_name);
+                    var _aname_lo = string_lower(_block.action_name);
                     var _is_move      = (string_pos("MOVE", _aname_u) > 0 || string_pos("ENTER", _aname_u) > 0 || string_pos("EXIT", _aname_u) > 0);
-                    var _is_expr_only = (string_pos("EXPRESSION:", _aname_u) > 0);
-                    var _is_pose      = (!_is_expr_only && string_pos("POSES", _aname_u) > 0);
-                    
+                    var _has_looks    = (string_pos("looks ", _aname_lo) > 0);
+                    var _has_and_pose = (_has_looks && string_pos("and pose ", _aname_lo) > 0);
+                    var _is_expr_only = (string_pos("expression:", _aname_lo) > 0) || (_has_looks && !_has_and_pose);
+                    var _is_pose      = (!_is_expr_only) && (string_pos("poses ", _aname_lo) > 0 || _has_and_pose
+                                        || (string_pos("pose ", _aname_lo) > 0 && string_pos("poses ", _aname_lo) == 0 && !_has_looks));
+
                     if (_is_move) {
                         move_modal_open = true;
                         move_modal_target_index = i;
                         move_modal_edit_mode = true;
-                        
-                        // Load current block values into temp modal state
                         var _blk_spd = variable_struct_exists(_block, "speed") ? _block.speed : 1.9;
                         move_modal_temp_moonwalk = variable_struct_exists(_block, "moonwalk") ? _block.moonwalk : false;
-                        
-                        // Match the speed value to the nearest index
-                        move_modal_temp_speed_index = 2; // Default Walk
+                        move_modal_temp_speed_index = 2;
                         for (var j = 0; j < array_length(move_speeds); j++) {
-                            if (abs(move_speeds[j] - _blk_spd) < 0.01) {
-                                move_modal_temp_speed_index = j;
-                                break;
-                            }
+                            if (abs(move_speeds[j] - _blk_spd) < 0.01) { move_modal_temp_speed_index = j; break; }
                         }
                     } else if (_is_pose) {
-                        pose_modal_open = true;
-                        pose_modal_target_index = i;
-                        pose_modal_edit_mode = true;
                         selected_character_index = _block.char_index;
-
-                        var _p_start = string_pos("poses ", string_lower(_block.action_name)) + 6;
-                        var _p_end = string_pos(" ", string_copy(_block.action_name, _p_start, 999));
-                        if (_p_end > 0) {
-                            var _str_dig = string_digits(string_copy(_block.action_name, _p_start, _p_end));
-                            pose_modal_locked_pose = (_str_dig != "") ? real(_str_dig) : 1;
-                        } else {
-                            pose_modal_locked_pose = 1;
-                        }
-                        pose_modal_temp_pose = pose_modal_locked_pose;
-                    } else if (_is_expr_only) {
-                        expression_modal_open = true;
-                        expression_modal_edit_mode = true;
-                        expression_modal_target_index = i;
-                        selected_character_index = _block.char_index;
-
-                        // Parse "expression: MOODNAME" back to an index
-                        var _colon = string_pos(":", string_lower(_block.action_name));
-                        var _expr_idx = 21; // default neutral
-                        if (_colon > 0) {
-                            var _mood_str = string_upper(string_trim(string_copy(_block.action_name, _colon + 1, 999)));
-                            for (var _mi = 0; _mi < array_length(mood_names); _mi++) {
-                                if (mood_names[_mi] == _mood_str) { _expr_idx = _mi + 1; break; }
+                        // Parse pose number from any supported format
+                        var _e_idx = 21;
+                        var _p_num = 1;
+                        if (string_pos("poses ", _aname_lo) > 0) {
+                            var _p_start = string_pos("poses ", _aname_lo) + 6;
+                            var _p_end = string_pos(" ", string_copy(_aname_lo, _p_start, 999));
+                            _p_num = (_p_end > 0) ? real(string_digits(string_copy(_aname_lo, _p_start, _p_end))) : 1;
+                            // Parse expression from "(MOODNAME)"
+                            var _open_p = string_pos("(", _aname_lo); var _close_p = string_pos(")", _aname_lo);
+                            if (_open_p > 0 && _close_p > _open_p) {
+                                var _ms = string_upper(string_trim(string_copy(_block.action_name, _open_p + 1, _close_p - _open_p - 1)));
+                                for (var _mi = 0; _mi < array_length(mood_names); _mi++) { if (mood_names[_mi] == _ms) { _e_idx = _mi + 1; break; } }
                             }
+                        } else if (_has_and_pose) {
+                            var _ap = string_pos("and pose ", _aname_lo) + 9;
+                            _p_num = real(string_copy(_aname_lo, _ap, 1));
+                            var _lp = string_pos("looks ", _aname_lo) + 6;
+                            var _ms = string_upper(string_trim(string_copy(_aname_lo, _lp, _ap - 10 - _lp)));
+                            for (var _mi = 0; _mi < array_length(mood_names); _mi++) { if (mood_names[_mi] == _ms) { _e_idx = _mi + 1; break; } }
+                        } else {
+                            // "pose N" format
+                            var _pp = string_pos("pose ", _aname_lo) + 5;
+                            _p_num = real(string_copy(_aname_lo, _pp, 1));
                         }
-                        expression_modal_locked_expr = _expr_idx;
-                        expression_modal_temp_expr   = _expr_idx;
+                        if (_p_num < 1 || _p_num > 4) _p_num = 1;
+                        pose_modal_locked_pose = _p_num; pose_modal_temp_pose = _p_num;
+                        expression_modal_locked_expr = _e_idx; expression_modal_temp_expr = _e_idx;
+                        // touched flags: both for combined blocks, only pose for pose-only
+                        pose_expr_pose_touched = true;
+                        pose_expr_expr_touched = (_has_and_pose || string_pos("poses ", _aname_lo) > 0);
+                        pose_modal_edit_mode = true; pose_modal_target_index = i;
+                        pose_expr_modal_open = true;
+                    } else if (_is_expr_only) {
+                        selected_character_index = _block.char_index;
+                        var _e_idx = 21;
+                        if (string_pos("expression:", _aname_lo) > 0) {
+                            var _colon = string_pos(":", _aname_lo);
+                            var _ms = string_upper(string_trim(string_copy(_block.action_name, _colon + 1, 999)));
+                            for (var _mi = 0; _mi < array_length(mood_names); _mi++) { if (mood_names[_mi] == _ms) { _e_idx = _mi + 1; break; } }
+                        } else if (_has_looks) {
+                            var _lp = string_pos("looks ", _aname_lo) + 6;
+                            var _ms = string_upper(string_trim(string_copy(_aname_lo, _lp, 999)));
+                            for (var _mi = 0; _mi < array_length(mood_names); _mi++) { if (mood_names[_mi] == _ms) { _e_idx = _mi + 1; break; } }
+                        }
+                        expression_modal_locked_expr = _e_idx; expression_modal_temp_expr = _e_idx;
+                        var _cur_pose = selected_pose;
+                        for (var pa = 0; pa < array_length(preview_actors); pa++) {
+                            if (preview_actors[pa].char_index == _block.char_index) { _cur_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : _cur_pose; break; }
+                        }
+                        pose_modal_locked_pose = _cur_pose; pose_modal_temp_pose = _cur_pose;
+                        pose_expr_pose_touched = false;
+                        pose_expr_expr_touched = true;
+                        expression_modal_edit_mode = true; expression_modal_target_index = i;
+                        pose_expr_modal_open = true;
                     }
                 }
                 else if (_is_voice) {
