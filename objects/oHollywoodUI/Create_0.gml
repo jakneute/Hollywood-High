@@ -277,6 +277,39 @@ if (file_exists(_snd_pack_path)) {
     global.sounds_pack_header = json_parse(_header_str);
 }
 
+global.actors_pack_header = undefined;
+global.actors_pack_chars  = undefined; // lowercase_name → actual key prefix in pack (e.g. "artie" → "Artie")
+
+var _act_pack_path = working_directory + "actors.pack";
+if (file_exists(_act_pack_path)) {
+    var _size_buf = buffer_create(4, buffer_fixed, 1);
+    buffer_load_partial(_size_buf, _act_pack_path, 0, 4, 0);
+    var _header_sz = buffer_read(_size_buf, buffer_u32);
+    buffer_delete(_size_buf);
+
+    var _header_buf = buffer_create(_header_sz + 1, buffer_fixed, 1);
+    buffer_load_partial(_header_buf, _act_pack_path, 4, _header_sz, 0);
+    buffer_poke(_header_buf, _header_sz, buffer_u8, 0);
+    buffer_seek(_header_buf, buffer_seek_start, 0);
+    var _header_str = buffer_read(_header_buf, buffer_string);
+    buffer_delete(_header_buf);
+
+    global.actors_pack_header = json_parse(_header_str);
+
+    global.actors_pack_chars = {};
+    var _akeys = struct_get_names(global.actors_pack_header);
+    for (var _ai = 0; _ai < array_length(_akeys); _ai++) {
+        var _slash = string_pos("/", _akeys[_ai]);
+        if (_slash > 0) {
+            var _cn = string_copy(_akeys[_ai], 1, _slash - 1);
+            var _cn_lower = string_lower(_cn);
+            if (!variable_struct_exists(global.actors_pack_chars, _cn_lower)) {
+                global.actors_pack_chars[$ _cn_lower] = _cn;
+            }
+        }
+    }
+}
+
 // Scan scenes/ folder for custom/external backgrounds
 var _exts = ["*.png", "*.jpg", "*.jpeg"];
 for (var e = 0; e < array_length(_exts); e++) {
@@ -497,7 +530,7 @@ if (array_length(all_voices) > 0) {
 // EXPRESSION TILE CONFIGURATOR (debug tool — remove for final build)
 // ─────────────────────────────────────────────────────────────────
 // 4 poses × 2 directions (low = natural, high = flipped) = 8 configs per character.
-// Data saved to datafiles/actors/<Name>/expressions_config.json.
+// Data saved to datafiles/config/<Name>/expressions_config.json.
 
 // Set to false before shipping to hide the expression configurator entirely.
 SHOW_EXPR_CFG           = true;

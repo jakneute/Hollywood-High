@@ -14,10 +14,11 @@ function expr_cfg_auto_fill(_pose_num, _is_high) {
     var _sfx_off_af = _is_high ? 50 : 0;
     var _pfx_af = string(_ai_af) + string(_pose_num);
     var _folder_af = datafiles_path + "actors/" + _c_af.name + "/";
+    var _cfg_af = datafiles_path + "config/" + _c_af.name + "/";
 
     var _off_af = undefined;
-    if (file_exists(_folder_af + "offsets.json")) {
-        var _s = ""; var _f = file_text_open_read(_folder_af + "offsets.json");
+    if (file_exists(_cfg_af + "offsets.json")) {
+        var _s = ""; var _f = file_text_open_read(_cfg_af + "offsets.json");
         while (!file_text_eof(_f)) { _s += file_text_readln(_f); }
         file_text_close(_f); _off_af = json_parse(_s);
     }
@@ -233,7 +234,7 @@ function open_expr_configurator(_char_idx) {
     for (var _i2 = 1; _i2 <= 4; _i2++) expr_cfg_configs[_i2] = [undefined, undefined];
 
     var _c_oc = characters[_char_idx];
-    var _folder_oc = datafiles_path + "actors/" + _c_oc.name + "/";
+    var _folder_oc = datafiles_path + "config/" + _c_oc.name + "/";
     var _existing = {};
     if (file_exists(_folder_oc + "expressions_config.json")) {
         var _s2 = ""; var _f2 = file_text_open_read(_folder_oc + "expressions_config.json");
@@ -264,7 +265,7 @@ function open_expr_configurator(_char_idx) {
 // Stages config for disk write; actual write happens in Step (file_text_write scope restriction).
 function save_expr_config() {
     var _c_sv = characters[expr_cfg_char_idx];
-    var _folder_sv = datafiles_path + "actors/" + _c_sv.name + "/";
+    var _folder_sv = datafiles_path + "config/" + _c_sv.name + "/";
     var _out = {};
     for (var _p3 = 1; _p3 <= 4; _p3++) {
         for (var _d3 = 0; _d3 <= 1; _d3++) {

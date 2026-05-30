@@ -80,5 +80,8 @@ datafiles/scenes_backup/
 datafiles/sounds/
 datafiles/sounds_backup/
 
+# Voice config (machine-specific, regenerated at runtime)
+datafiles/voice_config.json
+
 # Ignore custom scripts
 scripts/custom/
