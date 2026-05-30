@@ -201,6 +201,17 @@ function expr_cfg_apply_baseline(_all = false) {
             _cfg.eyes_files[$  _expr_key] = _ef_ok ? _ef : "";
             _cfg.mouth_files[$ _expr_key] = _mf_ok ? _mf : "";
 
+            // Initialise expr offsets to 0 so the renderer uses offsets.json directly
+            // instead of falling through to the stale auto-fill dx/dy stored in the config.
+            if (!variable_struct_exists(_cfg, "eyes_dx_expr_offsets"))  _cfg.eyes_dx_expr_offsets  = {};
+            if (!variable_struct_exists(_cfg, "eyes_dy_expr_offsets"))  _cfg.eyes_dy_expr_offsets  = {};
+            if (!variable_struct_exists(_cfg, "mouth_dx_expr_offsets")) _cfg.mouth_dx_expr_offsets = {};
+            if (!variable_struct_exists(_cfg, "mouth_dy_expr_offsets")) _cfg.mouth_dy_expr_offsets = {};
+            _cfg.eyes_dx_expr_offsets[$  _expr_key] = 0;
+            _cfg.eyes_dy_expr_offsets[$  _expr_key] = 0;
+            _cfg.mouth_dx_expr_offsets[$ _expr_key] = 0;
+            _cfg.mouth_dy_expr_offsets[$ _expr_key] = 0;
+
             expr_cfg_configs[_p][_d] = _cfg;
         }
     }
