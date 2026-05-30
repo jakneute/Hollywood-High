@@ -5,7 +5,7 @@ function get_character_sprite(_char_index) {
     var _c = characters[_char_index];
     var _spr_nm = variable_struct_exists(_c, "sprite_name") ? _c.sprite_name : _c[$ "name"];
     if (ds_map_exists(char_sprites, _spr_nm)) return char_sprites[? _spr_nm];
-    var _path = datafiles_path + "images/characters/" + string_lower(_spr_nm) + ".png";
+    var _path = datafiles_path + "actors/" + string_lower(_spr_nm) + ".png";
     if (file_exists(_path)) {
         var _spr = sprite_add(_path, 1, false, false, 0, 0);
         ds_map_add(char_sprites, _spr_nm, _spr);
@@ -40,14 +40,14 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
     var _use_high = (_facing_override != undefined) && (_facing_override * _def_face == -1);
     var _sfx_off  = _use_high ? 50 : 0;
 
-    var _folder_path = datafiles_path + "images/characters/" + _spr_nm + "/";
+    var _folder_path = datafiles_path + "actors/" + _spr_nm + "/";
     if (!directory_exists(_folder_path)) {
-        _folder_path = datafiles_path + "images/characters/" + _dir_name + "/";
+        _folder_path = datafiles_path + "actors/" + _dir_name + "/";
     }
 
     if (!directory_exists(_folder_path)) {
-        var _bp = datafiles_path + "images/characters/" + _dir_name + ".png";
-        if (!file_exists(_bp)) _bp = datafiles_path + "images/characters/" + _spr_nm + ".png";
+        var _bp = datafiles_path + "actors/" + _dir_name + ".png";
+        if (!file_exists(_bp)) _bp = datafiles_path + "actors/" + _spr_nm + ".png";
         if (file_exists(_bp)) {
             var _fs;
             if (ds_map_exists(char_sprites, _spr_nm)) {
@@ -139,8 +139,8 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
             }
         }
         if (_lower_spr == -1) {
-            var _fb3 = datafiles_path + "images/characters/" + _dir_name + ".png";
-            if (!file_exists(_fb3)) _fb3 = datafiles_path + "images/characters/" + _spr_nm + ".png";
+            var _fb3 = datafiles_path + "actors/" + _dir_name + ".png";
+            if (!file_exists(_fb3)) _fb3 = datafiles_path + "actors/" + _spr_nm + ".png";
             if (file_exists(_fb3)) {
                 if (ds_map_exists(char_sprites, _spr_nm)) _lower_spr = char_sprites[? _spr_nm];
                 else { _lower_spr = sprite_add(_fb3, 1, false, false, 0, 0); ds_map_add(char_sprites, _spr_nm, _lower_spr); }
@@ -332,8 +332,8 @@ function get_mouth_anim_sprites(_char_index, _pose, _expression, _facing_overrid
     var _sfx_off  = _use_high ? 50 : 0;
 
     var _dir_name    = string_lower(_spr_nm);
-    var _folder_path = datafiles_path + "images/characters/" + _spr_nm + "/";
-    if (!directory_exists(_folder_path)) _folder_path = datafiles_path + "images/characters/" + _dir_name + "/";
+    var _folder_path = datafiles_path + "actors/" + _spr_nm + "/";
+    if (!directory_exists(_folder_path)) _folder_path = datafiles_path + "actors/" + _dir_name + "/";
     if (!directory_exists(_folder_path)) return [];
 
     var _act_idx = variable_struct_exists(_c, "act_index") ? _c.act_index : 1;
@@ -461,3 +461,114 @@ function get_mouth_anim_sprites(_char_index, _pose, _expression, _facing_overrid
     return _anim_frames;
 }
 
+// Renders composite character layers onto an offscreen 1:1 surface with nearest-neighbor,
+// then draws the merged surface to the screen at the target scale with linear filtering.
+// This completely eliminates seams and outlines between layers while providing beautiful, smooth scaling!
+function draw_composite_character_ext(_layers, _draw_x, _draw_y, _scale, _alpha, _color = c_white, _outline = false, _outline_width = 3, _outline_color = c_yellow, _scissor_clip = undefined) {
+    var _first_spr = -1;
+    for (var _i = 0; _i < array_length(_layers); _i++) {
+        if (_layers[_i].spr != -1) {
+            _first_spr = _layers[_i].spr;
+            break;
+        }
+    }
+    if (_first_spr == -1) return;
+
+    var _csw = sprite_get_width(_first_spr);
+    var _csh = sprite_get_height(_first_spr);
+
+    // Compute bounding box of all layers to fit the surface perfectly
+    var _min_x = undefined;
+    var _min_y = undefined;
+    var _max_x = undefined;
+    var _max_y = undefined;
+
+    for (var _li = 0; _li < array_length(_layers); _li++) {
+        var _l = _layers[_li];
+        if (_l.spr != -1) {
+            var _lw = sprite_get_width(_l.spr);
+            var _lh = sprite_get_height(_l.spr);
+            if (_min_x == undefined) {
+                _min_x = _l.dx;
+                _min_y = _l.dy;
+                _max_x = _l.dx + _lw;
+                _max_y = _l.dy + _lh;
+            } else {
+                _min_x = min(_min_x, _l.dx);
+                _min_y = min(_min_y, _l.dy);
+                _max_x = max(_max_x, _l.dx + _lw);
+                _max_y = max(_max_y, _l.dy + _lh);
+            }
+        }
+    }
+
+    if (_min_x == undefined) return;
+
+    var _surf_w = ceil(_max_x - _min_x);
+    var _surf_h = ceil(_max_y - _min_y);
+
+    if (_surf_w <= 0 || _surf_h <= 0) return;
+
+    // Use a persistent global surface to avoid recreation overhead
+    if (!variable_global_exists("composite_char_surface")) {
+        global.composite_char_surface = -1;
+    }
+
+    if (!surface_exists(global.composite_char_surface)) {
+        global.composite_char_surface = surface_create(_surf_w, _surf_h);
+    } else {
+        var _cur_w = surface_get_width(global.composite_char_surface);
+        var _cur_h = surface_get_height(global.composite_char_surface);
+        if (_cur_w < _surf_w || _cur_h < _surf_h) {
+            surface_free(global.composite_char_surface);
+            global.composite_char_surface = surface_create(max(_cur_w, _surf_w), max(_cur_h, _surf_h));
+        }
+    }
+
+    surface_set_target(global.composite_char_surface);
+    draw_clear_alpha(c_black, 0);
+
+    // Disable texture filtering while drawing elements to the 1:1 surface
+    var _old_filter = gpu_get_texfilter();
+    gpu_set_texfilter(false);
+
+    for (var _li = 0; _li < array_length(_layers); _li++) {
+        var _l = _layers[_li];
+        if (_l.spr != -1) {
+            draw_sprite_ext(_l.spr, 0, _l.dx - _min_x, _l.dy - _min_y, 1, 1, 0, c_white, 1);
+        }
+    }
+
+    surface_reset_target();
+
+    // Restore the scissor clip on the application surface target before drawing,
+    // so that the composed surface itself is drawn beautifully clipped to the window!
+    if (_scissor_clip != undefined) {
+        gpu_set_scissor(_scissor_clip[0], _scissor_clip[1], _scissor_clip[2], _scissor_clip[3]);
+    }
+
+    // Now draw the pre-composited surface to the screen with linear texture filtering
+    gpu_set_texfilter(true);
+
+    var _surf_draw_x = _draw_x + _min_x * _scale;
+    var _surf_draw_y = _draw_y + _min_y * _scale;
+
+    // Draw outline around the pre-composed surface if enabled
+    if (_outline) {
+        gpu_set_fog(true, _outline_color, 0, 1);
+        for (var _ox = -_outline_width; _ox <= _outline_width; _ox += _outline_width) {
+            for (var _oy = -_outline_width; _oy <= _outline_width; _oy += _outline_width) {
+                if (_ox != 0 || _oy != 0) {
+                    draw_surface_part_ext(global.composite_char_surface, 0, 0, _surf_w, _surf_h, _surf_draw_x + _ox, _surf_draw_y + _oy, _scale, _scale, c_white, _alpha);
+                }
+            }
+        }
+        gpu_set_fog(false, c_black, 0, 0);
+    }
+
+    // Draw the final seamless composite character
+    draw_surface_part_ext(global.composite_char_surface, 0, 0, _surf_w, _surf_h, _surf_draw_x, _surf_draw_y, _scale, _scale, _color, _alpha);
+
+    // Restore previous texture filter state
+    gpu_set_texfilter(_old_filter);
+}

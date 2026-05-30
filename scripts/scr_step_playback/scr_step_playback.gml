@@ -325,26 +325,23 @@ function step_tts_playback() {
                         }
                     } else if (string_pos("play sfx", _aname) > 0) {
                         if (variable_struct_exists(_b, "sfx_path")) {
-                            var _path = working_directory + _b.sfx_path;
-                            if (file_exists(_path)) {
+                            var _tmp_buf = load_sfx_buffer_by_path(_b.sfx_path);
+                            if (_tmp_buf != -1) {
                                 if (variable_struct_exists(_b, "last_sound") && _b.last_sound != -1) { audio_free_buffer_sound(_b.last_sound); _b.last_sound = -1; }
                                 if (variable_struct_exists(_b, "last_buffer") && _b.last_buffer != -1) { buffer_delete(_b.last_buffer); _b.last_buffer = -1; }
-                                var _tmp_buf = buffer_load(_path);
-                                if (_tmp_buf != -1) {
-                                    var _sz = buffer_get_size(_tmp_buf);
-                                    _b.last_buffer = buffer_create(_sz, buffer_fixed, 1);
-                                    buffer_copy(_tmp_buf, 0, _sz, _b.last_buffer, 0);
-                                    buffer_delete(_tmp_buf);
-                                    buffer_seek(_b.last_buffer, buffer_seek_start, 22); var _chan = buffer_read(_b.last_buffer, buffer_u16);
-                                    buffer_seek(_b.last_buffer, buffer_seek_start, 24); var _rate = buffer_read(_b.last_buffer, buffer_u32);
-                                    buffer_seek(_b.last_buffer, buffer_seek_start, 34); var _bits = buffer_read(_b.last_buffer, buffer_u16);
-                                    var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
-                                    var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
-                                    _b.last_sound = audio_create_buffer_sound(_b.last_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
-                                    if (_b.last_sound != -1) {
-                                        audio_play_sound(_b.last_sound, 1, false);
-                                        speaking_pause_timer = max(speaking_pause_timer, ceil(audio_sound_length(_b.last_sound) * 60));
-                                    } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                                var _sz = buffer_get_size(_tmp_buf);
+                                _b.last_buffer = buffer_create(_sz, buffer_fixed, 1);
+                                buffer_copy(_tmp_buf, 0, _sz, _b.last_buffer, 0);
+                                buffer_delete(_tmp_buf);
+                                buffer_seek(_b.last_buffer, buffer_seek_start, 22); var _chan = buffer_read(_b.last_buffer, buffer_u16);
+                                buffer_seek(_b.last_buffer, buffer_seek_start, 24); var _rate = buffer_read(_b.last_buffer, buffer_u32);
+                                buffer_seek(_b.last_buffer, buffer_seek_start, 34); var _bits = buffer_read(_b.last_buffer, buffer_u16);
+                                var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
+                                var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
+                                _b.last_sound = audio_create_buffer_sound(_b.last_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+                                if (_b.last_sound != -1) {
+                                    audio_play_sound(_b.last_sound, 1, false);
+                                    speaking_pause_timer = max(speaking_pause_timer, ceil(audio_sound_length(_b.last_sound) * 60));
                                 } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                             } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }

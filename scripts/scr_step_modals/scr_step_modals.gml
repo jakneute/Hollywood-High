@@ -299,24 +299,21 @@ function step_modal_action() {
                 if (action_modal_sfx_folder_idx != -1 && action_modal_sfx_file_idx != -1) {
                     var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
                     var _file = action_modal_sfx_files[action_modal_sfx_file_idx];
-                    var _snd_path = sfx_base_path + _folder + "/" + _file;
-                    if (file_exists(_snd_path)) {
+                    var _tmp_buf = load_sfx_buffer(_folder, _file);
+                    if (_tmp_buf != -1) {
                         if (test_sfx_sound != -1) { audio_free_buffer_sound(test_sfx_sound); test_sfx_sound = -1; }
                         if (test_sfx_buffer != -1) { buffer_delete(test_sfx_buffer); test_sfx_buffer = -1; }
-                        var _tmp_buf = buffer_load(_snd_path);
-                        if (_tmp_buf != -1) {
-                            var _sz = buffer_get_size(_tmp_buf);
-                            test_sfx_buffer = buffer_create(_sz, buffer_fixed, 1);
-                            buffer_copy(_tmp_buf, 0, _sz, test_sfx_buffer, 0);
-                            buffer_delete(_tmp_buf);
-                            buffer_seek(test_sfx_buffer, buffer_seek_start, 22); var _chan = buffer_read(test_sfx_buffer, buffer_u16);
-                            buffer_seek(test_sfx_buffer, buffer_seek_start, 24); var _rate = buffer_read(test_sfx_buffer, buffer_u32);
-                            buffer_seek(test_sfx_buffer, buffer_seek_start, 34); var _bits = buffer_read(test_sfx_buffer, buffer_u16);
-                            var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
-                            var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
-                            test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
-                            if (test_sfx_sound != -1) audio_play_sound(test_sfx_sound, 1, false);
-                        }
+                        var _sz = buffer_get_size(_tmp_buf);
+                        test_sfx_buffer = buffer_create(_sz, buffer_fixed, 1);
+                        buffer_copy(_tmp_buf, 0, _sz, test_sfx_buffer, 0);
+                        buffer_delete(_tmp_buf);
+                        buffer_seek(test_sfx_buffer, buffer_seek_start, 22); var _chan = buffer_read(test_sfx_buffer, buffer_u16);
+                        buffer_seek(test_sfx_buffer, buffer_seek_start, 24); var _rate = buffer_read(test_sfx_buffer, buffer_u32);
+                        buffer_seek(test_sfx_buffer, buffer_seek_start, 34); var _bits = buffer_read(test_sfx_buffer, buffer_u16);
+                        var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
+                        var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
+                        test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+                        if (test_sfx_sound != -1) audio_play_sound(test_sfx_sound, 1, false);
                     }
                 }
             }
@@ -372,7 +369,7 @@ function step_modal_action() {
                 else {
                     var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
                     var _sfx_file = action_modal_sfx_files[action_modal_sfx_file_idx];
-                    _sfx_path = "sounds/sfx/" + _folder + "/" + _sfx_file;
+                    _sfx_path = "sounds/" + _folder + "/" + _sfx_file;
                     _act_name = "Play SFX: " + string_replace(string_upper(_sfx_file), ".WAV", "");
                 }
             }

@@ -212,9 +212,70 @@ slider_drag = 0;
 
 // --- 6. SCENE ASSETS ---
 all_scenes = [];
+global.scenes_pack_header = undefined;
+global.scenes_pack_buffer = -1;
+
+var _pack_path = working_directory + "scenes.pack";
+if (file_exists(_pack_path)) {
+    // Read header size (first 4 bytes)
+    var _size_buf = buffer_create(4, buffer_fixed, 1);
+    buffer_load_partial(_size_buf, _pack_path, 0, 4, 0);
+    var _header_sz = buffer_read(_size_buf, buffer_u32);
+    buffer_delete(_size_buf);
+    
+    // Read JSON header string
+    var _header_buf = buffer_create(_header_sz + 1, buffer_fixed, 1);
+    buffer_load_partial(_header_buf, _pack_path, 4, _header_sz, 0);
+    buffer_poke(_header_buf, _header_sz, buffer_u8, 0);
+    buffer_seek(_header_buf, buffer_seek_start, 0);
+    var _header_str = buffer_read(_header_buf, buffer_string);
+    buffer_delete(_header_buf);
+    
+    global.scenes_pack_header = json_parse(_header_str);
+    
+    // Populate all_scenes from pack header keys
+    var _keys = struct_get_names(global.scenes_pack_header);
+    for (var i = 0; i < array_length(_keys); i++) {
+        var _fname = _keys[i];
+        
+        var _name = _fname;
+        _name = string_replace(_name, ".png", "");
+        _name = string_replace(_name, ".jpg", "");
+        _name = string_replace(_name, ".jpeg", "");
+        
+        if (string_pos("_mask", _name) > 0) continue;
+        
+        var _disp_name = string_upper(string_char_at(_name, 1)) + string_copy(_name, 2, string_length(_name)-1);
+        array_push(all_scenes, { name: _disp_name, internal_name: _name, sprite: -1, path: "scenes/" + _fname, is_custom: false });
+    }
+}
+
+global.sounds_pack_header = undefined;
+global.sounds_pack_buffer = -1;
+
+var _snd_pack_path = working_directory + "sounds.pack";
+if (file_exists(_snd_pack_path)) {
+    // Read header size (first 4 bytes)
+    var _size_buf = buffer_create(4, buffer_fixed, 1);
+    buffer_load_partial(_size_buf, _snd_pack_path, 0, 4, 0);
+    var _header_sz = buffer_read(_size_buf, buffer_u32);
+    buffer_delete(_size_buf);
+    
+    // Read JSON header string
+    var _header_buf = buffer_create(_header_sz + 1, buffer_fixed, 1);
+    buffer_load_partial(_header_buf, _snd_pack_path, 4, _header_sz, 0);
+    buffer_poke(_header_buf, _header_sz, buffer_u8, 0);
+    buffer_seek(_header_buf, buffer_seek_start, 0);
+    var _header_str = buffer_read(_header_buf, buffer_string);
+    buffer_delete(_header_buf);
+    
+    global.sounds_pack_header = json_parse(_header_str);
+}
+
+// Scan scenes/ folder for custom/external backgrounds
 var _exts = ["*.png", "*.jpg", "*.jpeg"];
 for (var e = 0; e < array_length(_exts); e++) {
-    var _fname = file_find_first(working_directory + "images/backgrounds/" + _exts[e], 0);
+    var _fname = file_find_first(datafiles_path + "scenes/" + _exts[e], 0);
     while (_fname != "") {
         var _name = _fname;
         _name = string_replace(_name, ".png", "");
@@ -227,8 +288,19 @@ for (var e = 0; e < array_length(_exts); e++) {
             continue;
         }
         
-        var _disp_name = string_upper(string_char_at(_name, 1)) + string_copy(_name, 2, string_length(_name)-1);
-        array_push(all_scenes, { name: _disp_name, internal_name: _name, sprite: -1, path: "backgrounds/" + _fname });
+        // Check if this background name is already loaded from the pack
+        var _already_loaded = false;
+        for (var s = 0; s < array_length(all_scenes); s++) {
+            if (all_scenes[s].internal_name == _name) {
+                _already_loaded = true;
+                break;
+            }
+        }
+        
+        if (!_already_loaded) {
+            var _disp_name = string_upper(string_char_at(_name, 1)) + string_copy(_name, 2, string_length(_name)-1) + " (Custom)";
+            array_push(all_scenes, { name: _disp_name, internal_name: _name, sprite: -1, path: "scenes/" + _fname, is_custom: true });
+        }
         _fname = file_find_next();
     }
     file_find_close();
@@ -290,7 +362,7 @@ action_modal_sfx_dragging_folder = false;
 action_modal_sfx_dragging_file = false;
 test_sfx_sound = -1;
 test_sfx_buffer = -1;
-sfx_base_path = working_directory + "sounds/sfx/";
+sfx_base_path = datafiles_path + "sounds/";
 
 // refresh_sfx_folders = function() — defined in scr_scene/scr_utils/scr_expr_cfg
 
@@ -420,7 +492,7 @@ if (array_length(all_voices) > 0) {
 // EXPRESSION TILE CONFIGURATOR (debug tool — remove for final build)
 // ─────────────────────────────────────────────────────────────────
 // 4 poses × 2 directions (low = natural, high = flipped) = 8 configs per character.
-// Data saved to datafiles/images/characters/<Name>/expressions_config.json.
+// Data saved to datafiles/actors/<Name>/expressions_config.json.
 
 // Set to false before shipping to hide the expression configurator entirely.
 SHOW_EXPR_CFG           = true;
@@ -462,8 +534,9 @@ for (var _i = 1; _i <= 4; _i++) expr_cfg_configs[_i] = [undefined, undefined];
 expr_cfg_pending_save_path = "";
 expr_cfg_pending_save_data = "";
 
-// Defringe shader uniform — eliminates anti-aliasing fringe on mouth sprites
-defringe_u_texel = shader_is_compiled(shd_defringe) ? shader_get_uniform(shd_defringe, "u_texel_size") : -1;
+expr_cfg_qfill_eyes   = "21";
+expr_cfg_qfill_mouth  = "36";
+expr_cfg_qfill_active = -1;   // 0 = eyes field focused, 1 = mouth field focused
 
 expr_cfg_pan_x    = 0;        // preview pan offset in screen pixels
 expr_cfg_pan_y    = 0;

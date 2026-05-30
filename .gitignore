@@ -71,4 +71,14 @@ Build/
 # Ignore the scratch and extraction folder
 scratch/
 **/node_modules/
-**/extracted_assets/
+**/extracted_assets/
+.claude/
+
+# Ignore custom backgrounds and sound directories (and backups)
+datafiles/scenes/
+datafiles/scenes_backup/
+datafiles/sounds/
+datafiles/sounds_backup/
+
+# Ignore binary pack archives
+datafiles/*.pack

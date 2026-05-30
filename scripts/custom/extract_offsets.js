@@ -2,7 +2,7 @@
  * extract_offsets.js
  *
  * Reads ACTORS*.RF files and writes offsets.json into each character's
- * datafiles/images/characters/<Name>/ folder.  No image decompression —
+ * datafiles/actors/<Name>/ folder.  No image decompression —
  * header-only scan so it runs in seconds.
  *
  * Usage:
@@ -32,7 +32,7 @@ const RF_FILES = ['ACTORS1.RF', 'ACTORS2.RF', 'ACTORS3.RF', 'ACTORS4.RF'];
 const scriptDir  = __dirname;
 const projectDir = path.resolve(scriptDir, '..', '..');
 const CD_PATH    = path.join(projectDir, 'Scratch', 'CD');
-const CHARS_BASE = path.join(projectDir, 'datafiles', 'images', 'characters');
+const CHARS_BASE = path.join(projectDir, 'datafiles', 'actors');
 
 // ── RF parsing ────────────────────────────────────────────────────────────────
 

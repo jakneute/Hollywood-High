@@ -13,7 +13,7 @@ function expr_cfg_auto_fill(_pose_num, _is_high) {
     var _ai_af = variable_struct_exists(_c_af, "act_index") ? _c_af.act_index : 1;
     var _sfx_off_af = _is_high ? 50 : 0;
     var _pfx_af = string(_ai_af) + string(_pose_num);
-    var _folder_af = datafiles_path + "images/characters/" + _c_af.name + "/";
+    var _folder_af = datafiles_path + "actors/" + _c_af.name + "/";
 
     var _off_af = undefined;
     if (file_exists(_folder_af + "offsets.json")) {
@@ -76,6 +76,94 @@ function expr_cfg_auto_fill(_pose_num, _is_high) {
     };
 }
 
+// Reads the currently resolved eye/mouth files for the active expression and extracts
+// the last 2 digits of each filename suffix into expr_cfg_qfill_eyes/mouth.
+function expr_cfg_get_baseline() {
+    var _c   = characters[expr_cfg_char_idx];
+    var _ai  = variable_struct_exists(_c, "act_index") ? _c.act_index : 1;
+    var _pc  = expr_cfg_get_pc();
+    var _off = expr_cfg_high ? 50 : 0;
+    var _pfx = string(_ai) + string(expr_cfg_pose);
+
+    var _eyes_file = "";
+    if (_pc != undefined && variable_struct_exists(_pc, "eyes_files")) {
+        var _ek = string(expr_cfg_preview_expr);
+        if (variable_struct_exists(_pc.eyes_files, _ek) && _pc.eyes_files[$ _ek] != "") _eyes_file = _pc.eyes_files[$ _ek];
+    }
+    if (_eyes_file == "") {
+        var _en = 10 + expr_cfg_preview_expr + _off;
+        _eyes_file = "pose_" + _pfx + ((_en < 10 ? "0" : "") + string(_en)) + ".png";
+    }
+
+    var _mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+    var _mood = _mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
+    var _mouth_file = "";
+    if (_pc != undefined && variable_struct_exists(_pc, "mouth_files")) {
+        var _ek = string(expr_cfg_preview_expr); var _mk = string(_mood);
+        if (variable_struct_exists(_pc.mouth_files, _ek) && _pc.mouth_files[$ _ek] != "") _mouth_file = _pc.mouth_files[$ _ek];
+        else if (variable_struct_exists(_pc.mouth_files, _mk) && _pc.mouth_files[$ _mk] != "") _mouth_file = _pc.mouth_files[$ _mk];
+    }
+    if (_mouth_file == "") {
+        var _mn = 31 + _mood + _off;
+        _mouth_file = "pose_" + _pfx + ((_mn < 10 ? "0" : "") + string(_mn)) + ".png";
+    }
+
+    // Extract last 2 chars before ".png" — those are the suffix digits
+    var _base_e = string_copy(_eyes_file,  1, string_length(_eyes_file)  - 4);
+    var _base_m = string_copy(_mouth_file, 1, string_length(_mouth_file) - 4);
+    expr_cfg_qfill_eyes  = string_copy(_base_e, string_length(_base_e)  - 1, 2);
+    expr_cfg_qfill_mouth = string_copy(_base_m, string_length(_base_m)  - 1, 2);
+}
+
+// Fills eyes_files / mouth_files across all 8 configs using the two entered suffixes.
+// For flipped poses the suffix is automatically base + 50. If the file doesn't exist the
+// slot is set to "" so the renderer falls back to its auto-generated name.
+// _all = true  → fill all 8 configs (bulk baseline, used by GET)
+// _all = false → fill only the currently selected pose + direction (fine-tune)
+function expr_cfg_apply_baseline(_all = false) {
+    var _c      = characters[expr_cfg_char_idx];
+    var _ai     = variable_struct_exists(_c, "act_index") ? _c.act_index : 1;
+    var _folder = datafiles_path + "actors/" + _c.name + "/";
+
+    var _eyes_base  = real(expr_cfg_qfill_eyes);
+    var _mouth_base = real(expr_cfg_qfill_mouth);
+    if (!is_real(_eyes_base) || !is_real(_mouth_base)) return;
+
+    var _p_lo = _all ? 1 : expr_cfg_pose;
+    var _p_hi = _all ? 4 : expr_cfg_pose;
+    var _d_lo = _all ? 0 : (expr_cfg_high ? 1 : 0);
+    var _d_hi = _all ? 1 : (expr_cfg_high ? 1 : 0);
+
+    for (var _p = _p_lo; _p <= _p_hi; _p++) {
+        for (var _d = _d_lo; _d <= _d_hi; _d++) {
+            var _off = (_d == 1) ? 50 : 0;
+            var _pfx = string(_ai) + string(_p);
+
+            var _en  = _eyes_base  + _off;
+            var _mn  = _mouth_base + _off;
+            var _esf = (_en < 10 ? "0" : "") + string(_en);
+            var _msf = (_mn < 10 ? "0" : "") + string(_mn);
+            var _ef  = "pose_" + _pfx + _esf + ".png";
+            var _mf  = "pose_" + _pfx + _msf + ".png";
+            var _ef_ok = file_exists(_folder + _ef);
+            var _mf_ok = file_exists(_folder + _mf);
+
+            var _cfg = expr_cfg_configs[_p][_d];
+            if (_cfg == undefined) _cfg = expr_cfg_auto_fill(_p, _d == 1);
+
+            if (!variable_struct_exists(_cfg, "eyes_files"))  _cfg.eyes_files  = {};
+            if (!variable_struct_exists(_cfg, "mouth_files")) _cfg.mouth_files = {};
+
+            var _expr_key = string(expr_cfg_preview_expr);
+            _cfg.eyes_files[$  _expr_key] = _ef_ok ? _ef : "";
+            _cfg.mouth_files[$ _expr_key] = _mf_ok ? _mf : "";
+
+            expr_cfg_configs[_p][_d] = _cfg;
+        }
+    }
+    if (ds_map_exists(char_expr_cache, _c.name)) ds_map_delete(char_expr_cache, _c.name);
+}
+
 function open_expr_configurator(_char_idx) {
     if (characters[_char_idx].name == "NARRATOR") return;
     expr_cfg_char_idx      = _char_idx;
@@ -85,11 +173,12 @@ function open_expr_configurator(_char_idx) {
     expr_cfg_selected_layer = 1;
     expr_cfg_drag          = false;
     expr_cfg_zoom          = 1.0;
+    expr_cfg_qfill_active  = -1;
     expr_cfg_configs       = array_create(5);
     for (var _i2 = 1; _i2 <= 4; _i2++) expr_cfg_configs[_i2] = [undefined, undefined];
 
     var _c_oc = characters[_char_idx];
-    var _folder_oc = datafiles_path + "images/characters/" + _c_oc.name + "/";
+    var _folder_oc = datafiles_path + "actors/" + _c_oc.name + "/";
     var _existing = {};
     if (file_exists(_folder_oc + "expressions_config.json")) {
         var _s2 = ""; var _f2 = file_text_open_read(_folder_oc + "expressions_config.json");
@@ -109,7 +198,7 @@ function open_expr_configurator(_char_idx) {
     expr_cfg_file_list   = [];
     expr_cfg_file_scroll = 0;
     expr_cfg_preview_mood = 0;
-    var _scan_folder = datafiles_path + "images/characters/" + characters[_char_idx].name + "/";
+    var _scan_folder = datafiles_path + "actors/" + characters[_char_idx].name + "/";
     var _scan_f = file_find_first(_scan_folder + "*.png", 0);
     while (_scan_f != "") { array_push(expr_cfg_file_list, _scan_f); _scan_f = file_find_next(); }
     file_find_close();
@@ -120,7 +209,7 @@ function open_expr_configurator(_char_idx) {
 // Stages config for disk write; actual write happens in Step (file_text_write scope restriction).
 function save_expr_config() {
     var _c_sv = characters[expr_cfg_char_idx];
-    var _folder_sv = datafiles_path + "images/characters/" + _c_sv.name + "/";
+    var _folder_sv = datafiles_path + "actors/" + _c_sv.name + "/";
     var _out = {};
     for (var _p3 = 1; _p3 <= 4; _p3++) {
         for (var _d3 = 0; _d3 <= 1; _d3++) {
@@ -210,6 +299,7 @@ function step_modal_expr_cfg() {
     var _drawy_s = _anch_ys - _bdh_s * _cfg_sc_s    + expr_cfg_pan_y;
 
     if (mouse_check_button_pressed(mb_left)) {
+        expr_cfg_qfill_active = -1; // deactivate on any click; re-set below if hitting a field
         if (_mx > _lx && _mx < _lx + 28 && _my > _nav_y_s && _my < _nav_y_s + 28) {
             expr_cfg_char_idx = (expr_cfg_char_idx - 1 + array_length(characters)) mod array_length(characters);
             open_expr_configurator(expr_cfg_char_idx);
@@ -226,11 +316,6 @@ function step_modal_expr_cfg() {
         if (_mx > _lx + 142 && _mx < _lx + 274 && _my > _dir_ys && _my < _dir_ys + 28) expr_cfg_high = true;
         for (var _li = 0; _li <= 3; _li++) {
             var _lbys = _layer_y0_s + _li * 52;
-            if (_li == 3 && _mx > _lx + 148 && _mx < _lx + 278 && _my > _lbys + 25 && _my < _lbys + 44 && _pc_s != undefined) {
-                var _cur_anch = variable_struct_exists(_pc_s, "mouth_anim_anchor") ? _pc_s.mouth_anim_anchor : 0;
-                _pc_s.mouth_anim_anchor = (_cur_anch >= 1) ? 0 : 1;
-                ds_map_clear(mouth_anim_cache);
-            }
             if (_mx > _lx && _mx < _lx + 280 && _my > _lbys && _my < _lbys + 46) expr_cfg_selected_layer = _li;
         }
         var _ecols_s = 5; var _eboxw_s = 52; var _eboxh_s = 36; var _egap_s = 4;
@@ -282,11 +367,7 @@ function step_modal_expr_cfg() {
             expr_cfg_drag_dx0 = _dx_map[$ _offset_key];
             expr_cfg_drag_dy0 = _dy_map[$ _offset_key];
         }
-        var _nom_ys = _esel_ys + 180;
-        if (_mx > _lx && _mx < _lx + 280 && _my > _nom_ys && _my < _nom_ys + 28 && _pc_s != undefined) {
-            _pc_s.face_over_mouth = !(variable_struct_exists(_pc_s, "face_over_mouth") && _pc_s.face_over_mouth);
-            if (ds_map_exists(char_expr_cache, _c_s.name)) ds_map_delete(char_expr_cache, _c_s.name);
-        }
+
 
         var _btn_ys = _m_y + _m_h - 52; var _btn_w = 50; var _btn_gap = 8;
         if (_mx > _lx && _mx < _lx + _btn_w && _my > _btn_ys && _my < _btn_ys + 40) save_expr_config();
@@ -294,9 +375,35 @@ function step_modal_expr_cfg() {
         if (_mx > _cls_x_new && _mx < _cls_x_new + _btn_w && _my > _btn_ys && _my < _btn_ys + 40) {
             expr_cfg_open = false; expr_cfg_drag = false;
         }
+
+        // Quick-fill field clicks
+        var _qf_y_s      = _btn_ys - 36;
+        var _qf_ex_s     = _lx + 38;
+        var _qf_mx_s     = _qf_ex_s + 82;
+        var _qf_get_xs   = _qf_mx_s + 38;
+        var _qf_apply_xs = _qf_get_xs + 46;
+        if (_mx > _qf_ex_s     && _mx < _qf_ex_s + 30     && _my > _qf_y_s && _my < _qf_y_s + 22) expr_cfg_qfill_active = 0;
+        if (_mx > _qf_mx_s     && _mx < _qf_mx_s + 30     && _my > _qf_y_s && _my < _qf_y_s + 22) expr_cfg_qfill_active = 1;
+        if (_mx > _qf_get_xs   && _mx < _qf_get_xs + 40   && _my > _qf_y_s && _my < _qf_y_s + 22) { expr_cfg_get_baseline(); expr_cfg_apply_baseline(true); }
+        if (_mx > _qf_apply_xs && _mx < _qf_apply_xs + 55 && _my > _qf_y_s && _my < _qf_y_s + 22) expr_cfg_apply_baseline(false);
     }
 
     if (!mouse_check_button(mb_left)) expr_cfg_drag = false;
+
+    // Keyboard input for quick-fill text fields
+    if (expr_cfg_qfill_active != -1) {
+        for (var _dk = ord("0"); _dk <= ord("9"); _dk++) {
+            if (keyboard_check_pressed(_dk)) {
+                if (expr_cfg_qfill_active == 0 && string_length(expr_cfg_qfill_eyes)  < 2) expr_cfg_qfill_eyes  += chr(_dk);
+                if (expr_cfg_qfill_active == 1 && string_length(expr_cfg_qfill_mouth) < 2) expr_cfg_qfill_mouth += chr(_dk);
+            }
+        }
+        if (keyboard_check_pressed(vk_backspace)) {
+            if (expr_cfg_qfill_active == 0) expr_cfg_qfill_eyes  = string_copy(expr_cfg_qfill_eyes,  1, max(0, string_length(expr_cfg_qfill_eyes)  - 1));
+            if (expr_cfg_qfill_active == 1) expr_cfg_qfill_mouth = string_copy(expr_cfg_qfill_mouth, 1, max(0, string_length(expr_cfg_qfill_mouth) - 1));
+        }
+        if (keyboard_check_pressed(vk_enter) || keyboard_check_pressed(vk_escape)) expr_cfg_qfill_active = -1;
+    }
 
     if (expr_cfg_drag && mouse_check_button(mb_left) && _pc_s != undefined) {
         var _ddx = round((_mx - expr_cfg_drag_mx0) / _cfg_sc_s);
@@ -378,7 +485,7 @@ function step_modal_expr_cfg() {
         }
     }
 
-    if (_pc_s != undefined) {
+    if (_pc_s != undefined && expr_cfg_qfill_active == -1) {
         var _rk = -1;
         if (keyboard_check(vk_left)) _rk = vk_left;
         else if (keyboard_check(vk_right)) _rk = vk_right;

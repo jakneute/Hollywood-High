@@ -56,7 +56,7 @@ var _render_live_titles = function() {
                 if (_sel_font != -1) draw_set_font(_sel_font);
                 var _wrap_w = theater_mode ? (1100 / _scl) : ((scene_win_w - 60) / _scl);
                 
-                gpu_set_texfilter(true); draw_set_color(c_black); draw_set_alpha(0.5); draw_text_ext_transformed(_tx + 2*_scl, _ty + 2*_scl, _txt, -1, _wrap_w, _scl, _scl, 0);
+                gpu_set_texfilter(false); draw_set_color(c_black); draw_set_alpha(0.5); draw_text_ext_transformed(_tx + 2*_scl, _ty + 2*_scl, _txt, -1, _wrap_w, _scl, _scl, 0);
                 draw_set_alpha(1.0); draw_set_color(_c); draw_text_ext_transformed(_tx, _ty, _txt, -1, _wrap_w, _scl, _scl, 0); gpu_set_texfilter(false);
                 draw_set_halign(fa_left); draw_set_valign(fa_top); if (_sel_font != -1) draw_set_font(-1);
             }
@@ -108,7 +108,7 @@ if (theater_mode) {
 	}
 
 	var draw_theater_actors = function(_stg_w, _stg_h, _stg_x, _stg_y, target_surface = -1) {
-		gpu_set_texfilter(true);
+		gpu_set_texfilter(false);
 		for (var i = 0; i < array_length(preview_actors); i++) {
 			var _act = preview_actors[i];
 			var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
@@ -191,6 +191,7 @@ if (theater_mode) {
 						_manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
 					}
 				}
+				var _final_layers = [];
 				for (var _li = 0; _li < array_length(_layers); _li++) {
 					var _l       = _layers[_li];
 					var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open;
@@ -198,15 +199,13 @@ if (theater_mode) {
 					var _lspr    = _is_anim ? _ae.spr : _l.spr;
 					var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
 					var _ldy     = _l.dy + (_is_anim ? _ae.dy : 0);
-					if (_lspr != -1) {
-						if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) {
-							shader_set(shd_defringe);
-							var _uvs = sprite_get_uvs(_lspr, 0);
-							shader_set_uniform_f(defringe_u_texel, (_uvs[2]-_uvs[0])/sprite_get_width(_lspr), (_uvs[3]-_uvs[1])/sprite_get_height(_lspr));
-						}
-						draw_sprite_ext(_lspr, 0, _draw_x + _ldx * _asc, _draw_y + _ldy * _asc, _asc, _asc, 0, c_white, 1);
-						if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) shader_reset();
-					}
+					array_push(_final_layers, { spr: _lspr, dx: _ldx, dy: _ldy });
+				}
+				var _clip = (target_surface == -1) ? [_stg_x, _stg_y, _stg_w, _stg_h] : undefined;
+				draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, 1, c_white, false, 3, c_yellow, _clip);
+				// Restore scissor clip for subsequent actors (since surface target switches clear it in GameMaker)
+				if (target_surface == -1) {
+					gpu_set_scissor(_stg_x, _stg_y, _stg_w, _stg_h);
 				}
 
 			}
@@ -395,7 +394,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	// --- Actor Drawing Logic ---
 	var draw_editor_actors = function(_s, target_surface = -1, _draw_outline = true, _draw_sprite = true) {
 		if (variable_struct_exists(_s, "actors")) {
-			gpu_set_texfilter(true);
+			gpu_set_texfilter(false);
 			for (var a = 0; a < array_length(preview_actors); a++) {
 				var _act = preview_actors[a];
 				
@@ -431,27 +430,6 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
                         }
 					}
 					var _alpha = (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) ? 0.5 : 1.0;
-					
-					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
-						gpu_set_fog(true, c_yellow, 0, 1);
-						var _ow = 3;
-						for (var _ol = 0; _ol < array_length(_layers); _ol++) {
-							var _oll = _layers[_ol];
-							if (_oll.spr == -1) continue;
-							var _olx = _draw_x + _oll.dx * _sc;
-							var _oly = _draw_y + _oll.dy * _sc;
-							draw_sprite_ext(_oll.spr, 0, _olx - _ow, _oly,       _sc, _sc, 0, c_white, 1);
-							draw_sprite_ext(_oll.spr, 0, _olx + _ow, _oly,       _sc, _sc, 0, c_white, 1);
-							draw_sprite_ext(_oll.spr, 0, _olx,       _oly - _ow, _sc, _sc, 0, c_white, 1);
-							draw_sprite_ext(_oll.spr, 0, _olx,       _oly + _ow, _sc, _sc, 0, c_white, 1);
-							draw_sprite_ext(_oll.spr, 0, _olx - _ow, _oly - _ow, _sc, _sc, 0, c_white, 1);
-							draw_sprite_ext(_oll.spr, 0, _olx + _ow, _oly - _ow, _sc, _sc, 0, c_white, 1);
-							draw_sprite_ext(_oll.spr, 0, _olx - _ow, _oly + _ow, _sc, _sc, 0, c_white, 1);
-							draw_sprite_ext(_oll.spr, 0, _olx + _ow, _oly + _ow, _sc, _sc, 0, c_white, 1);
-						}
-						gpu_set_fog(false, c_black, 0, 0);
-					}
-
 					var _mouth_anim = _char_is_speaking ? get_mouth_anim_sprites(_act.char_index, _pose, _expr, _aface) : [];
 					var _has_manim  = array_length(_mouth_anim) > 0;
 					var _manim_fi   = 0;
@@ -497,25 +475,26 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 							_manim_fi = floor(current_time / _mouth_ms) mod array_length(_mouth_anim);
 						}
 					}
-					if (_draw_sprite) {
-						for (var _li = 0; _li < array_length(_layers); _li++) {
-							var _l       = _layers[_li];
-							var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open;
-							var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
-							var _lspr    = _is_anim ? _ae.spr : _l.spr;
-							var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
-							var _ldy     = _l.dy + (_is_anim ? _ae.dy : 0);
-							if (_lspr != -1) {
-								if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) {
-									shader_set(shd_defringe);
-									var _uvs = sprite_get_uvs(_lspr, 0);
-									shader_set_uniform_f(defringe_u_texel, (_uvs[2]-_uvs[0])/sprite_get_width(_lspr), (_uvs[3]-_uvs[1])/sprite_get_height(_lspr));
-								}
-								draw_sprite_ext(_lspr, 0, _draw_x + _ldx * _sc, _draw_y + _ldy * _sc, _sc, _sc, 0, c_white, _alpha);
-								if (variable_struct_exists(_l, "is_mouth") && defringe_u_texel != -1) shader_reset();
-							}
-						}
 
+					var _final_layers = [];
+					for (var _li = 0; _li < array_length(_layers); _li++) {
+						var _l       = _layers[_li];
+						var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open;
+						var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
+						var _lspr    = _is_anim ? _ae.spr : _l.spr;
+						var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
+						var _ldy     = _l.dy + (_is_anim ? _ae.dy : 0);
+						array_push(_final_layers, { spr: _lspr, dx: _ldx, dy: _ldy });
+					}
+
+					if (_draw_sprite) {
+						var _draw_outline_now = (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index);
+						var _clip = (target_surface == -1) ? [scene_win_x, scene_win_y, scene_win_w, scene_win_h] : undefined;
+						draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _sc, _alpha, c_white, _draw_outline_now, 3, c_yellow, _clip);
+						// Restore scissor clip for subsequent actors (since surface target switches clear it in GameMaker)
+						if (target_surface == -1) {
+							gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+						}
 					}
 
 				}
@@ -716,11 +695,12 @@ for (var i = 0; i < array_length(characters); i++) {
     }
     // Use cached layers if pose/expr haven't changed — avoids ~5 file_exists calls per character per frame
     var _cached = (i < array_length(char_sel_layer_cache)) ? char_sel_layer_cache[i] : undefined;
+    var _ch_layers = undefined;
     if (_cached == undefined || _cached.pose != _sel_pose || _cached.expr != _sel_expr) {
-        var _ch_layers = get_composite_character_sprite(i, _sel_pose, _sel_expr);
+        _ch_layers = get_composite_character_sprite(i, _sel_pose, _sel_expr);
         char_sel_layer_cache[i] = { layers: _ch_layers, pose: _sel_pose, expr: _sel_expr };
     } else {
-        var _ch_layers = _cached.layers;
+        _ch_layers = _cached.layers;
     }
     var _spr = _ch_layers[0].spr; // Use the body sprite from the composite layers
     if (_spr != -1) {
@@ -733,12 +713,9 @@ for (var i = 0; i < array_length(characters); i++) {
         // Bottom-anchor: feet near the name label, face extends upward naturally
         var _sy    = _iy + _item_h - 22 - _body_h_ch * _sc;
         var _alpha = (dragging_char_index == i) ? 0.3 : 1.0;
-        gpu_set_texfilter(true);
-        for (var _li = 0; _li < array_length(_ch_layers); _li++) {
-            var _cl = _ch_layers[_li];
-            if (_cl.spr != -1) draw_sprite_ext(_cl.spr, 0, _sx + _cl.dx * _sc, _sy + _cl.dy * _sc, _sc, _sc, 0, c_white, _alpha);
-        }
-        gpu_set_texfilter(false);
+        draw_composite_character_ext(_ch_layers, _sx, _sy, _sc, _alpha, c_white, false, 3, c_yellow, [char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35]);
+        // Restore scissor clip for subsequent selector items (since surface target switches clear it in GameMaker)
+        gpu_set_scissor(char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35);
     }
     if (_is_sel && char_rename_active && char_rename_target == i) {
         // Inline rename field
@@ -849,12 +826,7 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
         var _gx = scene_win_x + _px - (_csw * _scale)/2;
         var _gy = scene_win_y + _py - (_csh * _scale);
-        gpu_set_texfilter(true);
-        for (var _gli = 0; _gli < array_length(_layers); _gli++) {
-            var _gl = _layers[_gli];
-            if (_gl.spr != -1) draw_sprite_ext(_gl.spr, 0, _gx + _gl.dx * _scale, _gy + _gl.dy * _scale, _scale, _scale, 0, _color, _alpha);
-        }
-        gpu_set_texfilter(false);
+        draw_composite_character_ext(_layers, _gx, _gy, _scale, _alpha, _color, false, 3, c_yellow, [scene_win_x, scene_win_y, scene_win_w, scene_win_h]);
         gpu_set_scissor(0, 0, 1280, 960);
     }
 }
@@ -1373,6 +1345,13 @@ if (scene_modal_open) {
     draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, false);
     draw_set_color(c_aqua); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, true);
     
+    if (array_length(all_scenes) == 0) {
+        draw_set_color(c_white);
+        draw_set_halign(fa_center);
+        draw_text_ext(_mxo + _mw/2, _myo + _mh/2 - 40, "No background scenes found!\n\nIf you just packed the scenes, please reload this project in GameMaker IDE (File -> Recent Projects -> Hollywood High) so the IDE registers the new 'scenes.pack' included file.", 22, 600);
+        draw_set_halign(fa_left);
+    }
+    
     var _max_h = 320; var _list_h = array_length(all_scenes) * 40; var _lw = 300;
     var _hov_idx = -1;
     gpu_set_scissor(_mxo+20, _myo+60, _lw, _max_h);
@@ -1775,12 +1754,7 @@ if (pose_modal_open) {
             var _draw_x = _pre_x + (_pre_w / 2) - (_csw * _sc / 2);
             // Bottom-anchor body inside the preview box
             var _draw_y = _pre_y + _pre_h - 10 - _csh * _sc;
-            gpu_set_texfilter(true);
-            for (var _li = 0; _li < array_length(_layers); _li++) {
-                var _l = _layers[_li];
-                if (_l.spr != -1) draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, 1);
-            }
-            gpu_set_texfilter(false);
+            draw_composite_character_ext(_layers, _draw_x, _draw_y, _sc, 1, c_white, false);
         }
     }
     
@@ -1809,7 +1783,7 @@ if (expression_modal_open) {
     draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "SELECT CHARACTER EXPRESSION");
 
     var _cols_em = 4;
-    var _col_w = 660 / _cols_em;
+    var _col_w_em = 660 / _cols_em;
     var _row_h = 52;
     var _gx = _m_x + 20;
     var _gy = _m_y + 55;
@@ -1817,12 +1791,12 @@ if (expression_modal_open) {
     for (var e = 1; e <= 20; e++) {
         var _col = (e - 1) % _cols_em;
         var _row = floor((e - 1) / _cols_em);
-        var _ex = _gx + _col * _col_w;
+        var _ex = _gx + _col * _col_w_em;
         var _ey = _gy + _row * _row_h;
 
         var _is_locked = (expression_modal_locked_expr == e);
         var _is_preview = (expression_modal_temp_expr == e);
-        var _hov_e = (_mx > _ex && _mx < _ex + _col_w && _my > _ey && _my < _ey + _row_h);
+        var _hov_e = (_mx > _ex && _mx < _ex + _col_w_em && _my > _ey && _my < _ey + _row_h);
 
         var _bg_col = make_color_rgb(30, 45, 35);
         if (_hov_e) _bg_col = make_color_rgb(50, 95, 62);
@@ -1891,14 +1865,12 @@ if (expression_modal_open) {
             var _draw_x = _box_cx - _head_cx * _sc;
             var _draw_y = _box_cy - _head_cy * _sc;
             
-            gpu_set_texfilter(true);
+            var _head_layers = [];
+            array_push(_head_layers, { spr: -1, dx: 0, dy: 0 });
             for (var _li = 1; _li <= 3; _li++) {
-                var _l = _layers[_li];
-                if (_l.spr != -1) {
-                    draw_sprite_ext(_l.spr, 0, _draw_x + _l.dx * _sc, _draw_y + _l.dy * _sc, _sc, _sc, 0, c_white, 1);
-                }
+                array_push(_head_layers, _layers[_li]);
             }
-            gpu_set_texfilter(false);
+            draw_composite_character_ext(_head_layers, _draw_x, _draw_y, _sc, 1, c_white, false);
         } else if (_layers[0].spr != -1) {
             // Fallback: draw full body centered
             var _body_w = sprite_get_width(_layers[0].spr);
@@ -1942,7 +1914,7 @@ if (expr_cfg_open) {
     var _c_ec = characters[expr_cfg_char_idx];
 
     // Load offsets.json for left panel total offset displays
-    var _folder_ec2 = datafiles_path + "images/characters/" + _c_ec.name + "/";
+    var _folder_ec2 = datafiles_path + "actors/" + _c_ec.name + "/";
     var _off_data = undefined;
     if (file_exists(_folder_ec2 + "offsets.json")) {
         var _s = ""; var _f = file_text_open_read(_folder_ec2 + "offsets.json");
@@ -1972,9 +1944,9 @@ if (expr_cfg_open) {
     draw_set_color(c_ltgray); draw_text(_lx, _pose_y + 3, "POSE");
     for (var _pi = 1; _pi <= 4; _pi++) {
         var _pbx = _lx + 45 + (_pi - 1) * 58;
-        var _p_hov = (!theater_mode && _mx > _pbx && _mx < _pbx + 48 && _my > _pose_y && _my < _pose_y + 28);
+        var _pi_hov = (!theater_mode && _mx > _pbx && _mx < _pbx + 48 && _my > _pose_y && _my < _pose_y + 28);
         var _p_sel = (expr_cfg_pose == _pi);
-        draw_set_color(_p_sel ? make_color_rgb(70, 110, 200) : (_p_hov ? make_color_rgb(45, 55, 80) : make_color_rgb(28, 32, 48)));
+        draw_set_color(_p_sel ? make_color_rgb(70, 110, 200) : (_pi_hov ? make_color_rgb(45, 55, 80) : make_color_rgb(28, 32, 48)));
         draw_roundrect_ext(_pbx, _pose_y, _pbx + 48, _pose_y + 28, 4, 4, false);
         draw_set_color(_p_sel ? c_white : c_ltgray);
         draw_set_halign(fa_center); draw_text(_pbx + 24, _pose_y + 5, string(_pi)); draw_set_halign(fa_left);
@@ -1986,8 +1958,8 @@ if (expr_cfg_open) {
     for (var _di = 0; _di <= 1; _di++) {
         var _dbx = _lx + _di * 142;
         var _d_sel = (expr_cfg_high == (_di == 1));
-        var _d_hov = (!theater_mode && _mx > _dbx && _mx < _dbx + 132 && _my > _dir_y && _my < _dir_y + 28);
-        draw_set_color(_d_sel ? make_color_rgb(50, 100, 60) : (_d_hov ? make_color_rgb(35, 50, 40) : make_color_rgb(25, 30, 28)));
+        var _di_hov = (!theater_mode && _mx > _dbx && _mx < _dbx + 132 && _my > _dir_y && _my < _dir_y + 28);
+        draw_set_color(_d_sel ? make_color_rgb(50, 100, 60) : (_di_hov ? make_color_rgb(35, 50, 40) : make_color_rgb(25, 30, 28)));
         draw_roundrect_ext(_dbx, _dir_y, _dbx + 132, _dir_y + 28, 4, 4, false);
         draw_set_color(_d_sel ? c_lime : c_ltgray);
         draw_set_halign(fa_center); draw_text(_dbx + 66, _dir_y + 5, _dir_labels[_di]); draw_set_halign(fa_left);
@@ -2094,17 +2066,7 @@ if (expr_cfg_open) {
             }
             
             draw_set_color(c_ltgray); draw_text(_lx + 8, _lby + 24, "dx:" + string(_ldx) + "  dy:" + string(_ldy));
-            // Mouth anchor toggle button (MOUTH layer only)
-            if (_li == 3) {
-                var _maa     = (variable_struct_exists(_pc_ec, "mouth_anim_anchor") && _pc_ec.mouth_anim_anchor >= 1);
-                var _maa_hov = (!theater_mode && _mx > _lx + 148 && _mx < _lx + 278 && _my > _lby + 25 && _my < _lby + 44);
-                draw_set_color(_maa ? make_color_rgb(30, 70, 110) : (_maa_hov ? make_color_rgb(35, 40, 55) : make_color_rgb(22, 26, 38)));
-                draw_roundrect_ext(_lx + 148, _lby + 25, _lx + 278, _lby + 44, 3, 3, false);
-                draw_set_color(_maa ? c_aqua : make_color_rgb(80, 85, 100));
-                draw_set_halign(fa_center);
-                draw_text(_lx + 213, _lby + 27, _maa ? "ANCHOR: OPEN" : "ANCHOR: CLOSED");
-                draw_set_halign(fa_left);
-            }
+
         }
     }
 
@@ -2234,22 +2196,42 @@ if (expr_cfg_open) {
         draw_set_halign(fa_left);
     }
 
-    // NOSE ON TOP toggle (face_over_mouth) — draws face layer after mouth so nose always overlays mouth frames
-    var _nom_y = _esel_y + 180;
-    var _nom_on = (_pc_ec != undefined && variable_struct_exists(_pc_ec, "face_over_mouth") && _pc_ec.face_over_mouth);
-    var _nom_hov = (!theater_mode && _mx > _lx && _mx < _lx + 280 && _my > _nom_y && _my < _nom_y + 28);
-    draw_set_color(_nom_on ? make_color_rgb(35, 80, 45) : (_nom_hov ? make_color_rgb(38, 42, 50) : make_color_rgb(22, 25, 35)));
-    draw_roundrect_ext(_lx, _nom_y, _lx + 280, _nom_y + 28, 4, 4, false);
-    draw_set_color(_nom_on ? make_color_rgb(40, 100, 55) : make_color_rgb(55, 55, 70));
-    draw_roundrect_ext(_lx, _nom_y, _lx + 280, _nom_y + 28, 4, 4, true);
-    draw_set_color(_nom_on ? c_lime : c_ltgray);
+    // Quick-fill: enter baseline eye/mouth suffix → auto-populate all 8 configs
+    var _btn_y2 = _m_y + _m_h - 52;
+    var _qf_y = _btn_y2 - 36;
+    draw_set_color(make_color_rgb(85, 85, 110)); draw_text(_lx, _qf_y + 3, "EYES");
+    var _qf_ex = _lx + 38;
+    var _qf_ea = (expr_cfg_qfill_active == 0);
+    draw_set_color(_qf_ea ? make_color_rgb(35, 50, 90) : make_color_rgb(22, 26, 38));
+    draw_rectangle(_qf_ex, _qf_y, _qf_ex + 30, _qf_y + 22, false);
+    draw_set_color(_qf_ea ? c_yellow : c_white);
     draw_set_halign(fa_center);
-    draw_text(_lx + 140, _nom_y + 5, "NOSE ON TOP: " + (_nom_on ? "ON" : "OFF"));
+    draw_text(_qf_ex + 15, _qf_y + 3, expr_cfg_qfill_eyes + (_qf_ea && (current_time mod 600 < 300) ? "|" : ""));
     draw_set_halign(fa_left);
+    draw_set_color(make_color_rgb(85, 85, 110)); draw_text(_qf_ex + 36, _qf_y + 3, "MOUTH");
+    var _qf_mx = _qf_ex + 82;
+    var _qf_ma = (expr_cfg_qfill_active == 1);
+    draw_set_color(_qf_ma ? make_color_rgb(35, 50, 90) : make_color_rgb(22, 26, 38));
+    draw_rectangle(_qf_mx, _qf_y, _qf_mx + 30, _qf_y + 22, false);
+    draw_set_color(_qf_ma ? c_yellow : c_white);
+    draw_set_halign(fa_center);
+    draw_text(_qf_mx + 15, _qf_y + 3, expr_cfg_qfill_mouth + (_qf_ma && (current_time mod 600 < 300) ? "|" : ""));
+    draw_set_halign(fa_left);
+    var _qf_get_x = _qf_mx + 38;
+    var _qf_get_hov = (!theater_mode && _mx > _qf_get_x && _mx < _qf_get_x + 40 && _my > _qf_y && _my < _qf_y + 22);
+    draw_set_color(_qf_get_hov ? make_color_rgb(30, 130, 130) : make_color_rgb(15, 75, 75));
+    draw_rectangle(_qf_get_x, _qf_y, _qf_get_x + 40, _qf_y + 22, false);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text(_qf_get_x + 20, _qf_y + 3, "GET"); draw_set_halign(fa_left);
+    var _qf_apply_x = _qf_get_x + 46;
+    var _qf_apply_hov = (!theater_mode && _mx > _qf_apply_x && _mx < _qf_apply_x + 55 && _my > _qf_y && _my < _qf_y + 22);
+    draw_set_color(_qf_apply_hov ? make_color_rgb(200, 120, 20) : make_color_rgb(120, 70, 10));
+    draw_rectangle(_qf_apply_x, _qf_y, _qf_apply_x + 55, _qf_y + 22, false);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text(_qf_apply_x + 27, _qf_y + 3, "APPLY"); draw_set_halign(fa_left);
 
     // Bottom buttons: SAVE, CLOSE
-    var _btn_y2 = _m_y + _m_h - 52;
-    var _btn_w = 50; var _btn_gap = 8;
+    var _btn_w = 50; var _btn_gap_ec = 8;
 
     // SAVE
     var _save_x = _lx;
@@ -2258,7 +2240,7 @@ if (expr_cfg_open) {
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_save_x + _btn_w/2, _btn_y2 + 11, "SAVE"); draw_set_halign(fa_left);
 
     // CLOSE
-    var _cls_x = _save_x + _btn_w + _btn_gap;
+    var _cls_x = _save_x + _btn_w + _btn_gap_ec;
     var _cls_hov2 = (!theater_mode && _mx > _cls_x && _mx < _cls_x + _btn_w && _my > _btn_y2 && _my < _btn_y2 + 40);
     draw_set_color(_cls_hov2 ? c_red : make_color_rgb(80, 25, 25)); draw_rectangle(_cls_x, _btn_y2, _cls_x + _btn_w, _btn_y2 + 40, false);
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_cls_x + _btn_w/2, _btn_y2 + 11, "CLOSE"); draw_set_halign(fa_left);
@@ -2301,7 +2283,7 @@ if (expr_cfg_open) {
         if (ds_map_exists(char_sprites, _hk)) {
             _hov_spr = char_sprites[? _hk];
         } else {
-            var _hpath = datafiles_path + "images/characters/" + _c_ec.name + "/" + _hov_fname;
+            var _hpath = datafiles_path + "actors/" + _c_ec.name + "/" + _hov_fname;
             if (file_exists(_hpath)) {
                 _hov_spr = sprite_add(_hpath, 1, false, false, 0, 0);
                 ds_map_add(char_sprites, _hk, _hov_spr);
@@ -2314,10 +2296,10 @@ if (expr_cfg_open) {
     var _face_spr_ec = -1;
     var _eyes_spr_ec = -1;
     var _mouth_spr_ec = -1;
-    var _folder_ec2 = datafiles_path + "images/characters/" + _c_ec.name + "/";
-    var _ai_ec = variable_struct_exists(_c_ec, "act_index") ? _c_ec.act_index : 1;
-    var _sfx_off_ec = expr_cfg_high ? 50 : 0;
-    var _pfx_ec = string(_ai_ec) + string(expr_cfg_pose);
+    _folder_ec2 = datafiles_path + "actors/" + _c_ec.name + "/";
+    _ai_ec = variable_struct_exists(_c_ec, "act_index") ? _c_ec.act_index : 1;
+    _sfx_off_ec = expr_cfg_high ? 50 : 0;
+    _pfx_ec = string(_ai_ec) + string(expr_cfg_pose);
 
     // ── Load body / face sprites (with sprite_add fallback) ──
     if (_pc_ec != undefined) {
@@ -2361,8 +2343,8 @@ if (expr_cfg_open) {
     }
 
     // Mouth: derive mood from the selected expression (same mapping as get_composite_character_sprite)
-    var _ec_mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
-    var _derived_mood_ec = _ec_mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
+    _ec_mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+    _derived_mood_ec = _ec_mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
     var _mouth_file_ec = "";
     if (_pc_ec != undefined && variable_struct_exists(_pc_ec, "mouth_files")) {
         var _mf_ec = _pc_ec.mouth_files;
@@ -2412,7 +2394,7 @@ if (expr_cfg_open) {
     var _drawy2 = _anch_y2 - _bdh2 * _cfg_sc    + expr_cfg_pan_y;
 
     gpu_set_scissor(_px2 + 2, _py2 + 2, _pw2 - 4, _char_preview_h - 4);
-    gpu_set_texfilter(true);
+    gpu_set_texfilter(false);
     var _prev_sprs = [_body_spr_ec, _face_spr_ec, _eyes_spr_ec, _mouth_spr_ec];
     
     // Compute total offset dx/dy for each layer in the preview panel (including base + custom delta nudges)
@@ -2513,7 +2495,7 @@ if (expr_cfg_open) {
         if (_off_data != undefined && variable_struct_exists(_off_data, _mouth_ok_p)) {
             var _mov_p = _off_data[$ _mouth_ok_p]; _mdx_prev = _mov_p[0] - _lo_ox_p; _mdy_prev = _mov_p[1] - _lo_oy_p;
         }
-        var _expr_key_prev = string(expr_cfg_preview_expr);
+        _expr_key_prev = string(expr_cfg_preview_expr);
         if (variable_struct_exists(_pc_ec, "mouth_dx_expr_offsets") && variable_struct_exists(_pc_ec.mouth_dx_expr_offsets, _expr_key_prev)) {
             _mdx_prev += _pc_ec.mouth_dx_expr_offsets[$ _expr_key_prev];
         } else if (variable_struct_exists(_pc_ec, "mouth_dx_offsets") && variable_struct_exists(_pc_ec.mouth_dx_offsets, _mouth_file_prev)) {

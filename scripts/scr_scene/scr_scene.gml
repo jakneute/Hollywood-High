@@ -3,9 +3,43 @@
 function get_scene_sprite(_internal_name) {
     if (_internal_name == "") return -1;
     if (ds_map_exists(scene_sprites, _internal_name)) return scene_sprites[? _internal_name];
+    
+    // 1. Try loading dynamically from scenes.pack on disk
+    if (global.scenes_pack_header != undefined) {
+        var _exts_check = [".png", ".jpg", ".jpeg"];
+        for (var e = 0; e < array_length(_exts_check); e++) {
+            var _fname = _internal_name + _exts_check[e];
+            if (variable_struct_exists(global.scenes_pack_header, _fname)) {
+                var _info = global.scenes_pack_header[$ _fname];
+                var _offset = _info.offset;
+                var _size = _info.size;
+                
+                var _pack_path = working_directory + "scenes.pack";
+                if (file_exists(_pack_path)) {
+                    var _tmp = buffer_create(_size, buffer_fixed, 1);
+                    buffer_load_partial(_tmp, _pack_path, _offset, _size, 0);
+                    
+                    // Write temp PNG file (GameMaker automatically sandboxes this to game_save_id)
+                    var _temp_path = "temp_scene.png";
+                    buffer_save(_tmp, _temp_path);
+                    buffer_delete(_tmp);
+                    
+                    var _spr = sprite_add(_temp_path, 1, false, false, 0, 0);
+                    file_delete(_temp_path);
+                    
+                    if (_spr != -1) {
+                        ds_map_add(scene_sprites, _internal_name, _spr);
+                        return _spr;
+                    }
+                }
+            }
+        }
+    }
+    
+    // 2. Fallback to direct disk files (for custom/external backgrounds)
     for (var i = 0; i < array_length(all_scenes); i++) {
         if (all_scenes[i].internal_name == _internal_name) {
-            var _path = working_directory + "images/" + all_scenes[i].path;
+            var _path = datafiles_path + all_scenes[i].path;
             if (file_exists(_path)) {
                 var _spr = sprite_add(_path, 1, false, false, 0, 0);
                 ds_map_add(scene_sprites, _internal_name, _spr);
@@ -16,7 +50,7 @@ function get_scene_sprite(_internal_name) {
     }
     var _exts_check = [".png", ".jpg", ".jpeg"];
     for (var e = 0; e < array_length(_exts_check); e++) {
-        var _path = working_directory + "images/backgrounds/" + _internal_name + _exts_check[e];
+        var _path = datafiles_path + "scenes/" + _internal_name + _exts_check[e];
         if (file_exists(_path)) {
             var _spr = sprite_add(_path, 1, false, false, 0, 0);
             ds_map_add(scene_sprites, _internal_name, _spr);
@@ -70,12 +104,38 @@ function set_scene_dimensions(_spr) {
 
 function refresh_sfx_folders() {
     action_modal_sfx_folders = [];
+    
+    // A. Add folders from pack
+    if (global.sounds_pack_header != undefined) {
+        var _keys = struct_get_names(global.sounds_pack_header);
+        for (var i = 0; i < array_length(_keys); i++) {
+            var _k = _keys[i];
+            var _slash = string_pos("/", _k);
+            if (_slash > 0) {
+                var _folder = string_copy(_k, 1, _slash - 1);
+                var _already = false;
+                for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
+                    if (action_modal_sfx_folders[f] == _folder) { _already = true; break; }
+                }
+                if (!_already) array_push(action_modal_sfx_folders, _folder);
+            }
+        }
+    }
+    
+    // B. Add custom physical folders from disk
     var _file = file_find_first(sfx_base_path + "*", fa_directory);
     while (_file != "") {
-        if (_file != "." && _file != ".." && directory_exists(sfx_base_path + _file)) array_push(action_modal_sfx_folders, _file);
+        if (_file != "." && _file != ".." && directory_exists(sfx_base_path + _file)) {
+            var _already = false;
+            for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
+                if (action_modal_sfx_folders[f] == _file) { _already = true; break; }
+            }
+            if (!_already) array_push(action_modal_sfx_folders, _file);
+        }
         _file = file_find_next();
     }
     file_find_close();
+    
     array_sort(action_modal_sfx_folders, function(a, b) {
         var _la = string_lower(a); var _lb = string_lower(b);
         if (_la < _lb) return -1; if (_la > _lb) return 1; return 0;
@@ -84,17 +144,94 @@ function refresh_sfx_folders() {
 
 function refresh_sfx_files(_folder) {
     action_modal_sfx_files = [];
-    var _path = sfx_base_path + _folder + "/";
-    var _file = file_find_first(_path + "*.wav", 0);
-    while (_file != "") {
-        array_push(action_modal_sfx_files, _file);
-        _file = file_find_next();
+    
+    // A. Add files from pack matching the folder
+    if (global.sounds_pack_header != undefined) {
+        var _keys = struct_get_names(global.sounds_pack_header);
+        var _prefix = _folder + "/";
+        var _prefix_len = string_length(_prefix);
+        for (var i = 0; i < array_length(_keys); i++) {
+            var _k = _keys[i];
+            if (string_copy(_k, 1, _prefix_len) == _prefix) {
+                var _fname = string_delete(_k, 1, _prefix_len);
+                array_push(action_modal_sfx_files, _fname);
+            }
+        }
     }
-    file_find_close();
+    
+    // B. Add custom files from disk inside the folder
+    var _path = sfx_base_path + _folder + "/";
+    if (directory_exists(_path)) {
+        var _file = file_find_first(_path + "*.wav", 0);
+        while (_file != "") {
+            var _already = false;
+            for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
+                if (action_modal_sfx_files[f] == _file) { _already = true; break; }
+            }
+            if (!_already) array_push(action_modal_sfx_files, _file);
+            _file = file_find_next();
+        }
+        file_find_close();
+    }
+    
     array_sort(action_modal_sfx_files, function(a, b) {
         var _la = string_lower(a); var _lb = string_lower(b);
         if (_la < _lb) return -1; if (_la > _lb) return 1; return 0;
     });
+}
+
+// Global buffer loading helpers for packed and custom sound effects
+function load_sfx_buffer(_folder, _file) {
+    var _pack_key = _folder + "/" + _file;
+    if (global.sounds_pack_header != undefined) {
+        if (variable_struct_exists(global.sounds_pack_header, _pack_key)) {
+            var _info = global.sounds_pack_header[$ _pack_key];
+            var _offset = _info.offset;
+            var _size = _info.size;
+            var _tmp = buffer_create(_size, buffer_fixed, 1);
+            var _pack_path = working_directory + "sounds.pack";
+            if (file_exists(_pack_path)) {
+                buffer_load_partial(_tmp, _pack_path, _offset, _size, 0);
+                return _tmp;
+            } else {
+                buffer_delete(_tmp);
+            }
+        }
+    }
+    
+    var _path = sfx_base_path + _folder + "/" + _file;
+    if (file_exists(_path)) {
+        return buffer_load(_path);
+    }
+    return -1;
+}
+
+function load_sfx_buffer_by_path(_sfx_path) {
+    var _sfx_path_corr = string_replace(_sfx_path, "sounds/sfx/", "sounds/");
+    if (string_copy(_sfx_path_corr, 1, 7) == "sounds/") {
+        var _rel = string_delete(_sfx_path_corr, 1, 7);
+        if (global.sounds_pack_header != undefined) {
+            if (variable_struct_exists(global.sounds_pack_header, _rel)) {
+                var _info = global.sounds_pack_header[$ _rel];
+                var _offset = _info.offset;
+                var _size = _info.size;
+                var _tmp = buffer_create(_size, buffer_fixed, 1);
+                var _pack_path = working_directory + "sounds.pack";
+                if (file_exists(_pack_path)) {
+                    buffer_load_partial(_tmp, _pack_path, _offset, _size, 0);
+                    return _tmp;
+                } else {
+                    buffer_delete(_tmp);
+                }
+            }
+        }
+    }
+    
+    var _path = working_directory + _sfx_path_corr;
+    if (file_exists(_path)) {
+        return buffer_load(_path);
+    }
+    return -1;
 }
 
 // Rewinds actor state to what it was at (or just before) a given block index.
