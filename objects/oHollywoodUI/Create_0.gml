@@ -169,7 +169,7 @@ characters = [
     { name: "ED",        voice_id: all_voices[16].voice_id, pitch: 65, speed: 70, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 22, pose: 1, expression:  1, default_facing:  1 }, // happy
     { name: "LARRY",     voice_id: all_voices[0].voice_id,  pitch: 40, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 1,  pose: 1, expression: 13, default_facing: -1 }, // confused
     { name: "SID",       voice_id: all_voices[17].voice_id, pitch: 75, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 2,  pose: 1, expression:  4, default_facing: -1 }, // cool
-    { name: "TIFFANIE",  voice_id: all_voices[6].voice_id,  pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 3,  pose: 1, expression: 21, default_facing:  1 }, // pompous
+    { name: "TIFFANIE",  voice_id: all_voices[6].voice_id,  pitch: 60, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 3,  pose: 1, expression: 17, default_facing:  1 }, // pompous
     { name: "ARTIE",     voice_id: all_voices[11].voice_id, pitch: 30, speed: 45, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 4,  pose: 1, expression:  7, default_facing:  1 }, // embarrassed
     { name: "CHARLOTTE", voice_id: all_voices[1].voice_id,  pitch: 80, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 5,  pose: 1, expression: 15, default_facing: -1 }, // silly
     { name: "CHUCK",     voice_id: all_voices[14].voice_id, pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 6,  pose: 1, expression:  6, default_facing:  1 }, // shy

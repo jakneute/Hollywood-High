@@ -1714,7 +1714,8 @@ if (pose_modal_open) {
     draw_roundrect_ext(_pre_x, _pre_y, _pre_x + _pre_w, _pre_y + _pre_h, 10, 10, true);
     
     if (selected_character_index != -1) {
-        var _expr = selected_expression;
+        var _expr = characters[selected_character_index].expression;
+        if (_expr < 1 || _expr > 20) _expr = 1;
         if (pose_modal_edit_mode && pose_modal_target_index != -1 && pose_modal_target_index < array_length(script_blocks)) {
             var _act_name = script_blocks[pose_modal_target_index].action_name;
             var _open_p = string_pos("(", _act_name);
@@ -1753,13 +1754,19 @@ if (pose_modal_open) {
         if (_layers[0].spr != -1) {
             var _csh = sprite_get_height(_layers[0].spr);
             var _csw = sprite_get_width(_layers[0].spr);
-            var _face_above_pm = max(0, -_layers[1].dy);
-            var _total_h_pm = _csh + _face_above_pm;
-            var _avail_pm = 260; // preview box inner height (increased from 210)
-            var _sc = _avail_pm / _total_h_pm;
+            // Compute full bounding box across all layers so nothing is clipped
+            var _min_dy = 0; var _max_dy_end = _csh;
+            for (var _pli = 1; _pli < 4; _pli++) {
+                if (_layers[_pli].spr != -1) {
+                    _min_dy     = min(_min_dy,     _layers[_pli].dy);
+                    _max_dy_end = max(_max_dy_end, _layers[_pli].dy + sprite_get_height(_layers[_pli].spr));
+                }
+            }
+            var _total_h_pm = _max_dy_end - _min_dy;
+            var _sc = min(260 / _total_h_pm, 3.0);
             var _draw_x = _pre_x + (_pre_w / 2) - (_csw * _sc / 2);
-            // Bottom-anchor body inside the preview box
-            var _draw_y = _pre_y + _pre_h - 10 - _csh * _sc;
+            // Anchor so the topmost layer sits at the top of the preview box
+            var _draw_y = _pre_y + 10 - _min_dy * _sc;
             draw_composite_character_ext(_layers, _draw_x, _draw_y, _sc, 1, c_white, false);
         }
     }
