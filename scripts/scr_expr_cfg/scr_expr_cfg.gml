@@ -403,11 +403,21 @@ function step_modal_expr_cfg() {
                     case 0: _pc_s.body_file = _chosen; break;
                     case 1: _pc_s.face_file = _chosen; break;
                     case 2:
-                        if (!variable_struct_exists(_pc_s, "eyes_files")) _pc_s.eyes_files = {};
-                        _pc_s.eyes_files[$ string(expr_cfg_preview_expr)] = _chosen; break;
+                        if (!variable_struct_exists(_pc_s, "eyes_files"))          _pc_s.eyes_files          = {};
+                        if (!variable_struct_exists(_pc_s, "eyes_dx_expr_offsets")) _pc_s.eyes_dx_expr_offsets = {};
+                        if (!variable_struct_exists(_pc_s, "eyes_dy_expr_offsets")) _pc_s.eyes_dy_expr_offsets = {};
+                        _pc_s.eyes_files[$          string(expr_cfg_preview_expr)] = _chosen;
+                        _pc_s.eyes_dx_expr_offsets[$ string(expr_cfg_preview_expr)] = 0;
+                        _pc_s.eyes_dy_expr_offsets[$ string(expr_cfg_preview_expr)] = 0;
+                        break;
                     case 3:
-                        if (!variable_struct_exists(_pc_s, "mouth_files")) _pc_s.mouth_files = {};
-                        _pc_s.mouth_files[$ string(expr_cfg_preview_expr)] = _chosen; break;
+                        if (!variable_struct_exists(_pc_s, "mouth_files"))           _pc_s.mouth_files           = {};
+                        if (!variable_struct_exists(_pc_s, "mouth_dx_expr_offsets")) _pc_s.mouth_dx_expr_offsets = {};
+                        if (!variable_struct_exists(_pc_s, "mouth_dy_expr_offsets")) _pc_s.mouth_dy_expr_offsets = {};
+                        _pc_s.mouth_files[$          string(expr_cfg_preview_expr)] = _chosen;
+                        _pc_s.mouth_dx_expr_offsets[$ string(expr_cfg_preview_expr)] = 0;
+                        _pc_s.mouth_dy_expr_offsets[$ string(expr_cfg_preview_expr)] = 0;
+                        break;
                 }
                 if (ds_map_exists(char_expr_cache, _c_s.name)) ds_map_delete(char_expr_cache, _c_s.name);
                 if (ds_map_exists(mouth_anim_cache, _c_s.name + "_manim_" + _chosen)) ds_map_delete(mouth_anim_cache, _c_s.name + "_manim_" + _chosen);

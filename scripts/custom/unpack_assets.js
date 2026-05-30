@@ -1,74 +1,143 @@
-const fs = require('fs');
-const path = require('path');
+/**
+ * unpack_assets.js
+ * Extracts scenes, sounds, and/or actor PNGs from binary .pack archives.
+ *
+ * Usage:
+ *   node unpack_assets.js                  — interactive menu
+ *   node unpack_assets.js all
+ *   node unpack_assets.js scenes
+ *   node unpack_assets.js sounds
+ *   node unpack_assets.js actors           — all actor packs
+ *   node unpack_assets.js actors Gus       — single character
+ *
+ * After extracting, edit the loose files, then re-pack with pack_assets.js.
+ */
 
-const projectDir = path.join(__dirname, '..', '..');
+'use strict';
+const fs       = require('fs');
+const path     = require('path');
+const readline = require('readline');
+
+const projectDir   = path.join(__dirname, '..', '..');
 const datafilesDir = path.join(projectDir, 'datafiles');
 
-console.log("=========================================");
-console.log("   Hollywood High Pack Extraction Tool   ");
-console.log("=========================================\n");
-
-function unpackFile(packName, destFolder) {
-    const packPath = path.join(datafilesDir, packName);
-    const destPath = path.join(datafilesDir, destFolder);
-
+// ── Core unpacker ─────────────────────────────────────────────────────────────
+function unpack(packPath, destDir, label) {
     if (!fs.existsSync(packPath)) {
-        console.log(`[-] Skip: ${packName} not found at ${packPath}`);
-        return;
+        console.log(`  [${label}] Not found: ${packPath}`);
+        return 0;
     }
 
-    console.log(`[*] Reading ${packName}...`);
-    const packBuffer = fs.readFileSync(packPath);
+    console.log(`  [${label}] Reading ${path.basename(packPath)}...`);
+    const buf        = fs.readFileSync(packPath);
+    const headerSize = buf.readUInt32LE(0);
 
-    // 1. Read header size (first 4 bytes, uint32 little endian)
-    const headerSize = packBuffer.readUInt32LE(0);
-    console.log(`[+] Found header. Size: ${headerSize} bytes.`);
-
-    // 2. Parse JSON header index
-    const headerJsonStr = packBuffer.toString('utf8', 4, 4 + headerSize);
-    let header;
+    let toc;
     try {
-        header = JSON.parse(headerJsonStr);
-    } catch (err) {
-        console.error(`[!] Error parsing JSON header in ${packName}:`, err.message);
-        return;
+        toc = JSON.parse(buf.toString('utf8', 4, 4 + headerSize));
+    } catch (e) {
+        console.error(`  [${label}] Failed to parse header: ${e.message}`);
+        return 0;
     }
 
-    const files = Object.keys(header);
-    console.log(`[+] Pack contains ${files.length} assets. Extracting to datafiles/${destFolder}...`);
+    const files = Object.keys(toc);
+    console.log(`  [${label}] ${files.length} file(s) → ${destDir}`);
 
-    let extractedCount = 0;
+    let count = 0;
     files.forEach(filename => {
-        const fileInfo = header[filename];
-        const fileOffset = fileInfo.offset;
-        const fileSize = fileInfo.size;
-
-        // Extract slice of buffer
-        const fileBuffer = packBuffer.subarray(fileOffset, fileOffset + fileSize);
-
-        // Resolve absolute output path (safely handles subdirectories inside the pack keys, e.g., categories in SFX)
-        const fileOutPath = path.join(destPath, filename);
-        const fileOutDir = path.dirname(fileOutPath);
-
-        // Ensure directories exist
-        if (!fs.existsSync(fileOutDir)) {
-            fs.mkdirSync(fileOutDir, { recursive: true });
-        }
-
-        // Write file to disk
-        fs.writeFileSync(fileOutPath, fileBuffer);
-        extractedCount++;
+        const { offset, size } = toc[filename];
+        const outPath = path.join(destDir, filename);
+        const outDir  = path.dirname(outPath);
+        if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+        if (fs.existsSync(outPath)) console.warn(`    Overwriting: ${filename}`);
+        fs.writeFileSync(outPath, buf.subarray(offset, offset + size));
+        count++;
     });
 
-    console.log(`[+] Successfully extracted ${extractedCount}/${files.length} assets from ${packName}!\n`);
+    console.log(`  [${label}] Extracted ${count} file(s).`);
+    return count;
 }
 
-// Extract background scenes
-unpackFile('scenes.pack', 'scenes');
+// ── Scenes ────────────────────────────────────────────────────────────────────
+function unpackScenes() {
+    console.log('\n[SCENES]');
+    unpack(
+        path.join(datafilesDir, 'scenes.pack'),
+        path.join(datafilesDir, 'scenes'),
+        'scenes'
+    );
+}
 
-// Extract sound effects
-unpackFile('sounds.pack', 'sounds');
+// ── Sounds ────────────────────────────────────────────────────────────────────
+function unpackSounds() {
+    console.log('\n[SOUNDS]');
+    unpack(
+        path.join(datafilesDir, 'sounds.pack'),
+        path.join(datafilesDir, 'sounds'),
+        'sounds'
+    );
+    console.log('  NOTE: sounds/ subdirectories (e.g. Animals/dog.wav) are restored automatically.');
+}
 
-console.log("=========================================");
-console.log("   Unpacking Operation Completed!        ");
-console.log("=========================================");
+// ── Actors ────────────────────────────────────────────────────────────────────
+function unpackActors(targetChar) {
+    console.log('\n[ACTORS]');
+    const actorsDir = path.join(datafilesDir, 'actors');
+
+    if (!fs.existsSync(actorsDir)) {
+        console.log('  datafiles/actors not found.');
+        return;
+    }
+
+    let packs = fs.readdirSync(actorsDir).filter(f => path.extname(f) === '.pack').sort();
+
+    if (targetChar) {
+        const match = targetChar + '.pack';
+        packs = packs.filter(f => f.toLowerCase() === match.toLowerCase());
+        if (packs.length === 0) {
+            console.error(`  No pack found for: ${targetChar}`);
+            return;
+        }
+    }
+
+    if (packs.length === 0) {
+        console.log('  No .pack files found in datafiles/actors/');
+        return;
+    }
+
+    packs.forEach(packFile => {
+        const charName = path.basename(packFile, '.pack');
+        unpack(
+            path.join(actorsDir, packFile),
+            path.join(actorsDir, charName),
+            charName
+        );
+        console.log(`  NOTE: offsets.json / expressions_config.json are not in the pack — they stay loose.`);
+    });
+}
+
+// ── CLI ───────────────────────────────────────────────────────────────────────
+function run(choice, extra) {
+    const c = choice.toLowerCase();
+    if      (c === '1' || c === 'all')    { unpackScenes(); unpackSounds(); unpackActors(); }
+    else if (c === '2' || c === 'scenes') { unpackScenes(); }
+    else if (c === '3' || c === 'sounds') { unpackSounds(); }
+    else if (c === '4' || c === 'actors') { unpackActors(extra); }
+    else { console.error('Invalid choice.'); process.exit(1); }
+    console.log('\nAll done. Edit loose files, then re-pack with pack_assets.js.');
+}
+
+const arg   = process.argv[2];
+const extra = process.argv[3]; // optional character name for actors
+
+if (arg) {
+    run(arg, extra);
+} else {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    console.log('What would you like to unpack?');
+    console.log('  1. All  (scenes, sounds, actors)');
+    console.log('  2. Scenes');
+    console.log('  3. Sounds');
+    console.log('  4. Actors  (or pass a name: node unpack_assets.js actors Gus)');
+    rl.question('Choice [1-4]: ', choice => { rl.close(); run(choice.trim(), null); });
+}

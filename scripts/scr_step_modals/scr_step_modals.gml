@@ -219,24 +219,21 @@ function step_modal_expression() {
                 var _act = preview_actors[pa];
                 if (_act.char_index == selected_character_index) { _act.expression = selected_expression; _is_onstage = true; }
             }
-            if (_is_onstage && !scene_edit_mode) {
-                var _current_pose = 1;
-                for (var pa = 0; pa < array_length(preview_actors); pa++) {
-                    if (preview_actors[pa].char_index == selected_character_index) {
-                        _current_pose = variable_struct_exists(preview_actors[pa], "pose") ? preview_actors[pa].pose : 1; break;
-                    }
-                }
-                var _action_text = "poses " + string(_current_pose) + " (" + mood_names[selected_expression - 1] + ")";
+            var _action_text = "expression: " + mood_names[selected_expression - 1];
+            if (expression_modal_edit_mode && expression_modal_target_index != -1) {
+                script_blocks[expression_modal_target_index].action_name = _action_text;
+                expression_modal_edit_mode = false;
+            } else if (_is_onstage && !scene_edit_mode) {
                 var _new_a = { type: "action", char_index: selected_character_index, action_name: _action_text, height: 85 };
                 var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
                 array_insert(script_blocks, _insert_idx, _new_a);
                 update_block_height(_insert_idx);
                 focused_block = _insert_idx;
             }
-            expression_modal_open = false;
+            expression_modal_open = false; expression_modal_edit_mode = false;
         }
         if (_mx > _m_x + 525 && _mx < _m_x + 675 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            expression_modal_open = false;
+            expression_modal_open = false; expression_modal_edit_mode = false;
         }
     }
 }

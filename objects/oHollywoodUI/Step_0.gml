@@ -1037,8 +1037,9 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
                 else if (_is_action) {
                     var _aname_u = string_upper(_block.action_name);
-                    var _is_move = (string_pos("MOVE", _aname_u) > 0 || string_pos("ENTER", _aname_u) > 0 || string_pos("EXIT", _aname_u) > 0);
-                    var _is_pose = (string_pos("POSES", _aname_u) > 0);
+                    var _is_move      = (string_pos("MOVE", _aname_u) > 0 || string_pos("ENTER", _aname_u) > 0 || string_pos("EXIT", _aname_u) > 0);
+                    var _is_expr_only = (string_pos("EXPRESSION:", _aname_u) > 0);
+                    var _is_pose      = (!_is_expr_only && string_pos("POSES", _aname_u) > 0);
                     
                     if (_is_move) {
                         move_modal_open = true;
@@ -1062,7 +1063,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         pose_modal_target_index = i;
                         pose_modal_edit_mode = true;
                         selected_character_index = _block.char_index;
-                        
+
                         var _p_start = string_pos("poses ", string_lower(_block.action_name)) + 6;
                         var _p_end = string_pos(" ", string_copy(_block.action_name, _p_start, 999));
                         if (_p_end > 0) {
@@ -1072,6 +1073,23 @@ if (mouse_check_button_pressed(mb_left)) {
                             pose_modal_locked_pose = 1;
                         }
                         pose_modal_temp_pose = pose_modal_locked_pose;
+                    } else if (_is_expr_only) {
+                        expression_modal_open = true;
+                        expression_modal_edit_mode = true;
+                        expression_modal_target_index = i;
+                        selected_character_index = _block.char_index;
+
+                        // Parse "expression: MOODNAME" back to an index
+                        var _colon = string_pos(":", string_lower(_block.action_name));
+                        var _expr_idx = 21; // default neutral
+                        if (_colon > 0) {
+                            var _mood_str = string_upper(string_trim(string_copy(_block.action_name, _colon + 1, 999)));
+                            for (var _mi = 0; _mi < array_length(mood_names); _mi++) {
+                                if (mood_names[_mi] == _mood_str) { _expr_idx = _mi + 1; break; }
+                            }
+                        }
+                        expression_modal_locked_expr = _expr_idx;
+                        expression_modal_temp_expr   = _expr_idx;
                     }
                 }
                 else if (_is_voice) {

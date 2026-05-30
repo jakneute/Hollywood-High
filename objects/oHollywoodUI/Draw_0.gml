@@ -874,14 +874,20 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : make_color_rgb(210, 220, 210));
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
         
-        var _is_wait = (string_pos("WAIT", string_upper(_block.action_name)) > 0);
-        var _is_sfx = (string_pos("PLAY SFX", string_upper(_block.action_name)) > 0);
-        var _is_title = (string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0);
+        var _aname_up = string_upper(_block.action_name);
+        var _is_wait      = (string_pos("WAIT",          _aname_up) > 0);
+        var _is_sfx       = (string_pos("PLAY SFX",      _aname_up) > 0);
+        var _is_title     = (string_pos("DISPLAY TITLE", _aname_up) > 0);
+        var _is_expr_blk  = (string_pos("EXPRESSION:",   _aname_up) > 0);
+        if (_is_expr_blk && !_is_playing) {
+            draw_set_color(make_color_rgb(210, 210, 228));
+            draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
+        }
         var _act_str = "ACTION: ";
         if (_is_wait || _is_sfx || _is_title) {
-            _act_str += string_upper(_block.action_name);
+            _act_str += _aname_up;
         } else {
-            _act_str += characters[_block.char_index].name + " " + string_upper(_block.action_name);
+            _act_str += characters[_block.char_index].name + " " + _aname_up;
         }
         draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, _act_str);
     } else {
@@ -1803,17 +1809,17 @@ if (expression_modal_open) {
         else if (_is_preview) _bg_col = make_color_rgb(38, 70, 48);
 
         draw_set_color(_bg_col);
-        draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w - 2, _ey + _row_h - 2, false);
+        draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w_em - 2, _ey + _row_h - 2, false);
 
         if (_is_locked) {
             draw_set_color(c_lime);
-            draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w - 2, _ey + _row_h - 2, true);
-            draw_rectangle(_ex + 3, _ey + 3, _ex + _col_w - 3, _ey + _row_h - 3, true);
+            draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w_em - 2, _ey + _row_h - 2, true);
+            draw_rectangle(_ex + 3, _ey + 3, _ex + _col_w_em - 3, _ey + _row_h - 3, true);
         }
 
         draw_set_color(_is_preview ? c_white : c_ltgray);
         draw_set_halign(fa_center);
-        draw_text(_ex + _col_w/2, _ey + (_row_h/2) - 8, mood_names[e - 1]);
+        draw_text(_ex + _col_w_em/2, _ey + (_row_h/2) - 8, mood_names[e - 1]);
         draw_set_halign(fa_left);
     }
 

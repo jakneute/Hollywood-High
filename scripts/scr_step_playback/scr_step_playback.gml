@@ -353,6 +353,15 @@ function step_tts_playback() {
                             preview_actors[_act_idx].facing = char_facings[_b.char_index];
                             array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y });
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                    } else if (string_pos("expression:", _aname) > 0) {
+                        if (_act_idx != -1) {
+                            var _colon_p = string_pos(":", _aname);
+                            var _mood_str = string_upper(string_trim(string_copy(_aname, _colon_p + 1, 999)));
+                            for (var m = 0; m < array_length(mood_names); m++) {
+                                if (mood_names[m] == _mood_str) { preview_actors[_act_idx].expression = m + 1; break; }
+                            }
+                            speaking_pause_timer = max(speaking_pause_timer, 6);
+                        } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                     } else if (string_pos("poses", _aname) > 0) {
                         if (_act_idx != -1) {
                             var _p_pos = string_pos("poses ", _aname);
