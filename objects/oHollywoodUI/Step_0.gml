@@ -171,6 +171,26 @@ if (edit_mode) {
         var _tx = modal_is_local_edit ? _m_x + 165 : _m_x + 30;
         if (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality); }
         
+        // Export Config (debug)
+        if (SHOW_VOICE_CFG && !modal_is_local_edit && _mx > _m_x+_m_w-430 && _mx < _m_x+_m_w-295 && _my > _btn_y && _my < _btn_y+40) {
+            var _json = "{";
+            for (var _ci = 0; _ci < array_length(characters); _ci++) {
+                var _cc = characters[_ci];
+                if (_ci > 0) _json += ",";
+                _json += "\n  \"" + _cc.name + "\": {";
+                _json += "\"voice_id\": \"" + string(_cc.voice_id) + "\", ";
+                _json += "\"pitch\": " + string(_cc.pitch) + ", ";
+                _json += "\"speed\": " + string(_cc.speed) + ", ";
+                _json += "\"mode\": " + string(_cc.mode) + ", ";
+                _json += "\"style\": " + string(_cc.style) + ", ";
+                _json += "\"tweaked\": " + (_cc.tweaked ? "true" : "false") + "}";
+            }
+            _json += "\n}";
+            var _f = file_text_open_write(datafiles_path + "voice_config.json");
+            file_text_write_string(_f, _json);
+            file_text_close(_f);
+        }
+
         if (_mx > _m_x + _m_w - 280 && _mx < _m_x + _m_w - 150 && _my > _btn_y && _my < _btn_y + 40) {
             var _c = characters[selected_character_index];
             if (modal_is_local_edit) {

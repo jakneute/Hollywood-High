@@ -157,8 +157,8 @@ all_voices = tts_refresh_voices();
 
 // default_facing: 1 = low suffixes (03/05/06/11-22), -1 = high suffixes (53/55/56/61-72)
 characters = [
-    { name: "NARRATOR",  voice_id: all_voices[0].voice_id,  pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1, act_index: 0,  pose: 1, expression: 21, default_facing:  1 },
-    { name: "GUS",       voice_id: all_voices[18].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: false, sprite: -1, act_index: 11, pose: 1, expression: 10, default_facing:  1, pose_labels: ["stands straight", "leans back with arms crossed", "reads a magazine", "uses the phone"] }, // mischievous
+    { name: "NARRATOR",  voice_id: all_voices[0].voice_id,  pitch: 50, speed: 50, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 0,  pose: 1, expression: 21, default_facing:  1 },
+    { name: "GUS",       voice_id: all_voices[18].voice_id, pitch: 50, speed: 50, mode: 0, style: 0, tweaked: true, sprite: -1, act_index: 11, pose: 1, expression: 10, default_facing:  1, pose_labels: ["stands straight", "leans back with arms crossed", "reads a magazine", "uses the phone"] }, // mischievous
     { name: "LILLY",     voice_id: all_voices[1].voice_id,  pitch: 60, speed: 45, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 12, pose: 1, expression:  1, default_facing: -1, pose_labels: ["stands straight", "puts her hands on her hips", "holds some books", "uses the phone"] }, // happy
     { name: "MATT",      voice_id: all_voices[4].voice_id,  pitch: 40, speed: 55, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 13, pose: 1, expression:  6, default_facing:  1, pose_labels: ["stands straight", "points", "crosses his arms", "uses the phone"] }, // shy
     { name: "JENNY",     voice_id: all_voices[2].voice_id,  pitch: 70, speed: 60, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 14, pose: 1, expression:  4, default_facing: -1, pose_labels: ["stands straight", "points", "crosses her arms", "uses a microphone"] }, // cool
@@ -501,6 +501,8 @@ if (array_length(all_voices) > 0) {
 
 // Set to false before shipping to hide the expression configurator entirely.
 SHOW_EXPR_CFG           = true;
+// Set to false before shipping to hide the voice config export button.
+SHOW_VOICE_CFG          = true;
 
 char_rename_active = false;  // true while the inline name editor is open
 char_rename_target = -1;    // index into characters[] being renamed

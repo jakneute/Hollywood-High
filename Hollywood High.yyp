@@ -10718,6 +10718,7 @@
     {"$GMIncludedFile":"","%Name":"TiSpeech.Host.dll","CopyToMask":-1,"filePath":"datafiles/talkit","name":"TiSpeech.Host.dll","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"TiSpeech.Host.exe","CopyToMask":-1,"filePath":"datafiles/talkit","name":"TiSpeech.Host.exe","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"TiSpeech.Host.runtimeconfig.json","CopyToMask":-1,"filePath":"datafiles/talkit","name":"TiSpeech.Host.runtimeconfig.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"voice_config.json","CopyToMask":-1,"filePath":"datafiles","name":"voice_config.json","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
   ],
   "isEcma":false,
   "LibraryEmitters":[],

@@ -1414,6 +1414,15 @@ if (edit_mode) {
     draw_rectangle(_tx, _btn_y, _tx + 120, _btn_y + 40, false);
     draw_set_color(_t_hov ? make_color_rgb(50, 150, 200) : c_white); draw_text(_tx + 35, _btn_y + 10, "TEST");
 
+    // Export Config (debug)
+    if (SHOW_VOICE_CFG && !modal_is_local_edit) {
+        var _ex_hov = (_mx > _mxo+_mw-430 && _mx < _mxo+_mw-295 && _my > _btn_y && _my < _btn_y+40);
+        draw_set_color(_ex_hov ? c_white : make_color_rgb(140, 60, 200));
+        draw_rectangle(_mxo+_mw-430, _btn_y, _mxo+_mw-295, _btn_y+40, false);
+        draw_set_color(_ex_hov ? make_color_rgb(140,60,200) : c_white);
+        draw_set_halign(fa_center); draw_text(_mxo+_mw-362, _btn_y+10, "SAVE CONFIG"); draw_set_halign(fa_left);
+    }
+
     // Save
     var _s_hov = (_mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _btn_y && _my < _btn_y+40);
     draw_set_color(_s_hov ? c_white : make_color_rgb(50,200,50));
