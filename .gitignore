@@ -80,8 +80,5 @@ datafiles/scenes_backup/
 datafiles/sounds/
 datafiles/sounds_backup/
 
-# Ignore binary pack archives
-datafiles/*.pack
-
 # Ignore custom scripts
 scripts/custom/
