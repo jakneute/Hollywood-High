@@ -538,6 +538,9 @@ expr_cfg_qfill_eyes   = "21";
 expr_cfg_qfill_mouth  = "36";
 expr_cfg_qfill_active = -1;   // 0 = eyes field focused, 1 = mouth field focused
 
+expr_cfg_dbl_click_layer = -1;
+expr_cfg_dbl_click_time  = 0;
+
 expr_cfg_pan_x    = 0;        // preview pan offset in screen pixels
 expr_cfg_pan_y    = 0;
 expr_cfg_pan_drag = false;    // true while middle mouse is held

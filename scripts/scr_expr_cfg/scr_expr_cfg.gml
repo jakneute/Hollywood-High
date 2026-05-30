@@ -76,6 +76,49 @@ function expr_cfg_auto_fill(_pose_num, _is_high) {
     };
 }
 
+// Resolves the active file for a given layer index and scrolls the file browser to it.
+function expr_cfg_scroll_to_layer(_li) {
+    var _c   = characters[expr_cfg_char_idx];
+    var _ai  = variable_struct_exists(_c, "act_index") ? _c.act_index : 1;
+    var _pc  = expr_cfg_get_pc();
+    var _off = expr_cfg_high ? 50 : 0;
+    var _pfx = string(_ai) + string(expr_cfg_pose);
+    var _mood_map = [0, 2, 3, 1, 0, 1, 1, 1, 1, 0, 2, 1, 1, 1, 0, 3, 1, 0, 1, 2];
+    var _mood = _mood_map[clamp(expr_cfg_preview_expr - 1, 0, 19)];
+
+    var _target = "";
+    switch (_li) {
+        case 0: _target = (_pc != undefined) ? _pc.body_file : ""; break;
+        case 1: _target = (_pc != undefined) ? _pc.face_file : ""; break;
+        case 2:
+            if (_pc != undefined && variable_struct_exists(_pc, "eyes_files")) {
+                var _ek = string(expr_cfg_preview_expr);
+                if (variable_struct_exists(_pc.eyes_files, _ek) && _pc.eyes_files[$ _ek] != "") _target = _pc.eyes_files[$ _ek];
+            }
+            if (_target == "") { var _en = 10 + expr_cfg_preview_expr + _off; _target = "pose_" + _pfx + ((_en < 10 ? "0" : "") + string(_en)) + ".png"; }
+            break;
+        case 3:
+            if (_pc != undefined && variable_struct_exists(_pc, "mouth_files")) {
+                var _ek = string(expr_cfg_preview_expr); var _mk = string(_mood);
+                if (variable_struct_exists(_pc.mouth_files, _ek) && _pc.mouth_files[$ _ek] != "") _target = _pc.mouth_files[$ _ek];
+                else if (variable_struct_exists(_pc.mouth_files, _mk) && _pc.mouth_files[$ _mk] != "") _target = _pc.mouth_files[$ _mk];
+            }
+            if (_target == "") { var _mn = 31 + _mood + _off; _target = "pose_" + _pfx + ((_mn < 10 ? "0" : "") + string(_mn)) + ".png"; }
+            break;
+    }
+    if (_target == "") return;
+
+    for (var _fi = 0; _fi < array_length(expr_cfg_file_list); _fi++) {
+        if (expr_cfg_file_list[_fi] == _target) {
+            var _m_h = 770;
+            var _vis_rows = floor(floor((_m_h - 20) * 0.42 - 56) / 22);
+            var _target_row = floor(_fi / 3);
+            expr_cfg_file_scroll = max(0, _target_row - floor(_vis_rows / 2));
+            break;
+        }
+    }
+}
+
 // Reads the currently resolved eye/mouth files for the active expression and extracts
 // the last 2 digits of each filename suffix into expr_cfg_qfill_eyes/mouth.
 function expr_cfg_get_baseline() {
@@ -173,8 +216,10 @@ function open_expr_configurator(_char_idx) {
     expr_cfg_selected_layer = 1;
     expr_cfg_drag          = false;
     expr_cfg_zoom          = 1.0;
-    expr_cfg_qfill_active  = -1;
-    expr_cfg_configs       = array_create(5);
+    expr_cfg_qfill_active    = -1;
+    expr_cfg_dbl_click_layer = -1;
+    expr_cfg_dbl_click_time  = 0;
+    expr_cfg_configs         = array_create(5);
     for (var _i2 = 1; _i2 <= 4; _i2++) expr_cfg_configs[_i2] = [undefined, undefined];
 
     var _c_oc = characters[_char_idx];
@@ -316,7 +361,16 @@ function step_modal_expr_cfg() {
         if (_mx > _lx + 142 && _mx < _lx + 274 && _my > _dir_ys && _my < _dir_ys + 28) expr_cfg_high = true;
         for (var _li = 0; _li <= 3; _li++) {
             var _lbys = _layer_y0_s + _li * 52;
-            if (_mx > _lx && _mx < _lx + 280 && _my > _lbys && _my < _lbys + 46) expr_cfg_selected_layer = _li;
+            if (_mx > _lx && _mx < _lx + 280 && _my > _lbys && _my < _lbys + 46) {
+                expr_cfg_selected_layer = _li;
+                if (_li == expr_cfg_dbl_click_layer && (current_time - expr_cfg_dbl_click_time) < 400) {
+                    expr_cfg_scroll_to_layer(_li);
+                    expr_cfg_dbl_click_layer = -1;
+                } else {
+                    expr_cfg_dbl_click_layer = _li;
+                    expr_cfg_dbl_click_time  = current_time;
+                }
+            }
         }
         var _ecols_s = 5; var _eboxw_s = 52; var _eboxh_s = 36; var _egap_s = 4;
         for (var _ei = 1; _ei <= 20; _ei++) {
@@ -448,8 +502,13 @@ function step_modal_expr_cfg() {
             var _fb_cols_scroll = 3;
             var _fb_total_rows = ceil(array_length(expr_cfg_file_list) / _fb_cols_scroll);
             var _fb_vis_rows_s = floor(floor((_m_h - 20) * 0.42 - 56) / 22);
-            if (mouse_wheel_up())   expr_cfg_file_scroll = max(0, expr_cfg_file_scroll - 1);
-            if (mouse_wheel_down()) expr_cfg_file_scroll = min(max(0, _fb_total_rows - _fb_vis_rows_s), expr_cfg_file_scroll + 1);
+            var _fb_max_scroll = max(0, _fb_total_rows - _fb_vis_rows_s);
+            if (mouse_wheel_up())                       expr_cfg_file_scroll = max(0, expr_cfg_file_scroll - 1);
+            if (mouse_wheel_down())                     expr_cfg_file_scroll = min(_fb_max_scroll, expr_cfg_file_scroll + 1);
+            if (keyboard_check_pressed(vk_pageup))      expr_cfg_file_scroll = max(0, expr_cfg_file_scroll - _fb_vis_rows_s);
+            if (keyboard_check_pressed(vk_pagedown))    expr_cfg_file_scroll = min(_fb_max_scroll, expr_cfg_file_scroll + _fb_vis_rows_s);
+            if (keyboard_check_pressed(vk_home))        expr_cfg_file_scroll = 0;
+            if (keyboard_check_pressed(vk_end))         expr_cfg_file_scroll = _fb_max_scroll;
         }
     }
 
