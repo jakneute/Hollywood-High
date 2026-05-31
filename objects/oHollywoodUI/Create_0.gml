@@ -53,6 +53,19 @@ char_sel_x = 880; char_sel_y = 60; char_sel_w = 350; char_sel_h = 450;
 char_sel_scroll_y = 0;
 char_sb_dragging = false;
 char_sb_drag_offset = 0;
+
+// --- PARTICLE SYSTEM ---
+particle_panel_mode    = false;   // panel shows particles instead of characters
+dragging_particle_effect = "";    // "" = not dragging; non-empty = effect being dragged
+drag_particle_x        = 0;
+drag_particle_y        = 0;
+particle_edit_mode     = false;
+particle_edit_block_idx = -1;
+particle_drag_pos      = false;   // dragging the emitter position handle
+particle_drag_dir      = false;   // dragging the direction arrow tip
+active_particles       = [];      // live particle instances
+active_emitters        = [];      // continuous particle streams (effect, x, y, angle, size, frames_remaining)
+
 fx_picker_open = false;
 heat_surface = -1;
 btn_theater_x = 880; btn_theater_y = 15; btn_theater_w = 140; btn_theater_h = 35;
@@ -465,6 +478,8 @@ scene_modal_open = false;
 scene_modal_scroll_y = 0;
 scene_modal_target_index = -1;
 scene_modal_edit_mode = false;
+scene_sb_dragging = false;
+scene_sb_drag_offset = 0;
 
 // --- 3bb. SCENE EDITING STATE ---
 scene_edit_mode = false;

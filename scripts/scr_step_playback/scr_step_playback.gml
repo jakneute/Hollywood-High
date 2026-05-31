@@ -196,9 +196,10 @@ function step_tts_playback() {
         if (speaking_pause_timer <= 0 && speaking_pause_timer != -1) {
             var _lb_idx = (playing_linked_index != -1) ? playing_linked_index : playing_block_index;
             var _lb = script_blocks[_lb_idx];
-            var _lb_is_scene  = (variable_struct_exists(_lb, "type") && _lb.type == "scene");
-            var _lb_is_action = (variable_struct_exists(_lb, "type") && _lb.type == "action");
-            if ((_lb_is_scene || _lb_is_action) && _lb_idx >= array_length(script_blocks) - 1) {
+            var _lb_is_scene    = (variable_struct_exists(_lb, "type") && _lb.type == "scene");
+            var _lb_is_action   = (variable_struct_exists(_lb, "type") && _lb.type == "action");
+            var _lb_is_particle = (variable_struct_exists(_lb, "type") && _lb.type == "particle");
+            if ((_lb_is_scene || _lb_is_action || _lb_is_particle) && _lb_idx >= array_length(script_blocks) - 1) {
                 if (theater_mode) {
                     theater_subtitles = ""; theater_active_char = -1;
                     theater_paused = true; play_from_index(0); playing_block_index = -1;
@@ -238,8 +239,9 @@ function step_tts_playback() {
 
             for (var _idx_b = 0; _idx_b < array_length(_blocks_to_start); _idx_b++) {
                 var _b = _blocks_to_start[_idx_b];
-                var _is_scene  = (variable_struct_exists(_b, "type") && _b.type == "scene");
-                var _is_action = (variable_struct_exists(_b, "type") && _b.type == "action");
+                var _is_scene    = (variable_struct_exists(_b, "type") && _b.type == "scene");
+                var _is_action   = (variable_struct_exists(_b, "type") && _b.type == "action");
+                var _is_particle = (variable_struct_exists(_b, "type") && _b.type == "particle");
 
                 if (_is_scene) {
                     current_scene_sprite = get_scene_sprite(_b.internal_name);
@@ -398,6 +400,14 @@ function step_tts_playback() {
                             speaking_pause_timer = max(speaking_pause_timer, 6);
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                     } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                } else if (_is_particle) {
+                    var _psize  = variable_struct_exists(_b, "size")     ? _b.size     : 1.0;
+                    var _pdur   = variable_struct_exists(_b, "duration") ? _b.duration : 1.0;
+                    var _pden   = variable_struct_exists(_b, "density")  ? _b.density  : 2;
+                    var _pspd   = variable_struct_exists(_b, "speed")    ? _b.speed    : 1.0;
+                    var _pspr   = variable_struct_exists(_b, "spread")   ? _b.spread   : 65;
+                    start_particle_emitter(_b.effect, _b.x, _b.y, _b.angle, _psize, _pdur, _pden, _pspd, _pspr);
+                    speaking_pause_timer = max(speaking_pause_timer, round(_pdur * 60));
                 } else {
                     var _is_empty = true;
                     for (var _e_idx = 1; _e_idx <= string_length(_b.text); _e_idx++) {
@@ -426,7 +436,7 @@ function step_tts_playback() {
                     }
                 }
 
-                if (!(_is_scene || _is_action) && _b.tts_req != -1) {
+                if (!(_is_scene || _is_action || _is_particle) && _b.tts_req != -1) {
                     if (theater_active_char == -1) {
                         theater_active_char = _b.char_index;
                         if (theater_mode) theater_subtitles = _b.text;

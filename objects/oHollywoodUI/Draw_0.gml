@@ -263,6 +263,24 @@ if (theater_mode) {
     
     gpu_set_scissor(0, 0, 1280, 960); // Reset clipping
 
+    // --- Theater Particles (before FX capture so distortion shaders include them) ---
+    if (array_length(active_particles) > 0) {
+        gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
+        var _p_sx = _stage_w / scene_win_w;
+        var _p_sy = _stage_h / scene_win_h;
+        for (var _tpi = 0; _tpi < array_length(active_particles); _tpi++) {
+            var _pp = active_particles[_tpi];
+            var _t = _pp.life / _pp.max_life;
+            draw_set_color(make_color_rgb(_pp.r, _pp.g, _pp.b));
+            draw_set_alpha(_t * _t);
+            var _tx = _stage_x + (_pp.x - scene_win_x) * _p_sx;
+            var _ty = _stage_y + (_pp.y - scene_win_y) * _p_sy;
+            draw_circle(_tx, _ty, max(0.5, _pp.size * _t * _p_sy), false);
+        }
+        draw_set_alpha(1.0);
+        gpu_set_scissor(0, 0, 1280, 960);
+    }
+
     // --- FX OVERLAY ---
     var _active_fx = (_scene_block != -1 && variable_struct_exists(_scene_block, "fx")) ? _scene_block.fx : "none";
     if (_active_fx == "fog" && shader_is_compiled(shFog)) {
@@ -340,17 +358,29 @@ if (theater_mode) {
         surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
         shader_set(shGoldenHour); shader_set_uniform_f(shader_get_uniform(shGoldenHour, "u_time"), current_time * 0.001);
         draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
-    } else if (_active_fx == "spotlight" && shader_is_compiled(shSpotlight)) {
+    } else if (_active_fx == "darken" && shader_is_compiled(shDarken)) {
         var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
         if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
         surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
-        shader_set(shSpotlight); shader_set_uniform_f(shader_get_uniform(shSpotlight, "u_time"), current_time * 0.001);
+        shader_set(shDarken); shader_set_uniform_f(shader_get_uniform(shDarken, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
+    } else if (_active_fx == "brighten" && shader_is_compiled(shBrighten)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shBrighten); shader_set_uniform_f(shader_get_uniform(shBrighten, "u_time"), current_time * 0.001);
         draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
     } else if (_active_fx == "drunk" && shader_is_compiled(shDrunk)) {
         var _dsw = ceil(_stage_w); var _dsh = ceil(_stage_h);
         if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _dsw || surface_get_height(heat_surface) != _dsh) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_dsw, _dsh); }
         surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _dsw, _dsh);
         shader_set(shDrunk); shader_set_uniform_f(shader_get_uniform(shDrunk, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
+    } else if (_active_fx == "stoned" && shader_is_compiled(shStoned)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shStoned); shader_set_uniform_f(shader_get_uniform(shStoned, "u_time"), current_time * 0.001);
         draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
     } else if (_active_fx == "underwater" && shader_is_compiled(shUnderwater)) {
         var _usw = ceil(_stage_w); var _ush = ceil(_stage_h);
@@ -521,6 +551,10 @@ draw_set_color(c_black);
 draw_rectangle(scene_win_x - 2, scene_win_y - 2, scene_win_x + scene_win_w + 2, scene_win_y + scene_win_h + 2, false);
 if (scene_edit_mode) {
     draw_set_color(make_color_rgb(255, 150, 0));
+    draw_rectangle(scene_win_x - 4, scene_win_y - 4, scene_win_x + scene_win_w + 4, scene_win_y + scene_win_h + 4, true);
+    draw_rectangle(scene_win_x - 5, scene_win_y - 5, scene_win_x + scene_win_w + 5, scene_win_y + scene_win_h + 5, true);
+} else if (insertion_idx != -1) {
+    draw_set_color(make_color_rgb(0, 150, 255));
     draw_rectangle(scene_win_x - 4, scene_win_y - 4, scene_win_x + scene_win_w + 4, scene_win_y + scene_win_h + 4, true);
     draw_rectangle(scene_win_x - 5, scene_win_y - 5, scene_win_x + scene_win_w + 5, scene_win_y + scene_win_h + 5, true);
 }
@@ -719,55 +753,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		draw_editor_actors(_scene, -1, false, true);
 	};
 
-	// --- FX OVERLAY (editor preview) ---
-	var _edit_fx = variable_struct_exists(_scene, "fx") ? _scene.fx : "none";
-	if (_edit_fx != "none") {
-		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-		var _is_capture_fx = (_edit_fx == "heat" || _edit_fx == "sepia" || _edit_fx == "drunk" || _edit_fx == "underwater" || _edit_fx == "nightvision" || _edit_fx == "infrared" || _edit_fx == "candlelight" || _edit_fx == "crt" || _edit_fx == "goldenhour" || _edit_fx == "spotlight");
-		var _cap_sh_for_fx = shHeat;
-		if      (_edit_fx == "sepia")       _cap_sh_for_fx = shSepia;
-		else if (_edit_fx == "drunk")       _cap_sh_for_fx = shDrunk;
-		else if (_edit_fx == "underwater")  _cap_sh_for_fx = shUnderwater;
-		else if (_edit_fx == "nightvision") _cap_sh_for_fx = shNightVision;
-		else if (_edit_fx == "infrared")    _cap_sh_for_fx = shInfrared;
-		else if (_edit_fx == "candlelight") _cap_sh_for_fx = shCandlelight;
-		else if (_edit_fx == "crt")         _cap_sh_for_fx = shCRT;
-		else if (_edit_fx == "goldenhour")  _cap_sh_for_fx = shGoldenHour;
-		else if (_edit_fx == "spotlight")   _cap_sh_for_fx = shSpotlight;
-		if (_is_capture_fx && shader_is_compiled(_cap_sh_for_fx)) {
-			var _cap_sh = _cap_sh_for_fx;
-			var _ehsw = ceil(scene_win_w); var _ehsh = ceil(scene_win_h);
-			if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _ehsw || surface_get_height(heat_surface) != _ehsh) {
-				if (surface_exists(heat_surface)) surface_free(heat_surface);
-				heat_surface = surface_create(_ehsw, _ehsh);
-			}
-			surface_copy_part(heat_surface, 0, 0, application_surface, round(scene_win_x), round(scene_win_y), _ehsw, _ehsh);
-			shader_set(_cap_sh);
-			shader_set_uniform_f(shader_get_uniform(_cap_sh, "u_time"), current_time * 0.001);
-			draw_set_color(c_white); draw_set_alpha(1.0);
-			draw_surface_stretched(heat_surface, scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-			shader_reset();
-		} else {
-			var _efx_sh = shFog;
-			if (_edit_fx == "rain")   _efx_sh = shRain;
-			else if (_edit_fx == "snow")   _efx_sh = shSnow;
-			else if (_edit_fx == "embers") _efx_sh = shEmbers;
-			else if (_edit_fx == "static") _efx_sh = shStatic;
-			if (shader_is_compiled(_efx_sh)) {
-				shader_set(_efx_sh);
-				shader_set_uniform_f(shader_get_uniform(_efx_sh, "u_time"), current_time * 0.001);
-				shader_set_uniform_f(shader_get_uniform(_efx_sh, "u_rect"), scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-				gpu_set_blendmode(_edit_fx == "embers" ? bm_add : bm_normal);
-				draw_set_color(c_white); draw_set_alpha(1.0);
-				draw_rectangle(scene_win_x, scene_win_y, scene_win_x + scene_win_w, scene_win_y + scene_win_h, false);
-				shader_reset();
-				gpu_set_blendmode(bm_normal);
-			}
-		}
-	}
-
 	// --- Selection outline: hollow yellow ring drawn on top of foreground ---
-	if (playing_block_index == -1) {
+	// Drawn before FX capture so distortion shaders (e.g. CRT) warp it in sync with characters.
+	if (playing_block_index == -1 && !particle_edit_mode) {
 		for (var _oa = 0; _oa < array_length(preview_actors); _oa++) {
 			var _oact = preview_actors[_oa];
 			if (real(_oact.char_index) != real(selected_character_index)) continue;
@@ -825,16 +813,204 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 			gpu_set_texfilter(false);
 			surface_reset_target();
 
-			// Draw the hollow ring on top of the scene (through foreground)
+			// Draw the hollow ring on top of the scene
 			gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
 			draw_surface(o_mask_surface, scene_win_x, scene_win_y);
 			break;
+		}
+	}
+
+	// --- Active Particles ---
+	if (array_length(active_particles) > 0) {
+		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		for (var _ppi = 0; _ppi < array_length(active_particles); _ppi++) {
+			var _pp = active_particles[_ppi];
+			var _t = _pp.life / _pp.max_life;
+			draw_set_color(make_color_rgb(_pp.r, _pp.g, _pp.b));
+			draw_set_alpha(_t * _t);
+			draw_circle(_pp.x, _pp.y, max(0.5, _pp.size * _t), false);
+		}
+		draw_set_alpha(1.0);
+		gpu_set_scissor(0, 0, 1280, 960);
+	}
+
+	// --- FX OVERLAY (editor preview) ---
+	var _edit_fx = variable_struct_exists(_scene, "fx") ? _scene.fx : "none";
+	if (_edit_fx != "none") {
+		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		var _is_capture_fx = (_edit_fx == "heat" || _edit_fx == "sepia" || _edit_fx == "drunk" || _edit_fx == "underwater" || _edit_fx == "nightvision" || _edit_fx == "infrared" || _edit_fx == "candlelight" || _edit_fx == "crt" || _edit_fx == "goldenhour" || _edit_fx == "darken" || _edit_fx == "brighten" || _edit_fx == "stoned");
+		var _cap_sh_for_fx = shHeat;
+		if      (_edit_fx == "sepia")       _cap_sh_for_fx = shSepia;
+		else if (_edit_fx == "drunk")       _cap_sh_for_fx = shDrunk;
+		else if (_edit_fx == "underwater")  _cap_sh_for_fx = shUnderwater;
+		else if (_edit_fx == "nightvision") _cap_sh_for_fx = shNightVision;
+		else if (_edit_fx == "infrared")    _cap_sh_for_fx = shInfrared;
+		else if (_edit_fx == "candlelight") _cap_sh_for_fx = shCandlelight;
+		else if (_edit_fx == "crt")         _cap_sh_for_fx = shCRT;
+		else if (_edit_fx == "goldenhour")  _cap_sh_for_fx = shGoldenHour;
+		else if (_edit_fx == "darken")      _cap_sh_for_fx = shDarken;
+		else if (_edit_fx == "brighten")    _cap_sh_for_fx = shBrighten;
+		else if (_edit_fx == "stoned")      _cap_sh_for_fx = shStoned;
+		if (_is_capture_fx && shader_is_compiled(_cap_sh_for_fx)) {
+			var _cap_sh = _cap_sh_for_fx;
+			var _ehsw = ceil(scene_win_w); var _ehsh = ceil(scene_win_h);
+			if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _ehsw || surface_get_height(heat_surface) != _ehsh) {
+				if (surface_exists(heat_surface)) surface_free(heat_surface);
+				heat_surface = surface_create(_ehsw, _ehsh);
+			}
+			surface_copy_part(heat_surface, 0, 0, application_surface, round(scene_win_x), round(scene_win_y), _ehsw, _ehsh);
+			shader_set(_cap_sh);
+			shader_set_uniform_f(shader_get_uniform(_cap_sh, "u_time"), current_time * 0.001);
+			draw_set_color(c_white); draw_set_alpha(1.0);
+			draw_surface_stretched(heat_surface, scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+			shader_reset();
+		} else {
+			var _efx_sh = shFog;
+			if (_edit_fx == "rain")   _efx_sh = shRain;
+			else if (_edit_fx == "snow")   _efx_sh = shSnow;
+			else if (_edit_fx == "embers") _efx_sh = shEmbers;
+			else if (_edit_fx == "static") _efx_sh = shStatic;
+			if (shader_is_compiled(_efx_sh)) {
+				shader_set(_efx_sh);
+				shader_set_uniform_f(shader_get_uniform(_efx_sh, "u_time"), current_time * 0.001);
+				shader_set_uniform_f(shader_get_uniform(_efx_sh, "u_rect"), scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+				gpu_set_blendmode(_edit_fx == "embers" ? bm_add : bm_normal);
+				draw_set_color(c_white); draw_set_alpha(1.0);
+				draw_rectangle(scene_win_x, scene_win_y, scene_win_x + scene_win_w, scene_win_y + scene_win_h, false);
+				shader_reset();
+				gpu_set_blendmode(bm_normal);
+			}
 		}
 	}
 }
 
 
 gpu_set_scissor(0, 0, 1280, 960);
+
+// --- PARTICLE EDIT MODE OVERLAY ---
+if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_idx < array_length(script_blocks)) {
+    var _pb = script_blocks[particle_edit_block_idx];
+
+    // Crimson border around scene window (like staging mode's orange border)
+    draw_set_color(make_color_rgb(200, 30, 30)); draw_set_alpha(1.0);
+    draw_rectangle(scene_win_x - 3, scene_win_y - 3, scene_win_x + scene_win_w + 3, scene_win_y + scene_win_h + 3, true);
+    draw_rectangle(scene_win_x - 2, scene_win_y - 2, scene_win_x + scene_win_w + 2, scene_win_y + scene_win_h + 2, true);
+
+    var _dot_sx = scene_win_x + _pb.x;
+    var _dot_sy = scene_win_y + _pb.y;
+    var _ang_r  = degtorad(_pb.angle);
+    var _arr_len = 65;
+    var _tip_sx = _dot_sx + cos(_ang_r) * _arr_len;
+    var _tip_sy = _dot_sy + sin(_ang_r) * _arr_len;
+
+    gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+    // Direction arrow
+    draw_set_color(c_yellow);
+    draw_line_width(_dot_sx, _dot_sy, _tip_sx, _tip_sy, 2);
+    // Arrow tip handle
+    var _tip_hov = (point_distance(_mx, _my, _tip_sx, _tip_sy) < 12);
+    draw_set_color(particle_drag_dir || _tip_hov ? make_color_rgb(255, 240, 60) : c_yellow);
+    draw_circle(_tip_sx, _tip_sy, 7, false);
+    draw_set_color(c_black); draw_circle(_tip_sx, _tip_sy, 7, true);
+    // Position dot
+    var _dot_hov = (point_distance(_mx, _my, _dot_sx, _dot_sy) < 14);
+    draw_set_color(particle_drag_pos || _dot_hov ? make_color_rgb(255, 100, 100) : make_color_rgb(200, 30, 30));
+    draw_circle(_dot_sx, _dot_sy, 9, false);
+    draw_set_color(c_white); draw_circle(_dot_sx, _dot_sy, 9, true);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_dot_sx, _dot_sy - 5, "+"); draw_set_halign(fa_left);
+    gpu_set_scissor(0, 0, 1280, 960);
+
+    // "PARTICLE EDIT" label (mirrors staging mode indicator style)
+    draw_set_color(make_color_rgb(180, 28, 28));
+    draw_roundrect_ext(scene_win_x, scene_win_y - 44, scene_win_x + 140, scene_win_y - 10, 5, 5, false);
+    draw_set_color(make_color_rgb(255, 90, 90));
+    draw_roundrect_ext(scene_win_x, scene_win_y - 44, scene_win_x + 140, scene_win_y - 10, 5, 5, true);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text(scene_win_x + 70, scene_win_y - 36, "PARTICLE EDIT");
+    draw_set_halign(fa_left);
+
+    // DONE button
+    var _ped_x = scene_win_x + scene_win_w - 90; var _ped_y = scene_win_y + 8;
+    var _ped_hov = (_mx > _ped_x && _mx < _ped_x + 80 && _my > _ped_y && _my < _ped_y + 26);
+    draw_set_color(_ped_hov ? make_color_rgb(50, 190, 50) : make_color_rgb(28, 135, 28));
+    draw_roundrect_ext(_ped_x, _ped_y, _ped_x + 80, _ped_y + 26, 4, 4, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_ped_x + 40, _ped_y + 6, "DONE"); draw_set_halign(fa_left);
+    // PREVIEW button
+    var _pep_x = scene_win_x + scene_win_w - 185; var _pep_y = scene_win_y + 8;
+    var _pep_hov = (_mx > _pep_x && _mx < _pep_x + 86 && _my > _pep_y && _my < _pep_y + 26);
+    draw_set_color(_pep_hov ? make_color_rgb(80, 130, 220) : make_color_rgb(48, 82, 165));
+    draw_roundrect_ext(_pep_x, _pep_y, _pep_x + 86, _pep_y + 26, 4, 4, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_pep_x + 43, _pep_y + 6, "PREVIEW"); draw_set_halign(fa_left);
+
+    // Particle controls (5-row layout: Size, Duration, Density, Speed, Spread)
+    var _psz  = variable_struct_exists(_pb, "size")     ? _pb.size     : 1.0;
+    var _pdur = variable_struct_exists(_pb, "duration") ? _pb.duration : 1.0;
+    var _pden = variable_struct_exists(_pb, "density")  ? _pb.density  : 2;
+    var _pspd = variable_struct_exists(_pb, "speed")    ? _pb.speed    : 1.0;
+    var _pspr = variable_struct_exists(_pb, "spread")   ? _pb.spread   : 65;
+    var _pctrl_y = scene_win_y + 40; var _pbsz = 24;
+    draw_set_color(make_color_rgb(28, 28, 40));
+    draw_rectangle(scene_win_x + 5, _pctrl_y, scene_win_x + 205, _pctrl_y + 144, false);
+    draw_set_color(make_color_rgb(90, 30, 30));
+    draw_rectangle(scene_win_x + 5, _pctrl_y, scene_win_x + 205, _pctrl_y + 144, true);
+
+    var _ctrl_lx = scene_win_x + 75; var _ctrl_rx = scene_win_x + 148; var _ctrl_vc = scene_win_x + 124;
+
+    // SIZE row
+    var _r1y = _pctrl_y + 4;
+    var _sm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r1y && _my <= _r1y+_pbsz);
+    var _sp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r1y && _my <= _r1y+_pbsz);
+    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(scene_win_x + 12, _r1y + 5, "SIZE");
+    draw_set_color(_sm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r1y, _ctrl_lx+_pbsz, _r1y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r1y+5, "-"); draw_set_halign(fa_left);
+    draw_set_color(_sp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r1y, _ctrl_rx+_pbsz, _r1y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r1y+5, "+"); draw_set_halign(fa_left);
+    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r1y+5, string(_psz), 1.1, 1.1, 0); draw_set_halign(fa_left);
+
+    // DUR row
+    var _r2y = _pctrl_y + 32;
+    var _dm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r2y && _my <= _r2y+_pbsz);
+    var _dp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r2y && _my <= _r2y+_pbsz);
+    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(scene_win_x + 12, _r2y + 5, "DUR (s)");
+    draw_set_color(_dm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r2y, _ctrl_lx+_pbsz, _r2y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r2y+5, "-"); draw_set_halign(fa_left);
+    draw_set_color(_dp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r2y, _ctrl_rx+_pbsz, _r2y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r2y+5, "+"); draw_set_halign(fa_left);
+    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r2y+5, string(_pdur) + "s", 1.1, 1.1, 0); draw_set_halign(fa_left);
+
+    // DENSITY row
+    var _r3y = _pctrl_y + 60;
+    var _dem_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
+    var _dep_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
+    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(scene_win_x + 12, _r3y + 5, "DENSITY");
+    draw_set_color(_dem_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r3y, _ctrl_lx+_pbsz, _r3y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r3y+5, "-"); draw_set_halign(fa_left);
+    draw_set_color(_dep_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r3y, _ctrl_rx+_pbsz, _r3y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r3y+5, "+"); draw_set_halign(fa_left);
+    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r3y+5, string(_pden), 1.1, 1.1, 0); draw_set_halign(fa_left);
+
+    // SPEED row
+    var _r4y = _pctrl_y + 88;
+    var _spm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r4y && _my <= _r4y+_pbsz);
+    var _spp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r4y && _my <= _r4y+_pbsz);
+    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(scene_win_x + 12, _r4y + 5, "SPEED");
+    draw_set_color(_spm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r4y, _ctrl_lx+_pbsz, _r4y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r4y+5, "-"); draw_set_halign(fa_left);
+    draw_set_color(_spp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r4y, _ctrl_rx+_pbsz, _r4y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r4y+5, "+"); draw_set_halign(fa_left);
+    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r4y+5, string(_pspd) + "x", 1.1, 1.1, 0); draw_set_halign(fa_left);
+
+    // SPREAD row
+    var _r5y = _pctrl_y + 116;
+    var _sprm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
+    var _sprp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
+    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(scene_win_x + 12, _r5y + 5, "SPREAD");
+    draw_set_color(_sprm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r5y, _ctrl_lx+_pbsz, _r5y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r5y+5, "-"); draw_set_halign(fa_left);
+    draw_set_color(_sprp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r5y, _ctrl_rx+_pbsz, _r5y+_pbsz, 3,3, false);
+    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r5y+5, "+"); draw_set_halign(fa_left);
+    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r5y+5, string(_pspr) + chr(176), 1.1, 1.1, 0); draw_set_halign(fa_left);
+}
 
 // --- 1. GLOBAL BUTTONS (Drawn on top of Scene Window to prevent any overlap) ---
 var _dis = (playing_block_index != -1);
@@ -873,13 +1049,13 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
     var _sfx_scene = script_blocks[active_scene_block_idx];
     var _cur_fx = variable_struct_exists(_sfx_scene, "fx") ? _sfx_scene.fx : "none";
     // Keep sorted alphabetically by label (OFF always first). Add future effects in order.
-    var _fx_ids    = ["none", "candlelight",   "crt", "drunk", "embers", "fog", "goldenhour",    "heat",      "infrared",  "nightvision",  "rain", "sepia", "snow", "spotlight",   "static",    "underwater"];
-    var _fx_labels = ["OFF",  "CANDLELIGHT",   "CRT", "DRUNK", "EMBERS", "FOG", "GOLDEN HOUR",   "HEAT HAZE", "INFRARED",  "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "SPOTLIGHT",   "TV STATIC", "UNDERWATER"];
+    var _fx_ids    = ["none", "brighten",   "candlelight",   "crt", "darken",  "drunk", "embers", "fog", "goldenhour",    "heat",      "infrared",  "nightvision",  "rain", "sepia", "snow", "static",    "stoned",  "underwater"];
+    var _fx_labels = ["OFF",  "BRIGHTEN",   "CANDLELIGHT",   "CRT", "DARKEN",  "DRUNK", "EMBERS", "FOG", "GOLDEN HOUR",   "HEAT HAZE", "INFRARED",  "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED",  "UNDERWATER"];
     var _fx_btn_x = _ind_x + 120; var _fx_btn_w = 130;
     var _fx_hov = (!_overlay_active && !fx_picker_open && _mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w && _my > scene_win_y - 45 && _my < scene_win_y - 10);
     var _fx_on  = (_cur_fx != "none");
     var _cur_label = "OFF";
-    for (var _fi = 0; _fi < 16; _fi++) { if (_fx_ids[_fi] == _cur_fx) { _cur_label = _fx_labels[_fi]; break; } }
+    for (var _fi = 0; _fi < 18; _fi++) { if (_fx_ids[_fi] == _cur_fx) { _cur_label = _fx_labels[_fi]; break; } }
     draw_set_color(fx_picker_open ? make_color_rgb(55,55,85) : (_fx_on ? make_color_rgb(22,110,105) : (_fx_hov ? make_color_rgb(42,42,68) : make_color_rgb(28,28,48))));
     draw_roundrect_ext(_fx_btn_x, scene_win_y - 45, _fx_btn_x + _fx_btn_w, scene_win_y - 10, 5, 5, false);
     draw_set_color(fx_picker_open ? make_color_rgb(110,110,160) : (_fx_on ? make_color_rgb(60,200,190) : (_fx_hov ? c_white : make_color_rgb(75,75,110))));
@@ -894,10 +1070,10 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
     if (fx_picker_open) {
         var _pick_y = scene_win_y - 10; var _pick_item_h = 22;
         draw_set_color(make_color_rgb(25, 25, 35));
-        draw_rectangle(_fx_btn_x, _pick_y, _fx_btn_x + _fx_btn_w, _pick_y + 16 * _pick_item_h, false);
+        draw_rectangle(_fx_btn_x, _pick_y, _fx_btn_x + _fx_btn_w, _pick_y + 18 * _pick_item_h, false);
         draw_set_color(c_aqua);
-        draw_rectangle(_fx_btn_x, _pick_y, _fx_btn_x + _fx_btn_w, _pick_y + 16 * _pick_item_h, true);
-        for (var _fi = 0; _fi < 16; _fi++) {
+        draw_rectangle(_fx_btn_x, _pick_y, _fx_btn_x + _fx_btn_w, _pick_y + 18 * _pick_item_h, true);
+        for (var _fi = 0; _fi < 18; _fi++) {
             var _iy = _pick_y + _fi * _pick_item_h;
             var _is_cur = (_fx_ids[_fi] == _cur_fx);
             var _is_hov = (_mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w && _my > _iy && _my < _iy + _pick_item_h);
@@ -959,9 +1135,19 @@ if (file_menu_open) {
 draw_set_color(make_color_rgb(35, 35, 45));
 draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, false);
 draw_set_color(c_aqua); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, true);
-draw_set_color(c_white); draw_text(char_sel_x + 10, char_sel_y + 5, "CHARACTER SELECTOR");
+// CHARS / FX tab buttons
+var _tab_y = char_sel_y + 4; var _tab_h = 22;
+var _tab_c1 = char_sel_x + 5;  var _tab_c2 = char_sel_x + 70;
+var _tab_p1 = char_sel_x + 73; var _tab_p2 = char_sel_x + 118;
+draw_set_color(!particle_panel_mode ? make_color_rgb(50,115,185) : (_mx>_tab_c1&&_mx<_tab_c2&&_my>_tab_y&&_my<_tab_y+_tab_h ? make_color_rgb(38,48,72) : make_color_rgb(28,28,45)));
+draw_roundrect_ext(_tab_c1, _tab_y, _tab_c2, _tab_y+_tab_h, 3, 3, false);
+draw_set_color(c_white); draw_set_halign(fa_center); draw_text((_tab_c1+_tab_c2)/2, _tab_y+4, "CHARS"); draw_set_halign(fa_left);
+draw_set_color(particle_panel_mode ? make_color_rgb(160,28,28) : (_mx>_tab_p1&&_mx<_tab_p2&&_my>_tab_y&&_my<_tab_y+_tab_h ? make_color_rgb(70,18,18) : make_color_rgb(38,15,15)));
+draw_roundrect_ext(_tab_p1, _tab_y, _tab_p2, _tab_y+_tab_h, 3, 3, false);
+draw_set_color(particle_panel_mode ? c_white : make_color_rgb(200,80,80)); draw_set_halign(fa_center); draw_text((_tab_p1+_tab_p2)/2, _tab_y+4, "FX"); draw_set_halign(fa_left);
+
 var _is_narrator_sel = (characters[selected_character_index].name == "NARRATOR");
-if (SHOW_EXPR_CFG) {
+if (!particle_panel_mode && SHOW_EXPR_CFG) {
     var _ecfg_btn_hov = (!_overlay_active && !_is_narrator_sel && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28);
     draw_set_color(_is_narrator_sel ? make_color_rgb(28, 28, 38) : (_ecfg_btn_hov ? make_color_rgb(100, 150, 255) : make_color_rgb(40, 60, 110)));
     draw_roundrect_ext(char_sel_x + 195, char_sel_y + 2, char_sel_x + char_sel_w - 6, char_sel_y + 28, 4, 4, false);
@@ -970,6 +1156,7 @@ if (SHOW_EXPR_CFG) {
     draw_set_halign(fa_left);
 }
 
+if (!particle_panel_mode) {
 // --- Character Pane Scrollbar ---
 var _c_total_h = ceil(array_length(characters) / 2) * 135;
 var _c_view_h = char_sel_h - 35;
@@ -994,7 +1181,7 @@ for (var i = 0; i < array_length(characters); i++) {
     var _is_sel = (i == selected_character_index);
     var _hov = (!_overlay_active && playing_block_index == -1 && _mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
     if (_hov || dragging_char_index == i) { draw_set_color(make_color_rgb(60, 60, 80)); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, false); }
-    if (_is_sel) { draw_set_color(c_yellow); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, true); }
+    if (_is_sel && !particle_edit_mode) { draw_set_color(c_yellow); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, true); }
     // Use composite sprite reflecting current pose/expression; facing 1 (right) is the default selector view
     var _c_ch = characters[i];
     var _sel_pose = variable_struct_exists(_c_ch, "pose") ? _c_ch.pose : 1;
@@ -1063,6 +1250,32 @@ for (var i = 0; i < array_length(characters); i++) {
     }
 }
 gpu_set_scissor(0, 0, 1280, 960);
+} else {
+    // --- Particle Effects Panel ---
+    gpu_set_scissor(char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35);
+    var _pe_list = [["blood_splatter", "BLOOD", "SPLATTER"]];
+    var _tile_w = 155; var _tile_h = 82;
+    for (var _pei = 0; _pei < array_length(_pe_list); _pei++) {
+        var _pe = _pe_list[_pei];
+        var _tx = char_sel_x + 10 + (_pei % 2) * 168;
+        var _ty = char_sel_y + 40 + floor(_pei / 2) * 95;
+        var _is_dragging_this = (dragging_particle_effect == _pe[0]);
+        var _tile_hov = (!_overlay_active && !_is_dragging_this && _mx > _tx && _mx < _tx + _tile_w && _my > _ty && _my < _ty + _tile_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
+        draw_set_color(_is_dragging_this ? make_color_rgb(55,10,10) : (_tile_hov ? make_color_rgb(95,18,18) : make_color_rgb(65,12,12)));
+        draw_rectangle(_tx, _ty, _tx+_tile_w, _ty+_tile_h, false);
+        draw_set_color(make_color_rgb(165, 28, 28));
+        draw_rectangle(_tx, _ty, _tx+_tile_w, _ty+_tile_h, true);
+        // blood drop icon
+        draw_set_color(make_color_rgb(200, 22, 22)); draw_set_alpha(0.85);
+        draw_circle(_tx + _tile_w/2, _ty + 28, 12, false);
+        draw_set_alpha(1.0);
+        draw_set_color(c_white); draw_set_halign(fa_center);
+        draw_text(_tx + _tile_w/2, _ty + 50, _pe[1]);
+        draw_text(_tx + _tile_w/2, _ty + 64, _pe[2]);
+        draw_set_halign(fa_left);
+    }
+    gpu_set_scissor(0, 0, 1280, 960);
+}
 if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_idx != -1) {
     var _char_id = -1;
     if (dragging_char_index != -1) _char_id = dragging_char_index;
@@ -1144,6 +1357,16 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
     }
 }
 
+// Particle drag ghost
+if (dragging_particle_effect != "") {
+    draw_set_color(make_color_rgb(185, 18, 18)); draw_set_alpha(0.80);
+    draw_circle(drag_particle_x, drag_particle_y, 14, false);
+    draw_set_color(c_white); draw_set_alpha(1.0);
+    draw_set_halign(fa_center);
+    draw_text(drag_particle_x, drag_particle_y - 26, "BLOOD SPLATTER");
+    draw_set_halign(fa_left);
+}
+
 // --- 2. SCRIPT BLOCKS RENDERING ---
 draw_set_color(make_color_rgb(250, 250, 250));
 draw_rectangle(box_x + 10, box_y + 5, box_x + box_w - 10, box_y + box_h - 5, false);
@@ -1155,8 +1378,9 @@ var _scene_encountered = false;
 
 for (var b = 0; b < array_length(script_blocks); b++) {
     var _block = script_blocks[b];
-    var _is_scene = variable_struct_exists(_block, "type") && _block.type == "scene";
-    var _is_action = variable_struct_exists(_block, "type") && _block.type == "action";
+    var _is_scene    = variable_struct_exists(_block, "type") && _block.type == "scene";
+    var _is_action   = variable_struct_exists(_block, "type") && _block.type == "action";
+    var _is_particle = variable_struct_exists(_block, "type") && _block.type == "particle";
 
     if (_is_scene) {
     _onstage = [];
@@ -1215,6 +1439,19 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             _act_str += characters[_block.char_index].name + " " + _display_act;
         }
         draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, _act_str);
+    } else if (_is_particle) {
+        var _box_y = _cur_y + 5;
+        var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
+        draw_set_color(_is_playing ? make_color_rgb(255, 220, 220) : make_color_rgb(55, 10, 10));
+        draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
+        draw_set_color(make_color_rgb(175, 28, 28));
+        draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, true);
+        var _is_editing_this = (particle_edit_mode && particle_edit_block_idx == b);
+        draw_set_color(_is_playing ? c_black : (_is_editing_this ? c_yellow : c_white));
+        var _eff_lbl = (_block.effect == "blood_splatter") ? "BLOOD SPLATTER" : string_upper(_block.effect);
+        draw_text(box_x + 55, _box_y + 28, "[FX: " + _eff_lbl + "]");
+        draw_set_color(make_color_rgb(140, 140, 140));
+        draw_text(box_x + 55, _box_y + 50, "pos (" + string(round(_block.x)) + ", " + string(round(_block.y)) + ")  angle " + string(round(_block.angle)) + chr(176));
     } else {
         var _is_focused = (focused_block == b);
         var _text_h = _block.height - 25; // Matching Create_0 logic
@@ -1369,26 +1606,29 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         else if ((_b1_type == "title" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "title")) _base_valid = true;
         else if (_b1_type == "move" && _b2_type == "move" && _diff_char) _base_valid = true;
         else if (_b1_type == "voice" && _b2_type == "voice" && _diff_char) _base_valid = true;
+        else if ((_b1_type == "particle" || _b2_type == "particle") && _b1_type != "other" && _b2_type != "other") _base_valid = true;
 
         var _chain_valid = true;
-        
+
         if (_base_valid && !_is_linked) {
             var _start_idx = b;
             while (_start_idx > 0 && variable_struct_exists(script_blocks[_start_idx-1], "linked") && script_blocks[_start_idx-1].linked) _start_idx--;
             var _end_idx = b + 1;
             while (_end_idx < array_length(script_blocks) - 1 && variable_struct_exists(script_blocks[_end_idx], "linked") && script_blocks[_end_idx].linked) _end_idx++;
-            
+
             var _sfx_in_chain = 0;
             var _title_in_chain = 0;
             var _move_in_chain = false;
+            var _particle_in_chain = 0;
             for (var k = _start_idx; k <= _end_idx; k++) {
                 var _bk = script_blocks[k];
                 var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
                 var _bk_type = get_link_type(_bk);
-                if (_bk_type == "sfx") _sfx_in_chain++;
-                if (_bk_type == "title") _title_in_chain++;
-                if (_bk_type == "move") _move_in_chain = true;
-                
+                if (_bk_type == "sfx")      _sfx_in_chain++;
+                if (_bk_type == "title")    _title_in_chain++;
+                if (_bk_type == "move")     _move_in_chain = true;
+                if (_bk_type == "particle") _particle_in_chain++;
+
                 if (_bk_type == "voice" || _bk_type == "move") {
                     for (var j = k + 1; j <= _end_idx; j++) {
                         var _bj = script_blocks[j];
@@ -1406,6 +1646,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             } else {
                 if (_sfx_in_chain > 1) _chain_valid = false;
             }
+            if (_particle_in_chain > 10) _chain_valid = false;
         }
         
         if ((_base_valid && _chain_valid) || _is_linked) {
@@ -1517,12 +1758,13 @@ draw_line(char_sel_x + char_sel_w,  _fp_y, char_sel_x + char_sel_w,  _fp_y + _fp
 draw_line(char_sel_x, _fp_y + _fp_h, char_sel_x + char_sel_w, _fp_y + _fp_h);
 
 var _is_narrator = (characters[selected_character_index].name == "NARRATOR");
+var _foc_particle = (insertion_idx == -1 && focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
 var _pe_btn_w = btn_expression_x + btn_expression_w - btn_pose_x;
-var _phov = (!_is_narrator && !_overlay_active && playing_block_index == -1 && _mx > btn_pose_x && _mx < btn_pose_x + _pe_btn_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h);
-var _evhov = (!_overlay_active && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
+var _phov = (!_is_narrator && !_foc_particle && !_overlay_active && playing_block_index == -1 && _mx > btn_pose_x && _mx < btn_pose_x + _pe_btn_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h);
+var _evhov = (!_foc_particle && !_overlay_active && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);
 
 // RENDER POSE / EXPRESSION COMBINED BUTTON
-var _pe_dis = (_is_narrator || playing_block_index != -1);
+var _pe_dis = (_is_narrator || playing_block_index != -1 || _foc_particle);
 draw_set_color(_pe_dis ? make_color_rgb(50,50,60) : (_phov ? make_color_rgb(50,88,165) : make_color_rgb(30,62,130)));
 draw_roundrect_ext(btn_pose_x, btn_pose_y, btn_pose_x+_pe_btn_w, btn_pose_y+btn_pose_h, 5, 5, false);
 draw_set_color(_pe_dis ? make_color_rgb(75,75,85) : (_phov ? c_white : make_color_rgb(85,140,220)));
@@ -1532,7 +1774,7 @@ draw_text(btn_pose_x+_pe_btn_w/2, btn_pose_y+10, "POSE / EXPRESSION");
 draw_set_halign(fa_left);
 
 // RENDER VOICE BUTTON
-var _ev_dis = (playing_block_index != -1);
+var _ev_dis = (playing_block_index != -1 || _foc_particle);
 draw_set_color(_ev_dis ? make_color_rgb(50,50,60) : (_evhov ? make_color_rgb(72,88,118) : make_color_rgb(52,62,88)));
 draw_roundrect_ext(btn_edit_x, btn_edit_y, btn_edit_x+btn_edit_w, btn_edit_y+btn_edit_h, 5, 5, false);
 draw_set_color(_ev_dis ? make_color_rgb(75,75,85) : (_evhov ? c_white : make_color_rgb(118,138,172)));
@@ -1769,11 +2011,13 @@ if (scene_modal_open) {
     
     // Scrollbar for Scene Modal
     if (_list_h > _max_h) {
-        var _bar_h = (_max_h / _list_h) * _max_h;
-        var _bar_y = (_myo+60) + (-scene_modal_scroll_y / _list_h) * _max_h;
+        var _bar_h = max(20, (_max_h / _list_h) * _max_h);
+        var _sb_max_top = (_myo+60) + _max_h - _bar_h;
+        var _bar_y = clamp((_myo+60) + (-scene_modal_scroll_y / _list_h) * _max_h, _myo+60, _sb_max_top);
+        var _bar_hov = (_mx >= _mxo+20+_lw+3 && _mx <= _mxo+20+_lw+17 && _my >= _bar_y && _my <= _bar_y + _bar_h);
         draw_set_color(make_color_rgb(50, 50, 60));
         draw_rectangle(_mxo+20+_lw+5, _myo+60, _mxo+20+_lw+15, _myo+60+_max_h, false); // Track
-        draw_set_color(make_color_rgb(120, 120, 140));
+        draw_set_color(scene_sb_dragging ? make_color_rgb(200, 200, 220) : (_bar_hov ? make_color_rgb(160, 160, 185) : make_color_rgb(120, 120, 140)));
         draw_rectangle(_mxo+20+_lw+5, _bar_y, _mxo+20+_lw+15, _bar_y + _bar_h, false); // Bar
     }
     
@@ -1804,31 +2048,17 @@ if (action_modal_open) {
     draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, false);
     draw_set_color(c_aqua); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, true);
     
-    draw_set_color(c_aqua); draw_text(_mxo + 20, _myo + 20, "CHARACTER ACTIONS");
+    draw_set_color(c_aqua); draw_text(_mxo + 20, _myo + 20, "GENERAL ACTIONS");
     draw_line(_mxo + 20, _myo + 45, _mxo + 250, _myo + 45);
 
     for (var i = 0; i < array_length(all_actions); i++) {
-        var _is_gen = (all_actions[i].category == "general");
-        
-        if (_is_gen && i > 0 && all_actions[i-1].category != "general") {
-            draw_set_color(c_aqua); draw_text(_mxo + 20, _myo + 60 + (i * 45), "GENERAL ACTIONS");
-            draw_line(_mxo + 20, _myo + 85 + (i * 45), _mxo + 250, _myo + 85 + (i * 45));
-        }
-
-        var _by = _myo + 60 + (i * 45) + (_is_gen ? 25 : 0);
+        var _by = _myo + 60 + (i * 45);
         var _aname = string_lower(all_actions[i].name);
         var _disabled = false;
-        
+
         // Enforce single-action focus during edit mode
         if (action_modal_edit_mode) {
             if (action_modal_selected_idx != i) _disabled = true;
-        } else {
-            if (selected_character_index == 0 && !_is_gen) _disabled = true;
-            else if (!_is_gen) {
-                if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
-                if (!action_modal_char_onstage && string_pos("exit", _aname) > 0) _disabled = true;
-                if (!action_modal_char_onstage && string_pos("turn", _aname) > 0) _disabled = true;
-            }
         }
         
         var _hov = (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40);

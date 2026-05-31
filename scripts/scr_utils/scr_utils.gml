@@ -12,9 +12,10 @@ function update_block_height(_idx) {
     if (_idx < 0 || _idx >= array_length(script_blocks)) return;
     var _b = script_blocks[_idx];
     var _wrap_w = box_w - 120;
-    var _is_scene  = (variable_struct_exists(_b, "type") && _b.type == "scene");
-    var _is_action = (variable_struct_exists(_b, "type") && _b.type == "action");
-    if (_is_scene || _is_action) {
+    var _is_scene    = (variable_struct_exists(_b, "type") && _b.type == "scene");
+    var _is_action   = (variable_struct_exists(_b, "type") && _b.type == "action");
+    var _is_particle = (variable_struct_exists(_b, "type") && _b.type == "particle");
+    if (_is_scene || _is_action || _is_particle) {
         _b.height = 85;
     } else {
         var _txt_h = string_height_ext(_b.text, 28, _wrap_w);
@@ -84,6 +85,8 @@ function get_link_type(_block) {
         if (string_pos("play sfx", _aname) > 0) return "sfx";
         if (string_pos("display title", _aname) > 0) return "title";
         if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
+    } else if (variable_struct_exists(_block, "type") && _block.type == "particle") {
+        return "particle";
     } else if (!variable_struct_exists(_block, "type") || _block.type == "voice") {
         return "voice";
     }
@@ -124,4 +127,49 @@ function get_index(_mx, _my) {
     if (!_found_on_row && _rel_y > _cur_y) return string_length(script_text);
     if (_found_on_row && _rel_x > _cur_x) return _last_idx_on_row;
     return _best_idx;
+}
+
+function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_sec, _density = 2, _speed = 1.0, _spread = 65) {
+    array_push(active_emitters, {
+        effect:           _effect,
+        x:                _ox,
+        y:                _oy,
+        angle:            _angle_deg,
+        size:             _size,
+        density:          _density,
+        speed:            _speed,
+        spread:           _spread,
+        frames_remaining: max(2, round(_duration_sec * 60)),
+    });
+}
+
+function fire_particle_effect(_effect, _ox, _oy, _angle_deg, _size = 1.0, _duration = 1.0) {
+    var _sx     = scene_win_x + _ox;
+    var _sy     = scene_win_y + _oy;
+    var _angle  = degtorad(_angle_deg);
+    var _spread = degtorad(65);
+    var _count  = 26;
+    for (var _i = 0; _i < _count; _i++) {
+        var _a;
+        if (_i < 20) {
+            _a = _angle + random_range(-_spread, _spread);
+        } else {
+            _a = random_range(0, 2 * pi);
+        }
+        var _spd = random_range(1.5, 7.0) * _size;
+        var _life = irandom_range(26, 42);
+        var _p = {
+            x:        _sx,
+            y:        _sy,
+            vx:       cos(_a) * _spd,
+            vy:       sin(_a) * _spd,
+            life:     round(_life * _duration),
+            max_life: round(_life * _duration),
+            size:     random_range(2.5, 6.5) * _size,
+            r:        irandom_range(120, 205),
+            g:        irandom_range(0,  22),
+            b:        irandom_range(0,  14),
+        };
+        array_push(active_particles, _p);
+    }
 }
