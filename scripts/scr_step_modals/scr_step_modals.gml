@@ -362,7 +362,7 @@ function step_modal_action() {
             }
             if (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40) {
                 action_modal_selected_idx = i; action_modal_locked = true;
-                if (all_actions[i].name == "play sfx") { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; }
+                if (all_actions[i].name == "play sfx") { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; action_modal_sfx_search = ""; action_modal_sfx_search_results = []; action_modal_sfx_search_sel = -1; action_modal_sfx_search_focused = false; action_modal_sfx_search_scroll_y = 0; keyboard_string = ""; }
                 else if (all_actions[i].name == "display title") { action_modal_title_text = ""; action_modal_wait_duration = 2.0; action_modal_dropdown_open = ""; keyboard_string = ""; }
                 return;
             }
@@ -379,41 +379,97 @@ function step_modal_action() {
 
         if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
             var _wx = _mxo + 300; var _wy = _myo + 130;
-            var _fx = _mxo + 280; var _fy = _wy + 65; var _fh = 215;
-            var _lx = _mxo + 550; var _ly = _wy + 65; var _lh = 215;
-            if (_mx > _fx + 10 && _mx < _fx + 230 && _my > _fy && _my < _fy + _fh) {
-                for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
-                    var _by = _fy + (f * 30) - action_modal_sfx_scroll_y;
-                    if (_my > _by && _my < _by + 30) { action_modal_sfx_folder_idx = f; refresh_sfx_files(action_modal_sfx_folders[f]); action_modal_sfx_file_idx = -1; action_modal_sfx_files_scroll_y = 0; }
+            var _fx = _mxo + 280; var _fy = _wy + 90; var _fh = 195;
+            var _lx = _mxo + 550; var _ly = _wy + 90; var _lh = 195;
+            var _srx = _fx + 10; var _sry = _wy + 30; var _srw = 560; var _srh = 24;
+
+            // Search box: clear button (×) or focus
+            if (_mx > _srx && _mx < _srx + _srw && _my > _sry && _my < _sry + _srh) {
+                if (_mx > _srx + _srw - 22 && action_modal_sfx_search != "") {
+                    // × clear button
+                    action_modal_sfx_search = "";
+                    refresh_sfx_search("");
+                    action_modal_sfx_bksp_held = 0;
+                    action_modal_sfx_search_focused = true;
+                    keyboard_string = "";
+                } else {
+                    action_modal_sfx_search_focused = true;
+                    keyboard_string = "";
                 }
-            }
-            if (_mx > _lx - 10 && _mx < _lx + 300 && _my > _ly && _my < _ly + _lh) {
-                for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
-                    var _by = _ly + (f * 30) - action_modal_sfx_files_scroll_y;
-                    if (_my > _by && _my < _by + 30) action_modal_sfx_file_idx = f;
+            } else {
+                action_modal_sfx_search_focused = false;
+
+                if (action_modal_sfx_search != "") {
+                    // Search results list click
+                    var _rh = 195; var _ry = _wy + 90;
+                    if (_mx > _fx + 10 && _mx < _fx + 570 && _my > _ry && _my < _ry + _rh) {
+                        for (var f = 0; f < array_length(action_modal_sfx_search_results); f++) {
+                            var _by = _ry + (f * 28) - action_modal_sfx_search_scroll_y;
+                            if (_my > _by && _my < _by + 28) {
+                                var _res = action_modal_sfx_search_results[f];
+                                var _dbl = (action_modal_sfx_last_click_idx == f && current_time - action_modal_sfx_last_click_time < 400);
+                                action_modal_sfx_search_sel = f;
+                                for (var _fi = 0; _fi < array_length(action_modal_sfx_folders); _fi++) {
+                                    if (action_modal_sfx_folders[_fi] == _res.folder) {
+                                        action_modal_sfx_folder_idx = _fi;
+                                        refresh_sfx_files(_res.folder);
+                                        for (var _ki = 0; _ki < array_length(action_modal_sfx_files); _ki++) {
+                                            if (action_modal_sfx_files[_ki] == _res.file) { action_modal_sfx_file_idx = _ki; break; }
+                                        }
+                                        break;
+                                    }
+                                }
+                                if (_dbl) {
+                                    play_sfx_preview(_res.folder, _res.file);
+                                    action_modal_sfx_last_click_idx = -1;
+                                } else {
+                                    action_modal_sfx_last_click_idx = f;
+                                    action_modal_sfx_last_click_time = current_time;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    // Normal folder/file columns
+                    if (_mx > _fx + 10 && _mx < _fx + 230 && _my > _fy && _my < _fy + _fh) {
+                        for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
+                            var _by = _fy + (f * 30) - action_modal_sfx_scroll_y;
+                            if (_my > _by && _my < _by + 30) {
+                                action_modal_sfx_folder_idx = f;
+                                refresh_sfx_files(action_modal_sfx_folders[f]);
+                                action_modal_sfx_file_idx = -1;
+                                action_modal_sfx_files_scroll_y = 0;
+                                action_modal_sfx_last_click_idx = -1;
+                            }
+                        }
+                    }
+                    if (_mx > _lx - 10 && _mx < _lx + 300 && _my > _ly && _my < _ly + _lh) {
+                        for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
+                            var _by = _ly + (f * 30) - action_modal_sfx_files_scroll_y;
+                            if (_my > _by && _my < _by + 30) {
+                                var _dbl = (action_modal_sfx_last_click_idx == f && current_time - action_modal_sfx_last_click_time < 400);
+                                action_modal_sfx_file_idx = f;
+                                if (_dbl && action_modal_sfx_folder_idx != -1) {
+                                    play_sfx_preview(action_modal_sfx_folders[action_modal_sfx_folder_idx], action_modal_sfx_files[f]);
+                                    action_modal_sfx_last_click_idx = -1;
+                                } else {
+                                    action_modal_sfx_last_click_idx = f;
+                                    action_modal_sfx_last_click_time = current_time;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             var _tx = _mxo + _mw - 150; var _ty = _myo + _mh - 120;
             if (_mx > _tx && _mx < _tx + 120 && _my > _ty && _my < _ty + 35) {
-                if (action_modal_sfx_folder_idx != -1 && action_modal_sfx_file_idx != -1) {
-                    var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
-                    var _file = action_modal_sfx_files[action_modal_sfx_file_idx];
-                    var _tmp_buf = load_sfx_buffer(_folder, _file);
-                    if (_tmp_buf != -1) {
-                        if (test_sfx_sound != -1) { audio_free_buffer_sound(test_sfx_sound); test_sfx_sound = -1; }
-                        if (test_sfx_buffer != -1) { buffer_delete(test_sfx_buffer); test_sfx_buffer = -1; }
-                        var _sz = buffer_get_size(_tmp_buf);
-                        test_sfx_buffer = buffer_create(_sz, buffer_fixed, 1);
-                        buffer_copy(_tmp_buf, 0, _sz, test_sfx_buffer, 0);
-                        buffer_delete(_tmp_buf);
-                        buffer_seek(test_sfx_buffer, buffer_seek_start, 22); var _chan = buffer_read(test_sfx_buffer, buffer_u16);
-                        buffer_seek(test_sfx_buffer, buffer_seek_start, 24); var _rate = buffer_read(test_sfx_buffer, buffer_u32);
-                        buffer_seek(test_sfx_buffer, buffer_seek_start, 34); var _bits = buffer_read(test_sfx_buffer, buffer_u16);
-                        var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
-                        var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
-                        test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
-                        if (test_sfx_sound != -1) audio_play_sound(test_sfx_sound, 1, false);
-                    }
+                if (test_sfx_sound != -1 && audio_is_playing(test_sfx_sound)) {
+                    audio_stop_sound(test_sfx_sound);
+                    audio_free_buffer_sound(test_sfx_sound); test_sfx_sound = -1;
+                    if (test_sfx_buffer != -1) { buffer_delete(test_sfx_buffer); test_sfx_buffer = -1; }
+                } else if (action_modal_sfx_folder_idx != -1 && action_modal_sfx_file_idx != -1) {
+                    play_sfx_preview(action_modal_sfx_folders[action_modal_sfx_folder_idx], action_modal_sfx_files[action_modal_sfx_file_idx]);
                 }
             }
         }
@@ -464,7 +520,7 @@ function step_modal_action() {
                 if (action_modal_title_text == "") _can_proceed = false;
                 else _act_name = "DISPLAY TITLE \"" + string_replace_all(action_modal_title_text, "\n", " ") + "\"";
             } else if (_act_name == "play sfx") {
-                if (action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) _can_proceed = false;
+                if ((action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) && action_modal_sfx_search_sel == -1) _can_proceed = false;
                 else {
                     var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
                     var _sfx_file = action_modal_sfx_files[action_modal_sfx_file_idx];
@@ -497,8 +553,11 @@ function step_modal_action() {
                 }
                 update_all_block_heights();
                 action_modal_open = false;
-                var _th = 0; for (var k = 0; k < array_length(script_blocks); k++) _th += script_blocks[k].height + 20;
-                block_scroll_y = min(0, (box_h - 40) - _th);
+                var _ins_idx = (action_modal_target_index != -1) ? action_modal_target_index : (array_length(script_blocks) - 1);
+                var _block_y = 0;
+                for (var k = 0; k < _ins_idx; k++) _block_y += script_blocks[k].height + 20;
+                block_scroll_y = min(0, -(_block_y - box_h / 3));
+                update_preview_actors_for_block(_ins_idx, true);
                 return;
             }
         }
@@ -509,31 +568,69 @@ function step_modal_action() {
 
     if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
         var _wx = _mxo + 300; var _wy = _myo + 130;
-        var _fx = _mxo + 280; var _fy = _wy + 65; var _fh = 215;
-        var _lx = _mxo + 550; var _ly = _wy + 65; var _lh = 215;
-        if (_mx > _fx + 10 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) {
-            if (mouse_wheel_up())   action_modal_sfx_scroll_y -= 60;
-            if (mouse_wheel_down()) action_modal_sfx_scroll_y += 60;
+        var _fx = _mxo + 280; var _fy = _wy + 90; var _fh = 195;
+        var _lx = _mxo + 550; var _ly = _wy + 90; var _lh = 195;
+
+        // Keyboard input for search box
+        if (action_modal_sfx_search_focused) {
+            if (string_length(keyboard_string) > 0) {
+                action_modal_sfx_search += keyboard_string;
+                keyboard_string = "";
+                refresh_sfx_search(action_modal_sfx_search);
+            }
+            if (keyboard_check(vk_backspace)) {
+                action_modal_sfx_bksp_held++;
+                if (action_modal_sfx_bksp_held >= 45 && string_length(action_modal_sfx_search) > 0) {
+                    action_modal_sfx_search = "";
+                    refresh_sfx_search("");
+                    action_modal_sfx_bksp_held = 0;
+                }
+            } else {
+                action_modal_sfx_bksp_held = 0;
+            }
+            if (keyboard_check_pressed(vk_backspace) && string_length(action_modal_sfx_search) > 0) {
+                action_modal_sfx_search = string_copy(action_modal_sfx_search, 1, string_length(action_modal_sfx_search) - 1);
+                refresh_sfx_search(action_modal_sfx_search);
+            }
+        } else {
+            action_modal_sfx_bksp_held = 0;
         }
-        if (_mx > _lx - 10 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) {
-            if (mouse_wheel_up())   action_modal_sfx_files_scroll_y -= 60;
-            if (mouse_wheel_down()) action_modal_sfx_files_scroll_y += 60;
-        }
-        var _max_s = max(0, (array_length(action_modal_sfx_folders) * 30) - _fh);
-        var _max_f = max(0, (array_length(action_modal_sfx_files)  * 30) - _lh);
-        action_modal_sfx_scroll_y       = clamp(action_modal_sfx_scroll_y,       0, _max_s);
-        action_modal_sfx_files_scroll_y = clamp(action_modal_sfx_files_scroll_y, 0, _max_f);
-        if (mouse_check_button_pressed(mb_left)) {
-            if (_max_s > 0 && _mx > _fx + 232 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) action_modal_sfx_dragging_folder = true;
-            if (_max_f > 0 && _mx > _lx + 302 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) action_modal_sfx_dragging_file = true;
-        }
-        if (action_modal_sfx_dragging_folder) {
-            if (mouse_check_button(mb_left)) action_modal_sfx_scroll_y = clamp((_my - _fy) / _fh, 0, 1) * _max_s;
-            else action_modal_sfx_dragging_folder = false;
-        }
-        if (action_modal_sfx_dragging_file) {
-            if (mouse_check_button(mb_left)) action_modal_sfx_files_scroll_y = clamp((_my - _ly) / _lh, 0, 1) * _max_f;
-            else action_modal_sfx_dragging_file = false;
+
+        if (action_modal_sfx_search != "") {
+            // Scroll search results
+            var _ry = _wy + 90; var _rh = 200;
+            if (_mx > _fx + 10 && _mx < _fx + 580 && _my > _ry && _my < _ry + _rh) {
+                if (mouse_wheel_up())   action_modal_sfx_search_scroll_y -= 56;
+                if (mouse_wheel_down()) action_modal_sfx_search_scroll_y += 56;
+            }
+            var _max_r = max(0, array_length(action_modal_sfx_search_results) * 28 - _rh);
+            action_modal_sfx_search_scroll_y = clamp(action_modal_sfx_search_scroll_y, 0, _max_r);
+        } else {
+            // Normal scroll
+            if (_mx > _fx + 10 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) {
+                if (mouse_wheel_up())   action_modal_sfx_scroll_y -= 60;
+                if (mouse_wheel_down()) action_modal_sfx_scroll_y += 60;
+            }
+            if (_mx > _lx - 10 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) {
+                if (mouse_wheel_up())   action_modal_sfx_files_scroll_y -= 60;
+                if (mouse_wheel_down()) action_modal_sfx_files_scroll_y += 60;
+            }
+            var _max_s = max(0, (array_length(action_modal_sfx_folders) * 30) - _fh);
+            var _max_f = max(0, (array_length(action_modal_sfx_files)  * 30) - _lh);
+            action_modal_sfx_scroll_y       = clamp(action_modal_sfx_scroll_y,       0, _max_s);
+            action_modal_sfx_files_scroll_y = clamp(action_modal_sfx_files_scroll_y, 0, _max_f);
+            if (mouse_check_button_pressed(mb_left)) {
+                if (_max_s > 0 && _mx > _fx + 232 && _mx < _fx + 240 && _my > _fy && _my < _fy + _fh) action_modal_sfx_dragging_folder = true;
+                if (_max_f > 0 && _mx > _lx + 302 && _mx < _lx + 310 && _my > _ly && _my < _ly + _lh) action_modal_sfx_dragging_file = true;
+            }
+            if (action_modal_sfx_dragging_folder) {
+                if (mouse_check_button(mb_left)) action_modal_sfx_scroll_y = clamp((_my - _fy) / _fh, 0, 1) * _max_s;
+                else action_modal_sfx_dragging_folder = false;
+            }
+            if (action_modal_sfx_dragging_file) {
+                if (mouse_check_button(mb_left)) action_modal_sfx_files_scroll_y = clamp((_my - _ly) / _lh, 0, 1) * _max_f;
+                else action_modal_sfx_dragging_file = false;
+            }
         }
     }
 

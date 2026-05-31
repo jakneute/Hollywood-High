@@ -171,20 +171,16 @@ if (edit_mode) {
         var _tx = modal_is_local_edit ? _m_x + 165 : _m_x + 30;
         if (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality); }
         
-        // Export Config (debug)
+        // Export Config (debug) — saves only the currently selected character
         if (SHOW_VOICE_CFG && !modal_is_local_edit && _mx > _m_x+_m_w-430 && _mx < _m_x+_m_w-295 && _my > _btn_y && _my < _btn_y+40) {
-            var _json = "{";
-            for (var _ci = 0; _ci < array_length(characters); _ci++) {
-                var _cc = characters[_ci];
-                if (_ci > 0) _json += ",";
-                _json += "\n  \"" + _cc.name + "\": {";
-                _json += "\"voice_id\": \"" + string(_cc.voice_id) + "\", ";
-                _json += "\"pitch\": " + string(_cc.pitch) + ", ";
-                _json += "\"speed\": " + string(_cc.speed) + ", ";
-                _json += "\"mode\": " + string(_cc.mode) + ", ";
-                _json += "\"style\": " + string(_cc.style) + ", ";
-                _json += "\"tweaked\": " + (_cc.tweaked ? "true" : "false") + "}";
-            }
+            var _cc = characters[selected_character_index];
+            var _json = "{\n  \"" + _cc.name + "\": {";
+            _json += "\"voice_id\": \"" + string(_cc.voice_id) + "\", ";
+            _json += "\"pitch\": " + string(_cc.pitch) + ", ";
+            _json += "\"speed\": " + string(_cc.speed) + ", ";
+            _json += "\"mode\": " + string(_cc.mode) + ", ";
+            _json += "\"style\": " + string(_cc.style) + ", ";
+            _json += "\"tweaked\": " + (_cc.tweaked ? "true" : "false") + "}";
             _json += "\n}";
             var _f = file_text_open_write(datafiles_path + "voice_config.json");
             file_text_write_string(_f, _json);
@@ -297,9 +293,10 @@ if (file_menu_open) {
 
         // ── SAVE SCRIPT ──
         if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y && _my < _fm_y + 35) {
-            var _file = get_save_filename("Hollywood High Script|*.hhi", "screenplay.hhi");
+            var _default = (current_script_path != "") ? current_script_path : working_directory + "screenplay.hhi";
+            var _file = get_save_filename("Hollywood High Script|*.hhi", _default);
             if (_file != "") {
-                // Version 2: chars array now carries sprite_name for renamed characters
+                current_script_path = _file;
                 var _save_data = { version: 2, script: script_blocks, chars: characters, dict: dictionary_list };
                 var _json = json_stringify(_save_data);
                 var _buf = buffer_create(string_byte_length(_json) + 1, buffer_fixed, 1);
@@ -313,8 +310,9 @@ if (file_menu_open) {
 
         // ── LOAD SCRIPT ──
         } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 35 && _my < _fm_y + 70) {
-            var _file = get_open_filename("Hollywood High Script|*.hhi", "");
+            var _file = get_open_filename("Hollywood High Script|*.hhi", current_script_path);
             if (_file != "" && file_exists(_file)) {
+                current_script_path = _file;
                 try {
                     var _buf = buffer_load(_file);
                     var _dbuf = buffer_decompress(_buf);
@@ -348,7 +346,7 @@ if (file_menu_open) {
 
         // ── SAVE SCREENPLAY (export-only text file) ──
         } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 70 && _my < _fm_y + 105) {
-            var _file = get_save_filename("Screenplay Text|*.txt|Fountain Format|*.fountain", "screenplay.txt");
+            var _file = get_save_filename("Screenplay Text|*.txt|Fountain Format|*.fountain", working_directory + "screenplay.txt");
             if (_file != "") {
                 var _sf = file_text_open_write(_file);
                 if (_sf != -1) {
@@ -412,6 +410,75 @@ if (file_menu_open) {
 
         file_menu_open = false;
         if (_clicked_option) return;
+    }
+}
+
+// Theater auto-hide timer — must run every step, not inside a click check
+if (theater_mode) {
+    var _tmx = mouse_x; var _tmy = mouse_y;
+    if (_tmx != theater_ui_last_mx || _tmy != theater_ui_last_my || theater_paused) {
+        theater_ui_timer = 120;
+    } else if (theater_ui_timer > 0) {
+        theater_ui_timer--;
+    }
+    theater_ui_last_mx = _tmx; theater_ui_last_my = _tmy;
+}
+
+// --- 2c. SCRIPT EDITOR KEYBOARD NAVIGATION (PgUp/PgDown/Home/End) ---
+{
+    var _no_modal   = !file_menu_open && !edit_mode && !scene_modal_open && !theater_mode;
+    var _not_typing = (focused_block == -1 || focused_block >= array_length(script_blocks)
+                       || !variable_struct_exists(script_blocks[focused_block], "type")
+                       || script_blocks[focused_block].type != "voice");
+    if (_no_modal && playing_block_index == -1 && array_length(script_blocks) > 0) {
+        var _total_h = 0;
+        for (var _ni = 0; _ni < array_length(script_blocks); _ni++) _total_h += script_blocks[_ni].height + 20;
+        var _max_scroll = min(0, box_h - 40 - _total_h);
+
+        if (_not_typing) {
+            if (keyboard_check_pressed(vk_home)) {
+                block_scroll_y = 0;
+                focused_block  = 0;
+            } else if (keyboard_check_pressed(vk_end)) {
+                block_scroll_y = _max_scroll;
+                focused_block  = array_length(script_blocks) - 1;
+            } else if (keyboard_check_pressed(vk_pageup)) {
+                block_scroll_y = min(0, block_scroll_y + box_h);
+            } else if (keyboard_check_pressed(vk_pagedown)) {
+                block_scroll_y = max(_max_scroll, block_scroll_y - box_h);
+            }
+        }
+
+        // Nav buttons (right gutter) — same actions triggered by mouse click
+        if (mouse_check_button_pressed(mb_left) && !_overlay_active) {
+            var _nb_x   = box_x + box_w + 5;
+            var _nb_w   = 38;
+            var _nb_h   = 26;
+            var _nb_gap = 5;
+            var _nb_y0  = box_y + (box_h - (4 * _nb_h + 3 * _nb_gap)) / 2;
+
+            var _nav_full_h = _total_h;
+            var _nav_can_scroll = (_nav_full_h > box_h - 20);
+            var _nav_max_scroll = _nav_can_scroll ? (-(_nav_full_h + box_h / 2 - (box_h - 20))) : 0;
+            var _at_top    = !_nav_can_scroll || block_scroll_y >= 0;
+            var _at_bottom = !_nav_can_scroll || block_scroll_y <= _nav_max_scroll;
+
+            if (_mx >= _nb_x && _mx <= _nb_x + _nb_w) {
+                for (var _bi = 0; _bi < 4; _bi++) {
+                    var _by = _nb_y0 + _bi * (_nb_h + _nb_gap);
+                    if (_my >= _by && _my <= _by + _nb_h) {
+                        var _disabled = (_bi < 2) ? _at_top : _at_bottom;
+                        if (!_disabled) {
+                            if      (_bi == 0) { block_scroll_y = 0;                                        focused_block = 0; }
+                            else if (_bi == 1) { block_scroll_y = min(0, block_scroll_y + box_h); }
+                            else if (_bi == 2) { block_scroll_y = max(_nav_max_scroll, block_scroll_y - box_h); }
+                            else if (_bi == 3) { block_scroll_y = _nav_max_scroll;                          focused_block = array_length(script_blocks) - 1; }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -771,8 +838,10 @@ if (mouse_check_button_pressed(mb_left)) {
     if (!theater_mode && !is_speaking && playing_block_index == -1 && !action_modal_open && !scene_modal_open && !move_modal_open) {
         if (_mx > btn_theater_x && _mx < btn_theater_x + btn_theater_w && _my > btn_theater_y && _my < btn_theater_y + btn_theater_h) {
             theater_mode = true;
-            theater_paused = true; // Start PAUSED on entry
+            theater_paused = true;
             theater_subtitles = "";
+            theater_ui_timer = 120;
+            theater_was_mid_speech = false;
             scene_edit_mode = false;
             insertion_idx = -1;
             play_from_index(0); 
@@ -802,31 +871,35 @@ if (mouse_check_button_pressed(mb_left)) {
     }
 
     if (theater_mode) {
+        var _theater_ui_vis = (theater_ui_timer > 0 || theater_paused);
+
         // Theater Mode Controls
         if (mouse_check_button_pressed(mb_left)) {
             focused_block = -1;
             selection_start = 0; selection_end = 0;
-            // EXIT Button (Bottom Right)
-            if (_mx > 1280 - 200 && _mx < 1280 - 20 && _my > 860 && _my < 910) {
+            // EXIT Button (Bottom Right) — only when visible
+            if (_theater_ui_vis && _mx > 1280 - 200 && _mx < 1280 - 20 && _my > 860 && _my < 910) {
                 theater_mode = false;
                 theater_paused = false;
                 playing_block_index = -1; // Clear playback on exit
                 is_speaking = false; audio_stop_all(); tts_stop();
                 return;
             }
-            // PLAY/PAUSE Button (Bottom Left)
-            if (_mx > 30 && _mx < 150 && _my > 860 && _my < 910) {
+            // PLAY/PAUSE Button (Bottom Left) — only when visible
+            if (_theater_ui_vis && _mx > 30 && _mx < 150 && _my > 860 && _my < 910) {
                 if (playing_block_index == -1) {
                     play_from_index(0);
                     theater_paused = false;
+                    theater_ui_timer = 0; // hide controls immediately
                 } else {
                     theater_paused = !theater_paused;
                     if (theater_paused) {
-                        // Pause: Stop current audio
+                        theater_was_mid_speech = is_speaking;
                         audio_stop_all(); tts_stop(); is_speaking = false;
                     } else {
-                        // Resume: Trigger the sequencer
-                        speaking_pause_timer = -1; 
+                        // Resume: replay if we were mid-speech, otherwise advance immediately
+                        speaking_pause_timer = theater_was_mid_speech ? -1 : 0;
+                        theater_ui_timer = 0; // hide controls immediately
                     }
                 }
                 return;
@@ -847,12 +920,14 @@ if (mouse_check_button_pressed(mb_left)) {
             voice_id: _c.voice_id, pitch: _c.pitch, speed: _c.speed, mode: _c.mode, style: _c.style, tweaked: _c.tweaked, is_altered: false
         });
         update_block_height(_idx);
-        focused_block = _idx; insertion_idx = -1; keyboard_string = ""; 
-        scene_edit_mode = false; 
-        
-        // Auto-scroll to show the new line
-        var _th = 0; for (var k = 0; k < array_length(script_blocks); k++) _th += script_blocks[k].height + 20;
-        block_scroll_y = min(0, (box_h - 40) - _th);
+        focused_block = _idx; insertion_idx = -1; keyboard_string = "";
+        scene_edit_mode = false;
+
+        // Scroll to show the spliced block — place it ~1/3 down from the top of the viewport
+        var _block_y = 0;
+        for (var k = 0; k < _idx; k++) _block_y += script_blocks[k].height + 20;
+        block_scroll_y = min(0, -(_block_y - box_h / 3));
+        update_preview_actors_for_block(_idx, true);
         return;
     }
 
@@ -1346,9 +1421,49 @@ if (playing_block_index == -1 && is_selecting && focused_block != -1) {
 // Scroll Wheel
 _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open);
 
+// --- SCRIPT SCROLLBAR DRAG ---
+if (!theater_mode) {
+    var _sb_full_h = 0;
+    for (var i = 0; i < array_length(script_blocks); i++) _sb_full_h += script_blocks[i].height + 20;
+    _sb_full_h += box_h / 2;
+
+    if (_sb_full_h > box_h - 10) {
+        var _sb_view_h  = box_h - 10;
+        var _sb_bar_h   = max(20, (_sb_view_h / _sb_full_h) * _sb_view_h);
+        var _sb_max_top = (box_y + 5) + _sb_view_h - _sb_bar_h;
+        var _sb_bar_y   = clamp((box_y + 5) + (-block_scroll_y / _sb_full_h) * _sb_view_h, box_y + 5, _sb_max_top);
+        var _sb_x = box_x + box_w - 12;
+        var _sb_w = 10;
+
+        if (mouse_check_button_pressed(mb_left) && _mx >= _sb_x && _mx <= _sb_x + _sb_w
+            && _my >= box_y + 5 && _my <= box_y + box_h - 5) {
+            if (_my >= _sb_bar_y && _my <= _sb_bar_y + _sb_bar_h) {
+                script_scrollbar_dragging = true;
+                script_scrollbar_drag_offset = _my - _sb_bar_y;
+            } else {
+                // Click on track — center bar at click position
+                var _clicked_frac = (_my - (box_y + 5)) / _sb_view_h;
+                block_scroll_y = clamp(-(_clicked_frac * _sb_full_h - _sb_bar_h / 2), -(_sb_full_h - _sb_view_h), 0);
+            }
+        }
+
+        if (script_scrollbar_dragging) {
+            if (mouse_check_button(mb_left)) {
+                var _new_bar_y = clamp(_my - script_scrollbar_drag_offset, box_y + 5, _sb_max_top);
+                var _new_frac  = (_new_bar_y - (box_y + 5)) / _sb_view_h;
+                block_scroll_y = clamp(-_new_frac * _sb_full_h, -(_sb_full_h - _sb_view_h), 0);
+            } else {
+                script_scrollbar_dragging = false;
+            }
+        }
+    } else {
+        script_scrollbar_dragging = false;
+    }
+}
+
 if (!_overlay_active) {
     var _over_pane = (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h);
-    
+
     if (_over_pane) {
         // Scroll the character selector
         var _cols = 2; var _item_h = 135;
@@ -1504,16 +1619,19 @@ if (!_overlay_active && playing_block_index == -1 && dragging_char_index != -1) 
                     if (moonwalk_enabled) _aname += " [MOONWALK]";
                     
                     var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
-                    array_insert(script_blocks, _insert_idx, { 
-                        type: "action", 
-                        action_name: _aname, 
-                        char_index: dragging_char_index, 
-                        target_x: _px, 
+                    var _ec = characters[dragging_char_index];
+                    array_insert(script_blocks, _insert_idx, {
+                        type: "action",
+                        action_name: _aname,
+                        char_index: dragging_char_index,
+                        target_x: _px,
                         target_y: _py,
                         facing: _is_left ? 1 : -1,
                         height: 85,
                         speed: move_speeds[move_speed_index],
-                        moonwalk: moonwalk_enabled
+                        moonwalk: moonwalk_enabled,
+                        enter_expression: variable_struct_exists(_ec, "expression") ? _ec.expression : 21,
+                        enter_pose:       variable_struct_exists(_ec, "pose")       ? _ec.pose       : 1
                     });
                     focused_block = _insert_idx;
                     insertion_idx = -1;
@@ -1629,7 +1747,25 @@ focused_block = clamp(focused_block, -1, _len - 1);
 playing_block_index = clamp(playing_block_index, -1, _len - 1);
 last_played_block_index = clamp(last_played_block_index, -1, _len - 1);
 
-var _ref_idx = (playing_block_index != -1) ? playing_block_index : (insertion_idx != -1 ? insertion_idx : (focused_block != -1 ? focused_block : _len - 1));
+var _ref_idx;
+if (playing_block_index != -1) {
+    _ref_idx = playing_block_index;
+} else if (insertion_idx != -1) {
+    _ref_idx = insertion_idx;
+} else if (focused_block != -1) {
+    _ref_idx = focused_block;
+} else if (_len > 0) {
+    // Nothing selected — show the scene context for whatever's visible in the center of the viewport
+    var _center_target = -block_scroll_y + box_h * 0.4;
+    var _acc = 0;
+    _ref_idx = _len - 1;
+    for (var _ri = 0; _ri < _len; _ri++) {
+        _acc += script_blocks[_ri].height + 20;
+        if (_acc >= _center_target) { _ref_idx = _ri; break; }
+    }
+} else {
+    _ref_idx = -1;
+}
 _ref_idx = clamp(_ref_idx, -1, _len - 1);
 
 active_scene_block_idx = -1;

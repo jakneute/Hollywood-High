@@ -244,7 +244,6 @@ function step_tts_playback() {
                 if (_is_scene) {
                     current_scene_sprite = get_scene_sprite(_b.internal_name);
                     set_scene_dimensions(current_scene_sprite);
-                    speaking_pause_timer = max(speaking_pause_timer, 60);
                     active_scene_block_idx = playing_block_index;
                     preview_actors = [];
                     if (variable_struct_exists(_b, "actors")) {
@@ -280,8 +279,8 @@ function step_tts_playback() {
                             char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                             var _target_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                             var _c = characters[_b.char_index];
-                            var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
-                            var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
+                            var _pose = variable_struct_exists(_b, "enter_pose")       ? _b.enter_pose       : (variable_struct_exists(_c, "pose")       ? _c.pose       : 1);
+                            var _expr = variable_struct_exists(_b, "enter_expression") ? _b.enter_expression : (variable_struct_exists(_c, "expression") ? _c.expression : 21);
                             array_push(preview_actors, { char_index: _b.char_index, x: _start_x, y: _target_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
                             action_animating = true;
                             array_push(active_animations, {

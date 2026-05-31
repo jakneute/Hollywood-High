@@ -176,12 +176,18 @@ if (theater_mode) {
 							for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
 								if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
 							}
-							// Coast through SAPI5 inter-sentence silences — hold the last open
-							// shape for up to 300 ms so the mouth doesn't snap closed between sentences.
+							// Hold the last open shape so the mouth doesn't snap closed between phonemes.
 							if (_cur_v != 0) {
 								mouth_last_vis_time_ms = current_time; mouth_last_vis_value = _cur_v;
-							} else if (mouth_last_vis_time_ms >= 0 && current_time - mouth_last_vis_time_ms < 300) {
+							} else if (mouth_last_vis_time_ms >= 0 && current_time - mouth_last_vis_time_ms < 500) {
 								_cur_v = mouth_last_vis_value;
+							} else if (current_viseme_total_ms > 0 && mouth_last_vis_value != 0) {
+								for (var _vla = _vi; _vla < array_length(current_viseme_data); _vla++) {
+									if (current_viseme_data[_vla].v != 0) {
+										if ((current_viseme_data[_vla].t - _prog) * _adj_dur < 400) _cur_v = mouth_last_vis_value;
+										break;
+									}
+								}
 							}
 							_mouth_open = (_cur_v != 0);
 							if (_mouth_open) {
@@ -295,24 +301,27 @@ if (theater_mode) {
         gpu_set_scissor(0, 0, 1280, 960);
     }
     
-    // Controls
-    // EXIT Button (Bottom Right)
-    var _ex = 1280 - 200; var _ey = 860; var _ew = 180; var _eh = 50;
-    var _ehov = (mouse_x > _ex && mouse_x < _ex + _ew && mouse_y > _ey && mouse_y < _ey + _eh);
-    draw_set_color(_ehov ? make_color_rgb(200, 50, 50) : make_color_rgb(150, 40, 40));
-    draw_rectangle(_ex, _ey, _ex + _ew, _ey + _eh, false);
-    draw_set_color(c_white); draw_set_halign(fa_center);
-    draw_text(_ex + 90, _ey + 15, "EXIT THEATER");
-    draw_set_halign(fa_left);
-    
-    // PLAY/PAUSE Button (Bottom Left)
-    var _px = 30; var _py = 860; var _pw = 120; var _ph = 50;
-    var _phov = (mouse_x > _px && mouse_x < _px + _pw && mouse_y > _py && mouse_y < _py + _ph);
-    draw_set_color(_phov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150));
-    draw_rectangle(_px, _py, _px + _pw, _py + _ph, false);
-    draw_set_color(c_white); draw_set_halign(fa_center);
-    draw_text(_px + 60, _py + 15, theater_paused ? "PLAY" : "PAUSE");
-    draw_set_halign(fa_left);
+    // Controls (auto-hide when playing and mouse idle)
+    var _theater_ui_vis = (theater_ui_timer > 0 || theater_paused);
+    if (_theater_ui_vis) {
+        // EXIT Button (Bottom Right)
+        var _ex = 1280 - 200; var _ey = 860; var _ew = 180; var _eh = 50;
+        var _ehov = (mouse_x > _ex && mouse_x < _ex + _ew && mouse_y > _ey && mouse_y < _ey + _eh);
+        draw_set_color(_ehov ? make_color_rgb(200, 50, 50) : make_color_rgb(150, 40, 40));
+        draw_rectangle(_ex, _ey, _ex + _ew, _ey + _eh, false);
+        draw_set_color(c_white); draw_set_halign(fa_center);
+        draw_text(_ex + 90, _ey + 15, "EXIT THEATER");
+        draw_set_halign(fa_left);
+
+        // PLAY/PAUSE Button (Bottom Left)
+        var _px = 30; var _py = 860; var _pw = 120; var _ph = 50;
+        var _phov = (mouse_x > _px && mouse_x < _px + _pw && mouse_y > _py && mouse_y < _py + _ph);
+        draw_set_color(_phov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150));
+        draw_rectangle(_px, _py, _px + _pw, _py + _ph, false);
+        draw_set_color(c_white); draw_set_halign(fa_center);
+        draw_text(_px + 60, _py + 15, theater_paused ? "PLAY" : "PAUSE");
+        draw_set_halign(fa_left);
+    }
     
     _render_live_titles();
     
@@ -464,12 +473,18 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 								for (var _vi = 0; _vi < array_length(current_viseme_data); _vi++) {
 									if (current_viseme_data[_vi].t <= _prog) _cur_v = current_viseme_data[_vi].v; else break;
 								}
-								// Coast through SAPI5 inter-sentence silences — hold the last open
-								// shape for up to 300 ms so the mouth doesn't snap closed between sentences.
+								// Hold the last open shape so the mouth doesn't snap closed between phonemes.
 								if (_cur_v != 0) {
 									mouth_last_vis_time_ms = current_time; mouth_last_vis_value = _cur_v;
-								} else if (mouth_last_vis_time_ms >= 0 && current_time - mouth_last_vis_time_ms < 300) {
+								} else if (mouth_last_vis_time_ms >= 0 && current_time - mouth_last_vis_time_ms < 500) {
 									_cur_v = mouth_last_vis_value;
+								} else if (current_viseme_total_ms > 0 && mouth_last_vis_value != 0) {
+									for (var _vla = _vi; _vla < array_length(current_viseme_data); _vla++) {
+										if (current_viseme_data[_vla].v != 0) {
+											if ((current_viseme_data[_vla].t - _prog) * _adj_dur < 400) _cur_v = mouth_last_vis_value;
+											break;
+										}
+									}
 								}
 								_mouth_open = (_cur_v != 0);
 								if (_mouth_open) {
@@ -1195,24 +1210,60 @@ for (var b = 0; b < array_length(script_blocks); b++) {
 gpu_set_scissor(0, 0, 1280, 960);
 
 // --- 5. SCRIPT SCROLLBAR ---
-var _full_h = 0; 
+var _full_h = 0;
 for (var i = 0; i < array_length(script_blocks); i++) {
     _full_h += script_blocks[i].height + 20;
 }
 _full_h += box_h / 2; // Match the Step event's normalized buffer
 
+var _sb_x = box_x + box_w - 12;
+var _sb_w = 10;
 if (_full_h > box_h - 10) {
     var _view_h = box_h - 10;
-    var _bar_h = (_view_h / _full_h) * _view_h;
-    var _bar_y = (box_y + 5) + (-block_scroll_y / _full_h) * _view_h;
-    
-    // Draw Track
-    draw_set_color(make_color_rgb(70, 70, 80));
-    draw_rectangle(box_x + box_w - 10, box_y + 5, box_x + box_w - 2, box_y + box_h - 5, false); 
-    
-    // Draw Bar
-    draw_set_color(make_color_rgb(120, 120, 140));
-    draw_rectangle(box_x + box_w - 10, _bar_y, box_x + box_w - 2, _bar_y + _bar_h, false); 
+    var _bar_h = max(20, (_view_h / _full_h) * _view_h);
+    var _max_bar_top = (box_y + 5) + _view_h - _bar_h;
+    var _bar_y = clamp((box_y + 5) + (-block_scroll_y / _full_h) * _view_h, box_y + 5, _max_bar_top);
+    var _sb_hov = (_mx >= _sb_x && _mx <= _sb_x + _sb_w && _my >= box_y + 5 && _my <= box_y + box_h - 5);
+    var _bar_hov = (_mx >= _sb_x && _mx <= _sb_x + _sb_w && _my >= _bar_y && _my <= _bar_y + _bar_h);
+
+    // Track
+    draw_set_color(make_color_rgb(60, 60, 72));
+    draw_rectangle(_sb_x, box_y + 5, _sb_x + _sb_w, box_y + box_h - 5, false);
+    // Bar
+    draw_set_color(script_scrollbar_dragging ? make_color_rgb(170, 170, 200) : (_bar_hov ? make_color_rgb(150, 150, 175) : make_color_rgb(110, 110, 130)));
+    draw_rectangle(_sb_x, _bar_y, _sb_x + _sb_w, _bar_y + _bar_h, false);
+}
+
+// --- 5b. SCRIPT NAV BUTTONS ---
+{
+    var _nb_x   = box_x + box_w + 5;
+    var _nb_w   = 38;
+    var _nb_h   = 26;
+    var _nb_gap = 5;
+    var _nb_y   = box_y + (box_h - (4 * _nb_h + 3 * _nb_gap)) / 2;
+
+    // Compute scroll bounds for disabled states
+    var _nav_full_h = 0;
+    for (var _ni = 0; _ni < array_length(script_blocks); _ni++) _nav_full_h += script_blocks[_ni].height + 20;
+    var _nav_can_scroll = (_nav_full_h > box_h - 20);
+    var _nav_max_scroll = _nav_can_scroll ? (-(_nav_full_h + box_h / 2 - (box_h - 20))) : 0;
+    var _at_top    = !_nav_can_scroll || block_scroll_y >= 0;
+    var _at_bottom = !_nav_can_scroll || block_scroll_y <= _nav_max_scroll;
+    var _is_playing = (playing_block_index != -1 || theater_mode);
+
+    var _labels = ["^^", " ^", " v", "vv"];
+    for (var _bi = 0; _bi < 4; _bi++) {
+        var _by = _nb_y + _bi * (_nb_h + _nb_gap);
+        var _disabled = _is_playing || ((_bi < 2) ? _at_top : _at_bottom);
+        var _hov = (!_disabled && !_overlay_active && _mx >= _nb_x && _mx <= _nb_x + _nb_w && _my >= _by && _my <= _by + _nb_h);
+        var _col = _disabled ? make_color_rgb(55, 55, 65) : (_hov ? make_color_rgb(130, 130, 160) : make_color_rgb(85, 85, 105));
+        draw_set_color(_col);
+        draw_rectangle(_nb_x, _by, _nb_x + _nb_w, _by + _nb_h, false);
+        draw_set_color(_disabled ? make_color_rgb(75, 75, 85) : c_white);
+        draw_set_halign(fa_center); draw_set_valign(fa_middle);
+        draw_text(_nb_x + _nb_w / 2, _by + _nb_h / 2, _labels[_bi]);
+        draw_set_halign(fa_left); draw_set_valign(fa_top);
+    }
 }
 
 // --- 5b. BOTTOM CONTROLS ---
@@ -1541,7 +1592,7 @@ if (action_modal_open) {
     // OK / Cancel Buttons
     var _can_proceed = true;
     if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
-        if (action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) _can_proceed = false;
+        if ((action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) && action_modal_sfx_search_sel == -1) _can_proceed = false;
     } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "display title") {
         if (action_modal_title_text == "") _can_proceed = false;
     }
@@ -1599,72 +1650,122 @@ if (action_modal_open) {
             draw_text(_wx + 20, _wy + 115, string(action_modal_wait_duration) + " seconds");
         } else if (all_actions[action_modal_selected_idx].name == "play sfx") {
             var _wx = _mxo + 300; var _wy = _myo + 130;
-            
+
             draw_set_color(c_aqua); draw_text(_wx, _wy, "PARAMETERS");
             draw_line(_wx, _wy + 25, _wx + 560, _wy + 25);
-            
-            var _fx = _mxo + 280; var _fy = _myo + 80; var _fw = 250; var _fh = 350;
-            var _lx = _mxo + 550; var _ly = _myo + 80; var _lw = 320; var _lh = 350;
 
-            // FOLDERS
-            draw_set_color(c_white); draw_text(_fx + 10, _wy + 40, "Category:");
-            draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_fx + 10, _wy + 65, _fx + 240, _wy + 280, false);
-            
-            gpu_set_scissor(_fx + 10, _wy + 65, 230, 215);
-            for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
-                var _fby = _wy + 65 + (f * 30) - action_modal_sfx_scroll_y;
-                var _is_sel = (action_modal_sfx_folder_idx == f);
-                var _f_hov = (!action_modal_sfx_dragging_folder && _mx > _fx + 10 && _mx < _fx + 230 && _my > _fby && _my < _fby + 30 && _my > _wy + 65 && _my < _wy + 280);
-                draw_set_color(_is_sel ? make_color_rgb(80, 80, 150) : (_f_hov ? make_color_rgb(50, 50, 70) : make_color_rgb(30, 30, 40)));
-                draw_rectangle(_fx + 10, _fby, _fx + 240, _fby + 30, false);
-                draw_set_color(_is_sel ? c_white : c_ltgray); draw_text(_fx + 15, _fby + 5, string_upper(action_modal_sfx_folders[f]));
+            var _fx = _mxo + 280;
+            var _lx = _mxo + 550;
+
+            // SEARCH BOX — sits between separator and the category/file columns
+            var _srx = _fx + 10; var _sry = _wy + 30; var _srw = 560; var _srh = 24;
+            var _sr_focused = action_modal_sfx_search_focused;
+            draw_set_color(_sr_focused ? make_color_rgb(40, 40, 70) : make_color_rgb(20, 20, 30));
+            draw_rectangle(_srx, _sry, _srx + _srw, _sry + _srh, false);
+            draw_set_color(_sr_focused ? c_yellow : c_ltgray);
+            draw_rectangle(_srx, _sry, _srx + _srw, _sry + _srh, true);
+            var _sq = action_modal_sfx_search;
+            var _sq_disp = (_sq == "") ? "Search..." : (string_upper(_sq) + (_sr_focused ? "|" : ""));
+            draw_set_color((_sq == "") ? make_color_rgb(80, 80, 100) : c_white);
+            draw_text(_srx + 6, _sry + 4, _sq_disp);
+            if (_sq != "") {
+                var _cx_hov = (_mx > _srx + _srw - 22 && _mx < _srx + _srw && _my > _sry && _my < _sry + _srh);
+                draw_set_color(_cx_hov ? c_white : make_color_rgb(180, 80, 80));
+                draw_text(_srx + _srw - 18, _sry + 4, "X");
             }
-            gpu_set_scissor(0, 0, 1280, 960);
-            
-            // FILES
-            draw_set_color(c_white); draw_text(_lx - 10, _wy + 40, "Sound Effect:");
-            draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_lx - 10, _wy + 65, _lx + 310, _wy + 280, false);
-            
-            gpu_set_scissor(_lx - 10, _wy + 65, 320, 215);
-            if (action_modal_sfx_folder_idx != -1) {
-                for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
-                    var _fby = _wy + 65 + (f * 30) - action_modal_sfx_files_scroll_y;
-                    var _is_sel = (action_modal_sfx_file_idx == f);
-                    var _f_hov = (!action_modal_sfx_dragging_file && _mx > _lx - 10 && _mx < _lx + 300 && _my > _fby && _my < _fby + 30 && _my > _wy + 65 && _my < _wy + 280);
+
+            var _boxy = _wy + 90; var _boxh = 195;
+            var _boxy2 = _boxy + _boxh;
+
+            if (action_modal_sfx_search != "") {
+                // SEARCH RESULTS — full-width single list
+                var _rc = array_length(action_modal_sfx_search_results);
+                draw_set_color(c_white); draw_text(_fx + 10, _boxy - 20, "Results (" + string(_rc) + "):");
+                draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_fx + 10, _boxy, _fx + 580, _boxy2, false);
+                gpu_set_scissor(_fx + 10, _boxy, 570, _boxh);
+                for (var f = 0; f < _rc; f++) {
+                    var _res = action_modal_sfx_search_results[f];
+                    var _rby = _boxy + (f * 28) - action_modal_sfx_search_scroll_y;
+                    var _is_sel = (action_modal_sfx_search_sel == f);
+                    var _r_hov = (_mx > _fx + 10 && _mx < _fx + 578 && _my > _rby && _my < _rby + 28 && _my > _boxy && _my < _boxy2);
+                    draw_set_color(_is_sel ? make_color_rgb(80, 80, 150) : (_r_hov ? make_color_rgb(50, 50, 70) : make_color_rgb(30, 30, 40)));
+                    draw_rectangle(_fx + 10, _rby, _fx + 580, _rby + 28, false);
+                    draw_set_color(make_color_rgb(120, 120, 160)); draw_text(_fx + 15, _rby + 6, string_upper(_res.folder) + " /");
+                    draw_set_color(_is_sel ? c_white : c_ltgray);
+                    draw_text(_fx + 15 + string_width(string_upper(_res.folder) + " /") + 6, _rby + 6, string_replace(string_upper(_res.file), ".WAV", ""));
+                }
+                gpu_set_scissor(0, 0, 1280, 960);
+                // Scrollbar
+                var _rtot = _rc * 28;
+                if (_rtot > _boxh) {
+                    var _sb_x = _fx + 572;
+                    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
+                    var _bar_h = (_boxh / _rtot) * _boxh;
+                    var _bar_y = _boxy + (action_modal_sfx_search_scroll_y / _rtot) * _boxh;
+                    draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
+                }
+            } else {
+                // FOLDERS
+                draw_set_color(c_white); draw_text(_fx + 10, _boxy - 20, "Category:");
+                draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_fx + 10, _boxy, _fx + 240, _boxy2, false);
+                gpu_set_scissor(_fx + 10, _boxy, 230, _boxh);
+                for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
+                    var _fby = _boxy + (f * 30) - action_modal_sfx_scroll_y;
+                    var _is_sel = (action_modal_sfx_folder_idx == f);
+                    var _f_hov = (!action_modal_sfx_dragging_folder && _mx > _fx + 10 && _mx < _fx + 230 && _my > _fby && _my < _fby + 30 && _my > _boxy && _my < _boxy2);
                     draw_set_color(_is_sel ? make_color_rgb(80, 80, 150) : (_f_hov ? make_color_rgb(50, 50, 70) : make_color_rgb(30, 30, 40)));
-                    draw_rectangle(_lx - 10, _fby, _lx + 310, _fby + 30, false);
-                    draw_set_color(_is_sel ? c_white : c_ltgray); draw_text(_lx - 5, _fby + 5, string_replace(string_upper(action_modal_sfx_files[f]), ".WAV", ""));
+                    draw_rectangle(_fx + 10, _fby, _fx + 240, _fby + 30, false);
+                    draw_set_color(_is_sel ? c_white : c_ltgray); draw_text(_fx + 15, _fby + 5, string_upper(action_modal_sfx_folders[f]));
+                }
+                gpu_set_scissor(0, 0, 1280, 960);
+
+                // FILES
+                draw_set_color(c_white); draw_text(_lx - 10, _boxy - 20, "Sound Effect:");
+                draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_lx - 10, _boxy, _lx + 310, _boxy2, false);
+                gpu_set_scissor(_lx - 10, _boxy, 320, _boxh);
+                if (action_modal_sfx_folder_idx != -1) {
+                    for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
+                        var _fby = _boxy + (f * 30) - action_modal_sfx_files_scroll_y;
+                        var _is_sel = (action_modal_sfx_file_idx == f);
+                        var _f_hov = (!action_modal_sfx_dragging_file && _mx > _lx - 10 && _mx < _lx + 300 && _my > _fby && _my < _fby + 30 && _my > _boxy && _my < _boxy2);
+                        draw_set_color(_is_sel ? make_color_rgb(80, 80, 150) : (_f_hov ? make_color_rgb(50, 50, 70) : make_color_rgb(30, 30, 40)));
+                        draw_rectangle(_lx - 10, _fby, _lx + 310, _fby + 30, false);
+                        draw_set_color(_is_sel ? c_white : c_ltgray); draw_text(_lx - 5, _fby + 5, string_replace(string_upper(action_modal_sfx_files[f]), ".WAV", ""));
+                    }
+                }
+                gpu_set_scissor(0, 0, 1280, 960);
+
+                // FOLDER SCROLLBAR
+                var _ftot = array_length(action_modal_sfx_folders) * 30;
+                if (_ftot > _boxh) {
+                    var _sb_x = _fx + 240 - 8;
+                    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
+                    var _bar_h = (_boxh / _ftot) * _boxh;
+                    var _bar_y = _boxy + (action_modal_sfx_scroll_y / _ftot) * _boxh;
+                    draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
+                }
+
+                // FILE SCROLLBAR
+                var _ltot = array_length(action_modal_sfx_files) * 30;
+                if (_ltot > _boxh) {
+                    var _sb_x = _lx + 310 - 8;
+                    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
+                    var _bar_h = (_boxh / _ltot) * _boxh;
+                    var _bar_y = _boxy + (action_modal_sfx_files_scroll_y / _ltot) * _boxh;
+                    draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
                 }
             }
-            gpu_set_scissor(0, 0, 1280, 960);
-            
-            // FOLDER SCROLLBAR
-            _fh = 215; var _ftot = array_length(action_modal_sfx_folders) * 30;
-            if (_ftot > _fh) {
-                var _sb_x = _fx + 240 - 8;
-                draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _wy + 65, _sb_x + 8, _wy + 280, false);
-                var _bar_h = (_fh / _ftot) * _fh;
-                var _bar_y = (_wy + 65) + (action_modal_sfx_scroll_y / _ftot) * _fh;
-                draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
-            }
-            
-            // FILE SCROLLBAR
-            _lh = 215; var _ltot = array_length(action_modal_sfx_files) * 30;
-            if (_ltot > _lh) {
-                var _sb_x = _lx + 310 - 8;
-                draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _wy + 65, _sb_x + 8, _wy + 280, false);
-                var _bar_h = (_lh / _ltot) * _lh;
-                var _bar_y = (_wy + 65) + (action_modal_sfx_files_scroll_y / _ltot) * _lh;
-                draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
-            }
 
-            // TEST BUTTON
+            // TEST / STOP BUTTON
             var _tx = _mxo + _mw - 150; var _ty = _myo + _mh - 120;
-            var _can_test = (action_modal_sfx_folder_idx != -1 && action_modal_sfx_file_idx != -1);
+            var _sfx_playing = (test_sfx_sound != -1 && audio_is_playing(test_sfx_sound));
+            var _can_test = (action_modal_sfx_folder_idx != -1 && action_modal_sfx_file_idx != -1) || _sfx_playing;
             var _t_hov = (_can_test && _mx > _tx && _mx < _tx + 120 && _my > _ty && _my < _ty + 35);
-            draw_set_color(_can_test ? (_t_hov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150)) : make_color_rgb(40, 40, 50));
+            draw_set_color(_sfx_playing ? (_t_hov ? make_color_rgb(220, 80, 80) : make_color_rgb(160, 50, 50))
+                                        : (_can_test ? (_t_hov ? make_color_rgb(100, 100, 200) : make_color_rgb(60, 60, 150)) : make_color_rgb(40, 40, 50)));
             draw_rectangle(_tx, _ty, _tx + 120, _ty + 35, false);
-            draw_set_color(_can_test ? c_white : c_gray); draw_text(_tx + 35, _ty + 8, "TEST");
+            draw_set_color(_can_test ? c_white : c_gray);
+            draw_text(_tx + (_sfx_playing ? 30 : 35), _ty + 8, _sfx_playing ? "STOP" : "TEST");
         } else if (all_actions[action_modal_selected_idx].name == "display title") {
             var _wx = _mxo + 300; var _wy = _myo + 100;
             

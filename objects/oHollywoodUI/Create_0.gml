@@ -30,6 +30,8 @@ view_wport[0] = 1280;
 view_hport[0] = 960;
 view_camera[0] = camera_create_view(0, 0, 1280, 960, 0, -1, -1, -1, 0, 0);
 
+current_script_path = ""; // full path of the last saved/loaded .hhi file
+
 // --- 2. UI & LAYOUT CONSTANTS ---
 scene_win_x = 50; scene_win_y = 60; scene_win_w = 800; scene_win_h = 450; // Scene window (16:9)
 box_x = 50; box_y = 570; box_w = 1180; box_h = 370; // Main text box
@@ -101,6 +103,10 @@ move_modal_target_index = -1;
 theater_mode = false;
 theater_paused = false;
 theater_subtitles = "";
+theater_ui_timer = 0;
+theater_ui_last_mx = 0;
+theater_ui_last_my = 0;
+theater_was_mid_speech = false; // was TTS actively speaking when user hit pause
 theater_subtitle_scroll_y = 0;
 theater_active_char = -1;
 speaking_phonetic_ratio = 1.0; // Ratio of visual text length to phonetic length
@@ -179,7 +185,7 @@ characters = [
     { name: "BILLIE",    voice_id: all_voices[3].voice_id,  pitch: 85, speed: 70, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 7,  pose: 1, expression:  8, default_facing: -1, pose_labels: ["stands straight", "leans forward", "leans back", "uses the phone"] }, // surprised
     { name: "JJ",        voice_id: all_voices[12].voice_id, pitch: 50, speed: 75, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 8,  pose: 1, expression:  5, default_facing:  1, pose_labels: ["stands straight", "points", "leans back with arms crossed", "uses the phone"] }, // flirtatious
     { name: "BEV",       voice_id: all_voices[7].voice_id,  pitch: 35, speed: 65, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 9,  pose: 1, expression: 11, default_facing:  1, pose_labels: ["stands straight", "leans forward", "leans back and points", "uses the phone"] }, // guilty
-    { name: "LUCILLE",   voice_id: all_voices[13].voice_id, pitch: 50, speed: 25, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 10, pose: 1, expression:  2, default_facing: -1, pose_labels: ["stands straight", "leans forward", "crosses her arms", "uses the phone"] }  // sad
+    { name: "LUCILLE",   voice_id: all_voices[13].voice_id, pitch: 50, speed: 25, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 10, pose: 1, expression:  2, default_facing:  1, pose_labels: ["stands straight", "leans forward", "crosses her arms", "uses the phone"] }  // sad
 ];
 
 // Dynamic datafiles directory resolver (checks absolute project path for live development reads/writes)
@@ -213,7 +219,9 @@ modal_quality = 0;
 modal_effort = 0;
 active_input = 0;
 arrow_repeat_timer = 0;
-slider_drag = 0; 
+slider_drag = 0;
+script_scrollbar_dragging = false;
+script_scrollbar_drag_offset = 0;
 
 // --- 6. SCENE ASSETS ---
 all_scenes = [];
@@ -398,6 +406,14 @@ action_modal_sfx_scroll_y = 0;
 action_modal_sfx_files_scroll_y = 0;
 action_modal_sfx_dragging_folder = false;
 action_modal_sfx_dragging_file = false;
+action_modal_sfx_search = "";
+action_modal_sfx_search_results = [];
+action_modal_sfx_search_sel = -1;
+action_modal_sfx_search_focused = false;
+action_modal_sfx_search_scroll_y = 0;
+action_modal_sfx_last_click_idx = -1;
+action_modal_sfx_last_click_time = -1;
+action_modal_sfx_bksp_held = 0;
 test_sfx_sound = -1;
 test_sfx_buffer = -1;
 sfx_base_path = datafiles_path + "sounds/";
@@ -533,7 +549,7 @@ if (array_length(all_voices) > 0) {
 // Data saved to datafiles/config/<Name>/expressions_config.json.
 
 // Set to false before shipping to hide the expression configurator entirely.
-SHOW_EXPR_CFG           = true;
+SHOW_EXPR_CFG           = false;
 // Set to false before shipping to hide the voice config export button.
 SHOW_VOICE_CFG          = true;
 

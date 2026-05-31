@@ -234,6 +234,71 @@ function load_sfx_buffer_by_path(_sfx_path) {
     return -1;
 }
 
+function play_sfx_preview(_folder, _file) {
+    var _tmp_buf = load_sfx_buffer(_folder, _file);
+    if (_tmp_buf == -1) return;
+    if (test_sfx_sound  != -1) { audio_free_buffer_sound(test_sfx_sound);  test_sfx_sound  = -1; }
+    if (test_sfx_buffer != -1) { buffer_delete(test_sfx_buffer);            test_sfx_buffer = -1; }
+    var _sz = buffer_get_size(_tmp_buf);
+    test_sfx_buffer = buffer_create(_sz, buffer_fixed, 1);
+    buffer_copy(_tmp_buf, 0, _sz, test_sfx_buffer, 0);
+    buffer_delete(_tmp_buf);
+    buffer_seek(test_sfx_buffer, buffer_seek_start, 22); var _chan = buffer_read(test_sfx_buffer, buffer_u16);
+    buffer_seek(test_sfx_buffer, buffer_seek_start, 24); var _rate = buffer_read(test_sfx_buffer, buffer_u32);
+    buffer_seek(test_sfx_buffer, buffer_seek_start, 34); var _bits = buffer_read(test_sfx_buffer, buffer_u16);
+    var _fmt  = (_bits == 16) ? buffer_s16 : buffer_u8;
+    var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
+    test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+    if (test_sfx_sound != -1) audio_play_sound(test_sfx_sound, 1, false);
+}
+
+function refresh_sfx_search(_query) {
+    action_modal_sfx_search_results = [];
+    action_modal_sfx_search_sel = -1;
+    action_modal_sfx_search_scroll_y = 0;
+    if (string_length(_query) == 0) return;
+    var _q = string_lower(_query);
+
+    var _seen = ds_map_create();
+
+    if (global.sounds_pack_header != undefined) {
+        var _keys = struct_get_names(global.sounds_pack_header);
+        for (var _i = 0; _i < array_length(_keys); _i++) {
+            var _k = _keys[_i];
+            var _sl = string_pos("/", _k);
+            if (_sl <= 0) continue;
+            var _fld = string_copy(_k, 1, _sl - 1);
+            var _fil = string_copy(_k, _sl + 1, string_length(_k) - _sl);
+            if (string_pos(_q, string_lower(_fil)) > 0 || string_pos(_q, string_lower(_fld)) > 0) {
+                array_push(action_modal_sfx_search_results, { folder: _fld, file: _fil });
+                ds_map_add(_seen, _k, 1);
+            }
+        }
+    }
+
+    var _sdir = sfx_base_path;
+    var _lf = file_find_first(_sdir + "*", fa_directory);
+    while (_lf != "" && _lf != "." && _lf != "..") {
+        var _ff = file_find_first(_sdir + _lf + "/*.wav", 0);
+        while (_ff != "") {
+            var _pk = _lf + "/" + _ff;
+            if (!ds_map_exists(_seen, _pk) && (string_pos(_q, string_lower(_ff)) > 0 || string_pos(_q, string_lower(_lf)) > 0)) {
+                array_push(action_modal_sfx_search_results, { folder: _lf, file: _ff });
+            }
+            _ff = file_find_next();
+        }
+        file_find_close();
+        _lf = file_find_next();
+    }
+    file_find_close();
+    ds_map_destroy(_seen);
+
+    array_sort(action_modal_sfx_search_results, function(a, b) {
+        var _an = string_lower(a.file); var _bn = string_lower(b.file);
+        return _an < _bn ? -1 : (_an > _bn ? 1 : 0);
+    });
+}
+
 // Rewinds actor state to what it was at (or just before) a given block index.
 function update_preview_actors_for_block(_idx, _inclusive) {
     preview_actors = [];
@@ -284,8 +349,8 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                         var _final_x = variable_struct_exists(_b, "target_x") ? _b.target_x : _start_x;
                         var _final_y = variable_struct_exists(_b, "target_y") ? _b.target_y : (scene_win_h * 0.8);
                         var _c = characters[_b.char_index];
-                        var _pose = variable_struct_exists(_c, "pose")       ? _c.pose       : 1;
-                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
+                        var _pose = variable_struct_exists(_b, "enter_pose")       ? _b.enter_pose       : (variable_struct_exists(_c, "pose")       ? _c.pose       : 1);
+                        var _expr = variable_struct_exists(_b, "enter_expression") ? _b.enter_expression : (variable_struct_exists(_c, "expression") ? _c.expression : 21);
                         char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                         array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
                     } else {
@@ -363,6 +428,19 @@ function update_preview_actors_for_block(_idx, _inclusive) {
 
 function play_from_index(_idx) {
     if (_idx < 0 || _idx >= array_length(script_blocks)) return;
+
+    // Free any SFX sounds and their buffers while still live, before audio_stop_all()
+    // stops them (which would leave buffer references dangling).
+    for (var _si = 0; _si < array_length(script_blocks); _si++) {
+        var _sb = script_blocks[_si];
+        if (variable_struct_exists(_sb, "last_sound") && _sb.last_sound != -1) {
+            audio_free_buffer_sound(_sb.last_sound); _sb.last_sound = -1;
+        }
+        if (variable_struct_exists(_sb, "last_buffer") && _sb.last_buffer != -1) {
+            buffer_delete(_sb.last_buffer); _sb.last_buffer = -1;
+        }
+    }
+
     scene_edit_mode = false;
     insertion_idx   = -1;
     update_preview_actors_for_block(_idx, false);
