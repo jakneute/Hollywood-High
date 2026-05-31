@@ -100,6 +100,11 @@ if (scene_edit_menu_open) {
 if (edit_mode) {
     var _m_w = 800; var _m_h = 700;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    if (mouse_check_button(mb_left) && slider_drag != 0) {
+        if (slider_drag == 1) modal_pitch = clamp(((_mx - (_m_x + 180)) / 300) * 180, 0, 180);
+        if (slider_drag == 2) modal_speed = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
+    }
+    if (mouse_check_button_released(mb_left)) slider_drag = 0;
     if (mouse_check_button_pressed(mb_left)) {
         // Voice Selection (Compact Coordinates)
         var _cols = 4; var _bw = 170; var _bh = 45; var _gx = (_m_w - (_cols * (_bw + 15))) / 2;
@@ -119,14 +124,14 @@ if (edit_mode) {
             if (_my > _ctrl_y - 5 && _my < _ctrl_y + 25) {
                 if (_mx > _m_x + 150 && _mx < _m_x + 175) modal_pitch = max(0, modal_pitch - 5);
                 if (_mx > _m_x + 485 && _mx < _m_x + 510) modal_pitch = min(180, modal_pitch + 5);
-                if (_mx > _m_x + 180 && _mx < _m_x + 480) modal_pitch = ((_mx - (_m_x + 180)) / 300) * 180;
+                if (_mx > _m_x + 180 && _mx < _m_x + 480) { modal_pitch = clamp(((_mx - (_m_x + 180)) / 300) * 180, 0, 180); slider_drag = 1; }
             }
             
             // Speed Fine-Tuning Arrows
             if (_my > _ctrl_y + 45 && _my < _ctrl_y + 75) {
                 if (_mx > _m_x + 150 && _mx < _m_x + 175) modal_speed = max(0, modal_speed - 5);
                 if (_mx > _m_x + 485 && _mx < _m_x + 510) modal_speed = min(100, modal_speed + 5);
-                if (_mx > _m_x + 180 && _mx < _m_x + 480) modal_speed = ((_mx - (_m_x + 180)) / 300) * 100;
+                if (_mx > _m_x + 180 && _mx < _m_x + 480) { modal_speed = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100); slider_drag = 2; }
             }
             
             // Radio Buttons: Quality (Controls F0Style)
@@ -241,7 +246,7 @@ if (scene_modal_open) {
                         _b.internal_name = _data.internal_name;
                         scene_modal_edit_mode = false;
                     } else {
-                        var _new_scene = { type: "scene", name: _data.name, internal_name: _data.internal_name, actors: [], height: 80 };
+                        var _new_scene = { type: "scene", name: _data.name, internal_name: _data.internal_name, actors: [], height: 80, fx: "none" };
                         if (_target_idx == -1) {
                             array_push(script_blocks, _new_scene);
                             _target_idx = array_length(script_blocks) - 1;
@@ -620,42 +625,39 @@ if (playing_block_index == -1 && scene_edit_mode && active_scene_block_idx != -1
     }
 }
 
-// --- 3d. STATIC FLIP BUTTON (Scene Edit Mode) ---
-if (scene_edit_mode && scene_edit_selected_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks) && mouse_check_button_pressed(mb_left)) {
-    _scene = script_blocks[active_scene_block_idx];
-    var _btn_w = 120; var _btn_h = 20;
-    var _btn_x = scene_win_x + (scene_win_w / 2) - (_btn_w / 2);
-    var _btn_y = scene_win_y + scene_win_h + 4;
-    var _is_visible = true;
-    if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
-        var _act = _scene.actors[scene_edit_selected_actor_idx];
-        var _spr = get_character_sprite(_act.char_index);
-        if (_spr != -1) {
-            var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
-            var _sc = (scene_win_h * 1.5) / 450;
-            var _cw = _csw * _sc; var _ch = _csh * _sc;
-            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-            var _ax = scene_win_x + _act.x; var _ay = scene_win_y + _act.y;
-            var _v_top = max(_ay - _ch, scene_win_y);
-            var _v_bottom = min(_ay, scene_win_y + scene_win_h);
-            var _v_visible = max(0, _v_bottom - _v_top);
-            var _h_left = _ax - (_cw * _face)/2;
-            var _h_right = _ax + (_cw * _face)/2;
-            if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
-            var _h_intersect_l = max(_h_left, scene_win_x);
-            var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
-            var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
-            _is_visible = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
+// --- 3d. FLIP FACING BUTTON ---
+if (playing_block_index == -1 && current_scene_sprite != -1 && mouse_check_button_pressed(mb_left)) {
+    var _flip_act_idx = -1;
+    for (var _fci = 0; _fci < array_length(preview_actors); _fci++) {
+        if (preview_actors[_fci].char_index == selected_character_index) { _flip_act_idx = _fci; break; }
+    }
+    if (_flip_act_idx != -1) {
+        var _btn_w = 128; var _btn_h = 24;
+        var _btn_x = scene_win_x + (scene_win_w / 2) - (_btn_w / 2);
+        var _btn_y = scene_win_y + scene_win_h + 5;
+        var _flip_blocked = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open || fx_picker_open);
+        if (!_flip_blocked && _mx > _btn_x && _mx < _btn_x + _btn_w && _my > _btn_y && _my < _btn_y + _btn_h) {
+            if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                // Staging: flip actor facing in scene block data
+                var _s = script_blocks[active_scene_block_idx];
+                for (var _ai = 0; _ai < array_length(_s.actors); _ai++) {
+                    if (_s.actors[_ai].char_index == selected_character_index) {
+                        if (!variable_struct_exists(_s.actors[_ai], "facing")) _s.actors[_ai].facing = 1;
+                        _s.actors[_ai].facing *= -1;
+                        preview_actors[_flip_act_idx].facing = _s.actors[_ai].facing;
+                        break;
+                    }
+                }
+            } else {
+                // Script mode: insert "turns around" action block after focused block
+                var _ins = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                array_insert(script_blocks, _ins, { type: "action", char_index: selected_character_index, action_name: "turns around", height: 85 });
+                update_all_block_heights();
+                focused_block = _ins;
+            }
+            return;
         }
     }
-    if (_is_visible && _mx > _btn_x && _mx < _btn_x + _btn_w && _my > _btn_y && _my < _btn_y + _btn_h) {
-            if (scene_edit_selected_actor_idx < array_length(_scene.actors)) {
-                var _act = _scene.actors[scene_edit_selected_actor_idx];
-                if (!variable_struct_exists(_act, "facing")) _act.facing = 1;
-                _act.facing *= -1;
-                return;
-            }
-        }
 }
 
 // --- 2f. LIVE MOVE DRAGGING (When NOT in edit mode) ---
@@ -789,11 +791,39 @@ if (insertion_idx != -1 && mouse_check_button_pressed(mb_left)) {
     }
 }
 if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
+    // Keep sorted alphabetically by label (OFF always first). Add future effects in order.
+    var _fx_ids    = ["none","candlelight","crt","drunk","embers","fog","goldenhour","heat","infrared","nightvision","rain","sepia","snow","spotlight","static","underwater"];
+    var _fx_btn_x  = _ind_x + 120; var _fx_btn_w = 130;
+    var _pick_item_h = 22; var _pick_count = 16;
+
+    // --- FX picker item click (must be checked before anything else) ---
+    if (fx_picker_open) {
+        var _pick_y = scene_win_y - 10;
+        var _in_picker = (_mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w
+                       && _my > _pick_y && _my < _pick_y + _pick_count * _pick_item_h);
+        if (_in_picker && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+            var _picked = floor((_my - _pick_y) / _pick_item_h);
+            script_blocks[active_scene_block_idx].fx = _fx_ids[_picked];
+        }
+        fx_picker_open = false;
+        return;
+    }
+
+    // --- STAGING label click → exit staging ---
     if (_mx > _ind_x && _mx < _ind_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         scene_edit_mode = false;
         return;
     }
+
+    // --- FX button click → open picker ---
+    if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+        if (_mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
+            fx_picker_open = true;
+            return;
+        }
+    }
 }
+if (!scene_edit_mode) fx_picker_open = false;
 
 if (mouse_check_button_pressed(mb_left)) {
     // PLAY Button
@@ -1464,6 +1494,40 @@ if (!theater_mode) {
 if (!_overlay_active) {
     var _over_pane = (_mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h);
 
+    // --- CHAR SELECTOR SCROLLBAR DRAG ---
+    var _c_total_h2 = ceil(array_length(characters) / 2) * 135;
+    var _c_view_h2 = char_sel_h - 35;
+    var _char_sb_clicked = false;
+    if (_c_total_h2 > _c_view_h2) {
+        var _csb_w = 8; var _csb_x = char_sel_x + char_sel_w - _csb_w - 4;
+        var _csb_y = char_sel_y + 35; var _csb_h = char_sel_h - 40;
+        var _csb_bar_h = max(20, (_c_view_h2 / _c_total_h2) * _csb_h);
+        var _csb_max_top = _csb_y + _csb_h - _csb_bar_h;
+        var _csb_bar_y = clamp(_csb_y + (-char_sel_scroll_y / _c_total_h2) * _csb_h, _csb_y, _csb_max_top);
+        if (mouse_check_button_pressed(mb_left) && _mx >= _csb_x - 4 && _mx <= _csb_x + _csb_w + 4
+                && _my >= _csb_y && _my <= _csb_y + _csb_h) {
+            _char_sb_clicked = true;
+            if (_my >= _csb_bar_y && _my <= _csb_bar_y + _csb_bar_h) {
+                char_sb_dragging = true;
+                char_sb_drag_offset = _my - _csb_bar_y;
+            } else {
+                var _clicked_frac = (_my - _csb_y) / _csb_h;
+                char_sel_scroll_y = clamp(-(_clicked_frac * _c_total_h2 - _csb_bar_h / 2), -(_c_total_h2 - _c_view_h2), 0);
+            }
+        }
+        if (char_sb_dragging) {
+            if (mouse_check_button(mb_left)) {
+                var _new_bar_y = clamp(_my - char_sb_drag_offset, _csb_y, _csb_max_top);
+                var _new_frac = (_new_bar_y - _csb_y) / _csb_h;
+                char_sel_scroll_y = clamp(-_new_frac * _c_total_h2, -(_c_total_h2 - _c_view_h2), 0);
+            } else {
+                char_sb_dragging = false;
+            }
+        }
+    } else {
+        char_sb_dragging = false;
+    }
+
     if (_over_pane) {
         // Scroll the character selector
         var _cols = 2; var _item_h = 135;
@@ -1475,7 +1539,7 @@ if (!_overlay_active) {
         }
         
         // --- CHARACTER SELECTION & DRAG START ---
-        if (playing_block_index == -1 && mouse_check_button_pressed(mb_left)) {
+        if (!_char_sb_clicked && playing_block_index == -1 && mouse_check_button_pressed(mb_left)) {
             var _grid_x = char_sel_x + 10; var _grid_y = char_sel_y + 35;
             for (var i = 0; i < array_length(characters); i++) {
                 var _iw2 = 165;

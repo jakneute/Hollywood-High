@@ -5,6 +5,7 @@ is_speaking = false;
 // Release surfaces to prevent VRAM memory leaks
 if (surface_exists(o_char_surface)) surface_free(o_char_surface);
 if (surface_exists(o_mask_surface)) surface_free(o_mask_surface);
+if (surface_exists(heat_surface)) surface_free(heat_surface);
 if (variable_global_exists("composite_char_surface") && surface_exists(global.composite_char_surface)) {
     surface_free(global.composite_char_surface);
 }

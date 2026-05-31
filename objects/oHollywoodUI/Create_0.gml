@@ -51,6 +51,10 @@ dropdown_y        = 535;
 
 char_sel_x = 880; char_sel_y = 60; char_sel_w = 350; char_sel_h = 450;
 char_sel_scroll_y = 0;
+char_sb_dragging = false;
+char_sb_drag_offset = 0;
+fx_picker_open = false;
+heat_surface = -1;
 btn_theater_x = 880; btn_theater_y = 15; btn_theater_w = 140; btn_theater_h = 35;
 
 // --- 2c. DICTIONARY STATE ---
@@ -423,7 +427,6 @@ sfx_base_path = datafiles_path + "sounds/";
 // refresh_sfx_files = function(_folder) — defined in scr_scene/scr_utils/scr_expr_cfg
 
 all_actions = [
-    { name: "turns around", desc: "Character flips their horizontal facing direction.", category: "character" },
     { name: "wait", desc: "Pauses the script for a set duration of time.", category: "general" },
     { name: "play sfx", desc: "Plays a sound effect from the library.", category: "general" },
     { name: "display title", desc: "Displays a text title on screen for a set duration.", category: "general" }
