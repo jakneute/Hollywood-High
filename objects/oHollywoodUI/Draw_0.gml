@@ -3,7 +3,7 @@ var _mx = mouse_x; var _my = mouse_y;
 
 var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || pose_expr_modal_open || expr_cfg_open);
 
-draw_clear(make_color_rgb(45, 45, 55)); 
+draw_clear(make_color_rgb(10, 42, 16));
 
 // --- LIVE TITLE RENDERING FUNCTION ---
 var _render_live_titles = function() {
@@ -214,7 +214,25 @@ if (theater_mode) {
 					array_push(_final_layers, { spr: _lspr, dx: _ldx, dy: _ldy });
 				}
 				var _clip = (target_surface == -1) ? [_stg_x, _stg_y, _stg_w, _stg_h] : undefined;
-				draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, 1, c_white, false, 3, c_yellow, _clip);
+				var _dp_th = variable_struct_exists(_act, "dissolve_progress") ? _act.dissolve_progress : 0;
+				if (_dp_th > 0) {
+					var _dta = max(0, (1.0 - _dp_th) * (1.0 - _dp_th * 0.5));
+					var _dtc = make_color_rgb(max(80, 255 - round(_dp_th * 175)), min(255, 180 + round(_dp_th * 75)), 255);
+					draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, _dta, _dtc, false, 0, c_white, _clip);
+					if (_dp_th > 0.12) {
+						var _tfa = min(0.30, (_dp_th - 0.12) * 0.5 * (1.0 - _dp_th * 0.85));
+						var _tsp = _dp_th * _dp_th * 18;
+						for (var _tfi = 0; _tfi < 4; _tfi++) {
+							var _tfang = _tfi * (pi * 0.5) + _dp_th * 3.1;
+							draw_composite_character_ext(_final_layers,
+								_draw_x + cos(_tfang) * _tsp,
+								_draw_y + sin(_tfang) * _tsp * 0.35,
+								_asc * (1.0 - _dp_th * 0.35), _tfa, _dtc, false, 0, c_white, _clip);
+						}
+					}
+				} else {
+					draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, 1, c_white, false, 3, c_yellow, _clip);
+				}
 				// Restore scissor clip for subsequent actors (since surface target switches clear it in GameMaker)
 				if (target_surface == -1) {
 					gpu_set_scissor(_stg_x, _stg_y, _stg_w, _stg_h);
@@ -254,9 +272,7 @@ if (theater_mode) {
 		surface_reset_target();
 
 		draw_surface(o_char_surface, _stage_x, _stage_y);
-		
-		// Draw the visual mask (unshifted)
-		draw_sprite_ext(_mask_sprite, 0, _stage_x, _stage_y, _bg_sc, _bg_sc, 0, c_white, 1);
+		// Foreground mask drawn after particles — see below
 
 	} else {
 		// --- Unmasked Drawing ---
@@ -338,6 +354,13 @@ if (theater_mode) {
             }
         }
         draw_set_alpha(1.0);
+        gpu_set_scissor(0, 0, 1280, 960);
+    }
+
+    // Draw foreground mask AFTER beams and particles so they appear behind the foreground layer
+    if (_mask_sprite != -1) {
+        gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
+        draw_sprite_ext(_mask_sprite, 0, _stage_x, _stage_y, _bg_sc, _bg_sc, 0, c_white, 1);
         gpu_set_scissor(0, 0, 1280, 960);
     }
 
@@ -598,9 +621,9 @@ btn_add_action_w = 125; btn_add_action_h = 35;
 var _fm_btn_x = 10; var _fm_btn_y = 10; var _fm_btn_w = 80; var _fm_btn_h = 35;
 var _fm_hov = (!_overlay_active && playing_block_index == -1 && _mx > _fm_btn_x && _mx < _fm_btn_x + _fm_btn_w && _my > _fm_btn_y && _my < _fm_btn_y + _fm_btn_h);
 var _fm_open = (_fm_hov || file_menu_open);
-draw_set_color(playing_block_index != -1 ? make_color_rgb(45, 45, 55) : (_fm_open ? make_color_rgb(70, 100, 155) : make_color_rgb(45, 70, 115)));
+draw_set_color(playing_block_index != -1 ? make_color_rgb(30, 50, 32) : (_fm_open ? make_color_rgb(22, 90, 30) : make_color_rgb(14, 62, 20)));
 draw_roundrect_ext(_fm_btn_x, _fm_btn_y, _fm_btn_x + _fm_btn_w, _fm_btn_y + _fm_btn_h, 5, 5, false);
-draw_set_color(playing_block_index != -1 ? make_color_rgb(70, 70, 80) : (_fm_open ? c_white : make_color_rgb(130, 170, 230)));
+draw_set_color(playing_block_index != -1 ? make_color_rgb(60, 80, 62) : (_fm_open ? c_white : make_color_rgb(196, 213, 20)));
 draw_roundrect_ext(_fm_btn_x, _fm_btn_y, _fm_btn_x + _fm_btn_w, _fm_btn_y + _fm_btn_h, 5, 5, true);
 draw_set_color(c_white); draw_set_halign(fa_center);
 draw_text(_fm_btn_x + (_fm_btn_w / 2), _fm_btn_y + 10, "FILE");
@@ -760,7 +783,62 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 
 					if (_draw_sprite) {
 						var _clip = (target_surface == -1) ? [scene_win_x, scene_win_y, scene_win_w, scene_win_h] : undefined;
-						draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _sc, _alpha, c_white, false, 8, c_yellow, _clip);
+						var _dp   = variable_struct_exists(_act, "dissolve_progress") ? _act.dissolve_progress : 0;
+						var _melt = variable_struct_exists(_act, "melt_progress")     ? _act.melt_progress     : 0;
+						if (_dp > 0) {
+							// Electric disintegration visual
+							var _d_main_a = max(0, (1.0 - _dp) * (1.0 - _dp * 0.5));
+							var _d_tint   = make_color_rgb(max(80, 255 - round(_dp * 175)), min(255, 180 + round(_dp * 75)), 255);
+							draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _sc, _d_main_a, _d_tint, false, 0, c_white, _clip);
+							if (_dp > 0.12) {
+								var _fa = min(0.30, (_dp - 0.12) * 0.5 * (1.0 - _dp * 0.85));
+								var _spread = _dp * _dp * 18;
+								for (var _fi2 = 0; _fi2 < 4; _fi2++) {
+									var _fang2 = _fi2 * (pi * 0.5) + _dp * 3.1;
+									draw_composite_character_ext(_final_layers,
+										_draw_x + cos(_fang2) * _spread,
+										_draw_y + sin(_fang2) * _spread * 0.35,
+										_sc * (1.0 - _dp * 0.35), _fa, _d_tint, false, 0, c_white, _clip);
+								}
+							}
+						} else if (_melt > 0) {
+							// Melt: squish wide + flatten + drip down, bottom-anchored
+							var _mxsc   = _sc * (1.0 + _melt * 0.8);
+							var _mysc   = _sc * max(0.04, 1.0 - _melt * 0.96);
+							var _malpha = max(0.0, 1.0 - max(0.0, _melt - 0.55) / 0.45);
+							var _sink   = _melt * _csh * _sc * 0.5;
+							var _char_cx = _draw_x + _csw * _sc * 0.5;
+							var _feet_y  = _draw_y + _csh * _sc;
+							for (var _mli = 0; _mli < array_length(_final_layers); _mli++) {
+								var _ml = _final_layers[_mli];
+								if (_ml.spr == -1) continue;
+								var _mlw = sprite_get_width(_ml.spr);
+								var _mlh = sprite_get_height(_ml.spr);
+								var _orig_cx = _draw_x + (_ml.dx + _mlw * 0.5) * _sc;
+								var _ml_x = _char_cx + (_orig_cx - _char_cx) * (_mxsc / _sc) - _mlw * _mxsc * 0.5;
+								var _dist_from_feet = (_draw_y + (_ml.dy + _mlh) * _sc) - _feet_y;
+								var _ml_y = (_feet_y + _sink) + _dist_from_feet * (_mysc / _sc) - _mlh * _mysc;
+								draw_sprite_ext(_ml.spr, 0, _ml_x, _ml_y, _mxsc, _mysc, 0, c_white, _malpha);
+							}
+						} else {
+							var _img_angle = variable_struct_exists(_act, "image_angle") ? _act.image_angle : 0;
+							if (_img_angle != 0) {
+								// Silly flip: pivot at face/head level (~18% from top of sprite)
+								var _rpx = (target_surface == -1) ? (scene_win_x + _act.x) : _act.x;
+								var _rpy = (target_surface == -1) ? (scene_win_y + _act.y - _csh * _sc * 0.82 + _y_off) : (_act.y - _csh * _sc * 0.82 + _y_off);
+								var _cos_a = dcos(_img_angle);
+								var _sin_a = dsin(_img_angle);
+								for (var _rli = 0; _rli < array_length(_final_layers); _rli++) {
+									var _rl = _final_layers[_rli];
+									if (_rl.spr == -1) continue;
+									var _vx = (_draw_x + _rl.dx * _sc) - _rpx;
+									var _vy = (_draw_y + _rl.dy * _sc) - _rpy;
+									draw_sprite_ext(_rl.spr, 0, _rpx + _vx * _cos_a + _vy * _sin_a, _rpy - _vx * _sin_a + _vy * _cos_a, _sc, _sc, _img_angle, c_white, _alpha);
+								}
+							} else {
+								draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _sc, _alpha, c_white, false, 8, c_yellow, _clip);
+							}
+						}
 						// Restore scissor clip for subsequent actors (since surface target switches clear it in GameMaker)
 						if (target_surface == -1) {
 							gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
@@ -805,10 +883,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		surface_reset_target();
 
 		draw_surface(o_char_surface, scene_win_x, scene_win_y);
-		
-		// Draw the visual mask (unshifted)
-		draw_sprite_ext(_mask_sprite, 0, scene_win_x, scene_win_y, _mask_scale_x, _mask_scale_y, 0, c_white, 1);
-
+		// Foreground mask drawn after particles — see below
 
 	} else {
 		// --- Unmasked Drawing ---
@@ -946,6 +1021,13 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 			}
 		}
 		draw_set_alpha(1.0);
+		gpu_set_scissor(0, 0, 1280, 960);
+	}
+
+	// Draw foreground mask AFTER beams and particles so they appear behind the foreground layer
+	if (_mask_sprite != -1) {
+		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		draw_sprite_ext(_mask_sprite, 0, scene_win_x, scene_win_y, _mask_scale_x, _mask_scale_y, 0, c_white, 1);
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
 
@@ -1254,23 +1336,23 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
 var _dis = (playing_block_index != -1);
 
 var _add_hov = (!_overlay_active && !_dis && _mx > btn_add_x && _mx < btn_add_x+btn_add_w && _my > btn_add_y && _my < btn_add_y+btn_add_h);
-draw_set_color(_dis ? make_color_rgb(50,50,60) : (_add_hov ? make_color_rgb(35,148,80) : make_color_rgb(20,110,60)));
+draw_set_color(_dis ? make_color_rgb(30,50,32) : (_add_hov ? make_color_rgb(22,105,32) : make_color_rgb(14,75,22)));
 draw_roundrect_ext(btn_add_x, btn_add_y, btn_add_x+btn_add_w, btn_add_y+btn_add_h, 5, 5, false);
-draw_set_color(_dis ? make_color_rgb(75,75,85) : (_add_hov ? c_white : make_color_rgb(60,200,110)));
+draw_set_color(_dis ? make_color_rgb(55,75,57) : (_add_hov ? c_white : make_color_rgb(196,213,20)));
 draw_roundrect_ext(btn_add_x, btn_add_y, btn_add_x+btn_add_w, btn_add_y+btn_add_h, 5, 5, true);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_add_x+btn_add_w/2, btn_add_y+10, "+ VOICE"); draw_set_halign(fa_left);
 
 var _act_hov = (!_overlay_active && !_dis && _mx > btn_add_action_x && _mx < btn_add_action_x+btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y+btn_add_action_h);
-draw_set_color(_dis ? make_color_rgb(50,50,60) : (_act_hov ? make_color_rgb(170,55,215) : make_color_rgb(135,35,175)));
+draw_set_color(_dis ? make_color_rgb(30,40,62) : (_act_hov ? make_color_rgb(28,80,195) : make_color_rgb(18,55,158)));
 draw_roundrect_ext(btn_add_action_x, btn_add_action_y, btn_add_action_x+btn_add_action_w, btn_add_action_y+btn_add_action_h, 5, 5, false);
-draw_set_color(_dis ? make_color_rgb(75,75,85) : (_act_hov ? c_white : make_color_rgb(205,110,255)));
+draw_set_color(_dis ? make_color_rgb(55,65,95) : (_act_hov ? c_white : make_color_rgb(100,145,235)));
 draw_roundrect_ext(btn_add_action_x, btn_add_action_y, btn_add_action_x+btn_add_action_w, btn_add_action_y+btn_add_action_h, 5, 5, true);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_add_action_x+btn_add_action_w/2, btn_add_action_y+10, "+ ACTION"); draw_set_halign(fa_left);
 
 var _scn_hov = (!_overlay_active && !_dis && _mx > btn_add_scene_x && _mx < btn_add_scene_x+btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y+btn_add_scene_h);
-draw_set_color(_dis ? make_color_rgb(50,50,60) : (_scn_hov ? make_color_rgb(45,88,165) : make_color_rgb(25,65,130)));
+draw_set_color(_dis ? make_color_rgb(28,45,30) : (_scn_hov ? make_color_rgb(8,88,18) : make_color_rgb(4,58,12)));
 draw_roundrect_ext(btn_add_scene_x, btn_add_scene_y, btn_add_scene_x+btn_add_scene_w, btn_add_scene_y+btn_add_scene_h, 5, 5, false);
-draw_set_color(_dis ? make_color_rgb(75,75,85) : (_scn_hov ? c_white : make_color_rgb(75,140,215)));
+draw_set_color(_dis ? make_color_rgb(52,70,54) : (_scn_hov ? c_white : make_color_rgb(196,213,20)));
 draw_roundrect_ext(btn_add_scene_x, btn_add_scene_y, btn_add_scene_x+btn_add_scene_w, btn_add_scene_y+btn_add_scene_h, 5, 5, true);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_add_scene_x+btn_add_scene_w/2, btn_add_scene_y+10, "+ SCENE"); draw_set_halign(fa_left);
 
@@ -1358,28 +1440,28 @@ if (playing_block_index == -1 && current_scene_sprite != -1) {
 
 if (file_menu_open) {
     var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 105;
-    draw_set_color(make_color_rgb(30, 30, 40)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, false);
-    draw_set_color(c_aqua); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, true);
+    draw_set_color(make_color_rgb(10, 42, 15)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, false);
+    draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, true);
     var _opts = ["SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY"];
     for (var i = 0; i < 3; i++) {
         var _hov = (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + (i * 35) && _my < _fm_y + ((i + 1) * 35));
-        if (_hov) { draw_set_color(make_color_rgb(60, 60, 100)); draw_rectangle(_fm_x + 1, _fm_y + (i * 35) + 1, _fm_x + _fm_w - 1, _fm_y + ((i + 1) * 35) - 1, false); }
+        if (_hov) { draw_set_color(make_color_rgb(18, 72, 26)); draw_rectangle(_fm_x + 1, _fm_y + (i * 35) + 1, _fm_x + _fm_w - 1, _fm_y + ((i + 1) * 35) - 1, false); }
         draw_set_color(i == 2 ? make_color_rgb(180, 220, 255) : c_white);
         draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _opts[i]);
     }
 }
 
 // --- 1c. CHARACTER SELECTOR WINDOW ---
-draw_set_color(make_color_rgb(35, 35, 45));
+draw_set_color(make_color_rgb(12, 48, 18));
 draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, false);
-draw_set_color(c_aqua); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, true);
+draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, true);
 // CHARS / FX tab buttons
 var _tab_y = char_sel_y + 4; var _tab_h = 22;
 var _tab_c1 = char_sel_x + 5;  var _tab_c2 = char_sel_x + 70;
 var _tab_p1 = char_sel_x + 73; var _tab_p2 = char_sel_x + 118;
-draw_set_color(!particle_panel_mode ? make_color_rgb(50,115,185) : (_mx>_tab_c1&&_mx<_tab_c2&&_my>_tab_y&&_my<_tab_y+_tab_h ? make_color_rgb(38,48,72) : make_color_rgb(28,28,45)));
+draw_set_color(!particle_panel_mode ? make_color_rgb(196,213,20) : (_mx>_tab_c1&&_mx<_tab_c2&&_my>_tab_y&&_my<_tab_y+_tab_h ? make_color_rgb(20,72,28) : make_color_rgb(14,52,20)));
 draw_roundrect_ext(_tab_c1, _tab_y, _tab_c2, _tab_y+_tab_h, 3, 3, false);
-draw_set_color(c_white); draw_set_halign(fa_center); draw_text((_tab_c1+_tab_c2)/2, _tab_y+4, "CHARS"); draw_set_halign(fa_left);
+draw_set_color(!particle_panel_mode ? c_black : c_white); draw_set_halign(fa_center); draw_text((_tab_c1+_tab_c2)/2, _tab_y+4, "CHARS"); draw_set_halign(fa_left);
 draw_set_color(particle_panel_mode ? make_color_rgb(160,28,28) : (_mx>_tab_p1&&_mx<_tab_p2&&_my>_tab_y&&_my<_tab_y+_tab_h ? make_color_rgb(70,18,18) : make_color_rgb(38,15,15)));
 draw_roundrect_ext(_tab_p1, _tab_y, _tab_p2, _tab_y+_tab_h, 3, 3, false);
 draw_set_color(particle_panel_mode ? c_white : make_color_rgb(200,80,80)); draw_set_halign(fa_center); draw_text((_tab_p1+_tab_p2)/2, _tab_y+4, "FX"); draw_set_halign(fa_left);
@@ -1387,9 +1469,9 @@ draw_set_color(particle_panel_mode ? c_white : make_color_rgb(200,80,80)); draw_
 var _is_narrator_sel = (characters[selected_character_index].name == "NARRATOR");
 if (!particle_panel_mode && SHOW_EXPR_CFG) {
     var _ecfg_btn_hov = (!_overlay_active && !_is_narrator_sel && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28);
-    draw_set_color(_is_narrator_sel ? make_color_rgb(28, 28, 38) : (_ecfg_btn_hov ? make_color_rgb(100, 150, 255) : make_color_rgb(40, 60, 110)));
+    draw_set_color(_is_narrator_sel ? make_color_rgb(10, 38, 14) : (_ecfg_btn_hov ? make_color_rgb(28, 90, 195) : make_color_rgb(16, 58, 148)));
     draw_roundrect_ext(char_sel_x + 195, char_sel_y + 2, char_sel_x + char_sel_w - 6, char_sel_y + 28, 4, 4, false);
-    draw_set_color(_is_narrator_sel ? make_color_rgb(55, 55, 65) : c_white); draw_set_halign(fa_center);
+    draw_set_color(_is_narrator_sel ? make_color_rgb(55, 80, 58) : c_white); draw_set_halign(fa_center);
     draw_text((char_sel_x + 195 + char_sel_x + char_sel_w - 6) / 2, char_sel_y + 7, "EXPR CFG");
     draw_set_halign(fa_left);
 }
@@ -1401,11 +1483,11 @@ var _c_view_h = char_sel_h - 35;
 if (_c_total_h > _c_view_h) {
     var _sb_w = 8; var _sb_x = char_sel_x + char_sel_w - _sb_w - 4;
     var _sb_y = char_sel_y + 35; var _sb_h = char_sel_h - 40;
-    draw_set_color(make_color_rgb(50, 50, 60)); draw_rectangle(_sb_x, _sb_y, _sb_x + _sb_w, _sb_y + _sb_h, false);
+    draw_set_color(make_color_rgb(8, 32, 12)); draw_rectangle(_sb_x, _sb_y, _sb_x + _sb_w, _sb_y + _sb_h, false);
     var _bar_h = max(20, (_c_view_h / _c_total_h) * _sb_h);
     var _bar_y = clamp(_sb_y + (-char_sel_scroll_y / _c_total_h) * _sb_h, _sb_y, _sb_y + _sb_h - _bar_h);
     var _bar_hov = (!_overlay_active && _mx >= _sb_x - 4 && _mx <= _sb_x + _sb_w + 4 && _my >= _bar_y && _my <= _bar_y + _bar_h);
-    draw_set_color(char_sb_dragging ? make_color_rgb(200, 200, 220) : (_bar_hov ? make_color_rgb(160, 160, 185) : make_color_rgb(120, 120, 140)));
+    draw_set_color(char_sb_dragging ? make_color_rgb(215, 232, 85) : (_bar_hov ? make_color_rgb(185, 205, 60) : make_color_rgb(140, 162, 35)));
     draw_rectangle(_sb_x, _bar_y, _sb_x + _sb_w, _bar_y + _bar_h, false);
 }
 
@@ -1418,8 +1500,8 @@ for (var i = 0; i < array_length(characters); i++) {
     if (_iy + _item_h < char_sel_y + 30 || _iy > char_sel_y + char_sel_h) continue;
     var _is_sel = (i == selected_character_index);
     var _hov = (!_overlay_active && playing_block_index == -1 && _mx > _ix && _mx < _ix + _item_w && _my > _iy && _my < _iy + _item_h && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h);
-    if (_hov || dragging_char_index == i) { draw_set_color(make_color_rgb(60, 60, 80)); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, false); }
-    if (_is_sel && !particle_edit_mode) { draw_set_color(c_yellow); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, true); }
+    if (_hov || dragging_char_index == i) { draw_set_color(make_color_rgb(18, 68, 24)); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, false); }
+    if (_is_sel && !particle_edit_mode) { draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_ix, _iy, _ix + _item_w - 5, _iy + _item_h - 5, true); }
     // Use composite sprite reflecting current pose/expression; facing 1 (right) is the default selector view
     var _c_ch = characters[i];
     var _sel_pose = variable_struct_exists(_c_ch, "pose") ? _c_ch.pose : 1;
@@ -1474,7 +1556,7 @@ for (var i = 0; i < array_length(characters); i++) {
         var _nm_max_w = _item_w - 9 - (_has_pencil ? 20 : 4);
         var _nm_full  = characters[i].name;
         var _nm_scl   = min(1, _nm_max_w / max(1, string_width(_nm_full)));
-        draw_set_color(_is_sel ? c_yellow : c_white);
+        draw_set_color(_is_sel ? make_color_rgb(220, 238, 88) : c_white);
         draw_text_transformed(_ix + 4, _iy + _item_h - 20, _nm_full, _nm_scl, 1, 0);
         if (_has_pencil) {
             var _penc_x = _ix + _item_w - 18; var _penc_y = _iy + _item_h - 22;
@@ -1686,7 +1768,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     }
     var _box_y = _cur_y + 5;
         var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
-        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : make_color_rgb(200, 200, 220));
+        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : make_color_rgb(226, 240, 95));
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
         draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, "[SCENE: " + string_upper(_block.name) + "]");
     } else if (_is_action) {
@@ -1703,16 +1785,16 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         var _box_y = _cur_y + 5;
         var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
         var _is_disappear = (string_pos("DISAPPEARS", string_upper(_block.action_name)) > 0);
-        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : (_is_disappear ? make_color_rgb(190, 175, 215) : make_color_rgb(210, 220, 210)));
+        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : (_is_disappear ? make_color_rgb(210, 200, 240) : make_color_rgb(210, 225, 255)));
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
-        
+
         var _aname_up = string_upper(_block.action_name);
         var _is_wait      = (string_pos("WAIT",          _aname_up) > 0);
         var _is_sfx       = (string_pos("PLAY SFX",      _aname_up) > 0);
         var _is_title     = (string_pos("DISPLAY TITLE", _aname_up) > 0);
         var _is_expr_blk  = (string_pos("EXPRESSION:", _aname_up) > 0 || string_pos("LOOKS ", _aname_up) > 0 || (string_pos("POSE ", _aname_up) > 0 && string_pos("POSES ", _aname_up) == 0));
         if (_is_expr_blk && !_is_playing) {
-            draw_set_color(make_color_rgb(210, 210, 228));
+            draw_set_color(make_color_rgb(215, 228, 255));
             draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
         }
         var _act_str = "ACTION: ";
@@ -1780,11 +1862,11 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         if (_is_alt) _char_name += " (altered voice)";
         if (!_is_onstage && _block.char_index != 0) _char_name += " (offstage)";
         
-        draw_set_color(make_color_rgb(100, 100, 120)); draw_text(box_x + 50, _cur_y, _char_name + ":");
+        draw_set_color(make_color_rgb(55, 105, 62)); draw_text(box_x + 50, _cur_y, _char_name + ":");
         var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
         draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : (_is_focused ? make_color_rgb(245, 250, 255) : c_white));
         draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, false);
-        draw_set_color(_is_focused ? c_blue : c_black); draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, true);
+        draw_set_color(_is_focused ? make_color_rgb(25, 80, 185) : c_black); draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, true);
 
         // Text Selection Highlight
         var _sel_s = min(selection_start, selection_end);
@@ -2042,9 +2124,9 @@ draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_play_x+btn_pl
 // ENTER THEATER Button
 var _thov = (!_overlay_active && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x+btn_theater_w && _my > btn_theater_y && _my < btn_theater_y+btn_theater_h);
 var _t_dis = (playing_block_index != -1);
-draw_set_color(_t_dis ? make_color_rgb(50,50,60) : (_thov ? make_color_rgb(95,68,178) : make_color_rgb(70,45,140)));
+draw_set_color(_t_dis ? make_color_rgb(28,40,62) : (_thov ? make_color_rgb(25,78,192) : make_color_rgb(16,55,158)));
 draw_roundrect_ext(btn_theater_x, btn_theater_y, btn_theater_x+btn_theater_w, btn_theater_y+btn_theater_h, 5, 5, false);
-draw_set_color(_t_dis ? make_color_rgb(75,75,85) : (_thov ? c_white : make_color_rgb(150,120,250)));
+draw_set_color(_t_dis ? make_color_rgb(52,65,95) : (_thov ? c_white : make_color_rgb(196,213,20)));
 draw_roundrect_ext(btn_theater_x, btn_theater_y, btn_theater_x+btn_theater_w, btn_theater_y+btn_theater_h, 5, 5, true);
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_theater_x+(btn_theater_w/2), btn_theater_y+10, "ENTER THEATER"); draw_set_halign(fa_left);
 
@@ -2052,9 +2134,9 @@ draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_theater_x+(bt
 // Footer panel that visually connects to the character selector above
 var _fp_y = char_sel_y + char_sel_h;
 var _fp_h = (btn_pose_y + btn_pose_h) - _fp_y;
-draw_set_color(make_color_rgb(28, 28, 38));
+draw_set_color(make_color_rgb(10, 40, 15));
 draw_rectangle(char_sel_x, _fp_y, char_sel_x + char_sel_w, _fp_y + _fp_h, false);
-draw_set_color(c_aqua);
+draw_set_color(make_color_rgb(196, 213, 20));
 draw_line(char_sel_x,               _fp_y, char_sel_x,               _fp_y + _fp_h);
 draw_line(char_sel_x + char_sel_w,  _fp_y, char_sel_x + char_sel_w,  _fp_y + _fp_h);
 draw_line(char_sel_x, _fp_y + _fp_h, char_sel_x + char_sel_w, _fp_y + _fp_h);
@@ -2067,9 +2149,9 @@ var _evhov = (!_foc_particle && !_overlay_active && playing_block_index == -1 &&
 
 // RENDER POSE / EXPRESSION COMBINED BUTTON
 var _pe_dis = (_is_narrator || playing_block_index != -1 || _foc_particle);
-draw_set_color(_pe_dis ? make_color_rgb(50,50,60) : (_phov ? make_color_rgb(50,88,165) : make_color_rgb(30,62,130)));
+draw_set_color(_pe_dis ? make_color_rgb(28,42,30) : (_phov ? make_color_rgb(20,72,168) : make_color_rgb(14,52,145)));
 draw_roundrect_ext(btn_pose_x, btn_pose_y, btn_pose_x+_pe_btn_w, btn_pose_y+btn_pose_h, 5, 5, false);
-draw_set_color(_pe_dis ? make_color_rgb(75,75,85) : (_phov ? c_white : make_color_rgb(85,140,220)));
+draw_set_color(_pe_dis ? make_color_rgb(52,65,54) : (_phov ? c_white : make_color_rgb(196,213,20)));
 draw_roundrect_ext(btn_pose_x, btn_pose_y, btn_pose_x+_pe_btn_w, btn_pose_y+btn_pose_h, 5, 5, true);
 draw_set_color(_pe_dis ? make_color_rgb(110,110,120) : c_white); draw_set_halign(fa_center);
 draw_text(btn_pose_x+_pe_btn_w/2, btn_pose_y+10, "POSE / EXPRESSION");
@@ -2077,27 +2159,32 @@ draw_set_halign(fa_left);
 
 // RENDER VOICE BUTTON
 var _ev_dis = (playing_block_index != -1 || _foc_particle);
-draw_set_color(_ev_dis ? make_color_rgb(50,50,60) : (_evhov ? make_color_rgb(72,88,118) : make_color_rgb(52,62,88)));
+draw_set_color(_ev_dis ? make_color_rgb(28,42,30) : (_evhov ? make_color_rgb(14,72,22) : make_color_rgb(10,50,16)));
 draw_roundrect_ext(btn_edit_x, btn_edit_y, btn_edit_x+btn_edit_w, btn_edit_y+btn_edit_h, 5, 5, false);
-draw_set_color(_ev_dis ? make_color_rgb(75,75,85) : (_evhov ? c_white : make_color_rgb(118,138,172)));
+draw_set_color(_ev_dis ? make_color_rgb(52,65,54) : (_evhov ? c_white : make_color_rgb(196,213,20)));
 draw_roundrect_ext(btn_edit_x, btn_edit_y, btn_edit_x+btn_edit_w, btn_edit_y+btn_edit_h, 5, 5, true);
 draw_set_color(c_white); draw_set_halign(fa_center);
 draw_text(btn_edit_x+btn_edit_w/2, btn_edit_y+10, "VOICE");
 draw_set_halign(fa_left);
 
-draw_set_color(make_color_rgb(50, 50, 60)); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, false);
-draw_set_color(c_aqua); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, true);
+draw_set_color(make_color_rgb(8, 32, 12)); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, false);
+draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, true);
 draw_set_color(c_white); draw_text(dropdown_x + 10, dropdown_y + 5, characters[selected_character_index].name);
 
 // --- 6. MODALS ---
+// Nearest-neighbour rendering for all modal UI — prevents fuzzy text on bright headers.
+// draw_composite_character_ext saves/restores its own filter state, so this is safe.
+gpu_set_texfilter(false);
 if (dictionary_open) {
     draw_set_color(c_black); draw_set_alpha(0.8); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
     var _m_w = 700; var _m_h = 500; var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
-    draw_set_color(make_color_rgb(40, 40, 50)); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 20, 20, false);
-    draw_set_color(c_aqua); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 20, 20, true);
-    
-    draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "PRONUNCIATION DICTIONARY");
-    draw_text(_m_x + 20, _m_y + 55, "Written Word"); draw_text(_m_x + 280, _m_y + 55, "Pronunciation");
+    draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 14, 14, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + 52, 14, 14, false);
+    draw_rectangle(_m_x, _m_y + 32, _m_x + _m_w, _m_y + 52, false);
+    draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 14, 14, true);
+    draw_set_color(c_black); draw_text(_m_x + 20, _m_y + 18, "PRONUNCIATION DICTIONARY");
+    draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_m_x + 20, _m_y + 58, "Written Word"); draw_text(_m_x + 280, _m_y + 58, "Pronunciation");
 
     gpu_set_scissor(_m_x + 10, _m_y + 80, _m_w - 20, 320);
     for (var i = 0; i < array_length(dictionary_list); i++) {
@@ -2105,8 +2192,8 @@ if (dictionary_open) {
         var _entry = dictionary_list[i];
         
         // Column 1: Written
-        draw_set_color((dict_focused_entry == i && dict_focused_field == 0) ? c_white : make_color_rgb(60, 60, 70));
-        draw_rectangle(_m_x + 20, _ey, _m_x + 260, _ey + 35, false);
+        draw_set_color((dict_focused_entry == i && dict_focused_field == 0) ? c_white : make_color_rgb(225, 240, 228));
+        draw_roundrect_ext(_m_x + 20, _ey, _m_x + 260, _ey + 35, 5, 5, false);
         draw_set_color(c_black); draw_text(_m_x + 25, _ey + 8, _entry.written);
         if (dict_focused_entry == i && dict_focused_field == 0 && cursor_visible) {
             var _cx = string_width(string_copy(_entry.written, 1, dict_caret_pos));
@@ -2115,8 +2202,8 @@ if (dictionary_open) {
         }
 
         // Column 2: Pronunciation
-        draw_set_color((dict_focused_entry == i && dict_focused_field == 1) ? c_white : make_color_rgb(60, 60, 70));
-        draw_rectangle(_m_x + 280, _ey, _m_x + 520, _ey + 35, false);
+        draw_set_color((dict_focused_entry == i && dict_focused_field == 1) ? c_white : make_color_rgb(225, 240, 228));
+        draw_roundrect_ext(_m_x + 280, _ey, _m_x + 520, _ey + 35, 5, 5, false);
         draw_set_color(c_black); draw_text(_m_x + 285, _ey + 8, _entry.pronunciation);
         if (dict_focused_entry == i && dict_focused_field == 1 && cursor_visible) {
             var _cx = string_width(string_copy(_entry.pronunciation, 1, dict_caret_pos));
@@ -2126,15 +2213,17 @@ if (dictionary_open) {
         
         // Test Button
         var _test_hov = (_mx > _m_x + 540 && _mx < _m_x + 610 && _my > _ey && _my < _ey + 35);
-        draw_set_color(_test_hov ? c_lime : make_color_rgb(50, 150, 50));
-        draw_rectangle(_m_x + 540, _ey, _m_x + 610, _ey + 35, false);
-        draw_set_color(c_white); draw_text(_m_x + 550, _ey + 8, "TEST");
-        
+        draw_set_color(_test_hov ? make_color_rgb(20, 105, 32) : make_color_rgb(14, 70, 22));
+        draw_roundrect_ext(_m_x + 540, _ey, _m_x + 610, _ey + 35, 5, 5, false);
+        draw_set_color(_test_hov ? c_white : make_color_rgb(196, 213, 20));
+        draw_roundrect_ext(_m_x + 540, _ey, _m_x + 610, _ey + 35, 5, 5, true);
+        draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_m_x + 575, _ey + 8, "TEST"); draw_set_halign(fa_left);
+
         // Remove Button
         var _rhov = (_mx > _m_x + 630 && _mx < _m_x + 670 && _my > _ey && _my < _ey + 35);
-        draw_set_color(_rhov ? c_red : make_color_rgb(150, 50, 50));
-        draw_rectangle(_m_x + 630, _ey, _m_x + 670, _ey + 35, false);
-        draw_set_color(c_white); draw_text(_m_x + 643, _ey + 8, "X");
+        draw_set_color(_rhov ? make_color_rgb(210, 50, 50) : make_color_rgb(155, 28, 28));
+        draw_roundrect_ext(_m_x + 630, _ey, _m_x + 670, _ey + 35, 5, 5, false);
+        draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_m_x + 650, _ey + 8, "X"); draw_set_halign(fa_left);
     }
     gpu_set_scissor(0, 0, 1280, 960);
 
@@ -2144,33 +2233,38 @@ if (dictionary_open) {
     if (_dict_total_h > _dict_view_h) {
         _sb_w = 8; _sb_x = _m_x + _m_w - 22;
         var _sb_y = _m_y + 80; var _sb_h = _dict_view_h;
-        draw_set_color(make_color_rgb(60, 60, 70));
+        draw_set_color(make_color_rgb(8, 30, 12));
         draw_rectangle(_sb_x, _sb_y, _sb_x + _sb_w, _sb_y + _sb_h, false); // Track
         var _bar_h = (_dict_view_h / _dict_total_h) * _sb_h;
         var _bar_y = _sb_y + (-dictionary_scroll_y / _dict_total_h) * _sb_h;
-        draw_set_color(make_color_rgb(120, 120, 140));
+        draw_set_color(make_color_rgb(155, 170, 38));
         draw_rectangle(_sb_x, _bar_y, _sb_x + _sb_w, _bar_y + _bar_h, false); // Handle
     }
     
     // Add Button
     var _ahov = (_mx > _m_x + 20 && _mx < _m_x + 150 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
-    draw_set_color(_ahov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 20, _m_y + _m_h - 60, _m_x + 150, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + 40, _m_y + _m_h - 50, "ADD ENTRY");
-    
+    draw_set_color(_ahov ? make_color_rgb(22, 105, 32) : make_color_rgb(14, 70, 22));
+    draw_roundrect_ext(_m_x + 20, _m_y + _m_h - 60, _m_x + 150, _m_y + _m_h - 20, 7, 7, false);
+    draw_set_color(_ahov ? c_white : make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_m_x + 20, _m_y + _m_h - 60, _m_x + 150, _m_y + _m_h - 20, 7, 7, true);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_m_x + 85, _m_y + _m_h - 50, "ADD ENTRY"); draw_set_halign(fa_left);
+
     // Close Button
     var _chov = (_mx > _m_x + _m_w - 140 && _mx < _m_x + _m_w - 20 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
-    draw_set_color(_chov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + _m_w - 140, _m_y + _m_h - 60, _m_x + _m_w - 20, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + _m_w - 105, _m_y + _m_h - 50, "CLOSE");
+    draw_set_color(_chov ? make_color_rgb(190, 40, 40) : make_color_rgb(140, 22, 22));
+    draw_roundrect_ext(_m_x + _m_w - 140, _m_y + _m_h - 60, _m_x + _m_w - 20, _m_y + _m_h - 20, 7, 7, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_m_x + _m_w - 80, _m_y + _m_h - 50, "CLOSE"); draw_set_halign(fa_left);
 }
 
 if (edit_mode) {
     draw_set_color(c_black); draw_set_alpha(0.85); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
     var _mw = 800; var _mh = 700; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
-    draw_set_color(make_color_rgb(30, 30, 40)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 20, 20, false);
-    draw_set_color(make_color_rgb(100, 100, 255)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 20, 20, true);
-    draw_set_color(c_white); draw_text_transformed(_mxo+30, _myo+25, "VOICE STUDIO", 1.2, 1.2, 0);
+    draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 14, 14, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+56, 14, 14, false);
+    draw_rectangle(_mxo, _myo+36, _mxo+_mw, _myo+56, false);
+    draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 14, 14, true);
+    draw_set_color(c_black); draw_text(_mxo+28, _myo+19, "VOICE STUDIO");
     
     var _cols = 4; var _bw = 170; var _bh = 45; var _gx = (_mw - (_cols * (_bw + 15))) / 2;
     for (var i = 0; i < array_length(all_voices); i++) {
@@ -2178,8 +2272,9 @@ if (edit_mode) {
         var _by = _myo + 70 + (floor(i / _cols) * (_bh + 8));
         var _is_sel = (all_voices[i].voice_id == modal_voice_id);
         var _v_hov = (_mx > _bx && _mx < _bx + _bw && _my > _by && _my < _by + _bh);
-        draw_set_color(_is_sel ? make_color_rgb(0, 120, 255) : (_v_hov ? make_color_rgb(80, 80, 100) : make_color_rgb(50, 50, 70)));
-        draw_roundrect_ext(_bx, _by, _bx + _bw, _by + _bh, 10, 10, false);
+        draw_set_color(_is_sel ? make_color_rgb(16, 58, 155) : (_v_hov ? make_color_rgb(20, 78, 30) : make_color_rgb(10, 42, 16)));
+        draw_roundrect_ext(_bx, _by, _bx + _bw, _by + _bh, 8, 8, false);
+        if (_is_sel) { draw_set_color(make_color_rgb(196, 213, 20)); draw_roundrect_ext(_bx, _by, _bx + _bw, _by + _bh, 8, 8, true); }
         draw_set_color(c_white); var _ns = all_voices[i].name; if (string_length(_ns) > 22) _ns = string_copy(_ns, 1, 20) + "..";
         draw_text(_bx + 10, _by + 13, _ns);
     }
@@ -2250,45 +2345,53 @@ if (edit_mode) {
     // Revert (Only for local block edits)
     if (modal_is_local_edit) {
         var _rv_hov = (_mx > _mxo + 30 && _mx < _mxo + 150 && _my > _btn_y && _my < _btn_y + 40);
-        draw_set_color(_rv_hov ? c_white : make_color_rgb(200, 150, 50));
-        draw_rectangle(_mxo + 30, _btn_y, _mxo + 150, _btn_y + 40, false);
-        draw_set_color(_rv_hov ? make_color_rgb(200, 150, 50) : c_white); draw_text(_mxo + 50, _btn_y + 10, "REVERT");
+        draw_set_color(_rv_hov ? make_color_rgb(185, 130, 18) : make_color_rgb(140, 95, 10));
+        draw_roundrect_ext(_mxo + 30, _btn_y, _mxo + 150, _btn_y + 40, 7, 7, false);
+        draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_mxo + 90, _btn_y + 10, "REVERT"); draw_set_halign(fa_left);
     }
 
     // Test
     var _tx = modal_is_local_edit ? _mxo + 165 : _mxo + 30;
     var _t_hov = (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40);
-    draw_set_color(_t_hov ? c_white : make_color_rgb(50, 150, 200));
-    draw_rectangle(_tx, _btn_y, _tx + 120, _btn_y + 40, false);
-    draw_set_color(_t_hov ? make_color_rgb(50, 150, 200) : c_white); draw_text(_tx + 35, _btn_y + 10, "TEST");
+    draw_set_color(_t_hov ? make_color_rgb(18, 72, 162) : make_color_rgb(12, 50, 140));
+    draw_roundrect_ext(_tx, _btn_y, _tx + 120, _btn_y + 40, 7, 7, false);
+    draw_set_color(_t_hov ? c_white : make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_tx, _btn_y, _tx + 120, _btn_y + 40, 7, 7, true);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_tx + 60, _btn_y + 10, "TEST"); draw_set_halign(fa_left);
 
     // Export Config (debug)
     if (SHOW_VOICE_CFG && !modal_is_local_edit) {
         var _ex_hov = (_mx > _mxo+_mw-430 && _mx < _mxo+_mw-295 && _my > _btn_y && _my < _btn_y+40);
-        draw_set_color(_ex_hov ? c_white : make_color_rgb(140, 60, 200));
-        draw_rectangle(_mxo+_mw-430, _btn_y, _mxo+_mw-295, _btn_y+40, false);
-        draw_set_color(_ex_hov ? make_color_rgb(140,60,200) : c_white);
+        draw_set_color(_ex_hov ? make_color_rgb(100, 40, 160) : make_color_rgb(72, 25, 120));
+        draw_roundrect_ext(_mxo+_mw-430, _btn_y, _mxo+_mw-295, _btn_y+40, 7, 7, false);
+        draw_set_color(c_white);
         draw_set_halign(fa_center); draw_text(_mxo+_mw-362, _btn_y+10, "SAVE CONFIG"); draw_set_halign(fa_left);
     }
 
     // Save
     var _s_hov = (_mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _btn_y && _my < _btn_y+40);
-    draw_set_color(_s_hov ? c_white : make_color_rgb(50,200,50));
-    draw_rectangle(_mxo+_mw-280, _btn_y, _mxo+_mw-150, _btn_y+40, false);
-    draw_set_color(_s_hov ? make_color_rgb(50,200,50) : c_white); draw_text(_mxo+_mw-240, _btn_y+10, "SAVE");
+    draw_set_color(_s_hov ? make_color_rgb(22, 110, 32) : make_color_rgb(14, 75, 22));
+    draw_roundrect_ext(_mxo+_mw-280, _btn_y, _mxo+_mw-150, _btn_y+40, 7, 7, false);
+    draw_set_color(_s_hov ? c_white : make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_mxo+_mw-280, _btn_y, _mxo+_mw-150, _btn_y+40, 7, 7, true);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_mxo+_mw-215, _btn_y+10, "SAVE"); draw_set_halign(fa_left);
     // Cancel
     var _c_hov = (_mx > _mxo+_mw-140 && _mx < _mxo+_mw-30 && _my > _btn_y && _my < _btn_y+40);
-    draw_set_color(_c_hov ? c_white : make_color_rgb(200,50,50));
-    draw_rectangle(_mxo+_mw-140, _btn_y, _mxo+_mw-30, _btn_y+40, false);
-    draw_set_color(_c_hov ? make_color_rgb(200,50,50) : c_white); draw_text(_mxo+_mw-105, _btn_y+10, "CANCEL");
+    draw_set_color(_c_hov ? make_color_rgb(200,40,40) : make_color_rgb(148,22,22));
+    draw_roundrect_ext(_mxo+_mw-140, _btn_y, _mxo+_mw-30, _btn_y+40, 7, 7, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_mxo+_mw-85, _btn_y+10, "CANCEL"); draw_set_halign(fa_left);
 
 }
 
 if (scene_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
     var _mw = 700; var _mh = 450; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
-    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, false);
-    draw_set_color(c_aqua); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, true);
+    draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 12, 12, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+52, 12, 12, false);
+    draw_rectangle(_mxo, _myo+32, _mxo+_mw, _myo+52, false);
+    draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 12, 12, true);
+    draw_set_color(c_black); draw_text(_mxo+20, _myo+18, "SELECT SCENE");
     
     if (array_length(all_scenes) == 0) {
         draw_set_color(c_white);
@@ -2305,8 +2408,8 @@ if (scene_modal_open) {
         if (_by + 35 < _myo+60 || _by > _myo+60+_max_h) continue;
         var _hov = (_mx > _mxo+20 && _mx < _mxo+20+_lw && _my > _by && _my < _by+35);
         if (_hov) _hov_idx = i;
-        draw_set_color(_hov ? make_color_rgb(60,60,100) : make_color_rgb(30,30,40));
-        draw_rectangle(_mxo+20, _by, _mxo+20+_lw, _by+35, false);
+        draw_set_color(_hov ? make_color_rgb(18, 65, 25) : make_color_rgb(10, 40, 15));
+        draw_roundrect_ext(_mxo+20, _by, _mxo+20+_lw, _by+35, 5, 5, false);
         draw_set_color(c_white); draw_text(_mxo+30, _by+8, all_scenes[i].name);
     }
     gpu_set_scissor(0,0,1280,960);
@@ -2317,9 +2420,9 @@ if (scene_modal_open) {
         var _sb_max_top = (_myo+60) + _max_h - _bar_h;
         var _bar_y = clamp((_myo+60) + (-scene_modal_scroll_y / _list_h) * _max_h, _myo+60, _sb_max_top);
         var _bar_hov = (_mx >= _mxo+20+_lw+3 && _mx <= _mxo+20+_lw+17 && _my >= _bar_y && _my <= _bar_y + _bar_h);
-        draw_set_color(make_color_rgb(50, 50, 60));
+        draw_set_color(make_color_rgb(8, 30, 12));
         draw_rectangle(_mxo+20+_lw+5, _myo+60, _mxo+20+_lw+15, _myo+60+_max_h, false); // Track
-        draw_set_color(scene_sb_dragging ? make_color_rgb(200, 200, 220) : (_bar_hov ? make_color_rgb(160, 160, 185) : make_color_rgb(120, 120, 140)));
+        draw_set_color(scene_sb_dragging ? make_color_rgb(215, 232, 85) : (_bar_hov ? make_color_rgb(185, 205, 60) : make_color_rgb(148, 162, 35)));
         draw_rectangle(_mxo+20+_lw+5, _bar_y, _mxo+20+_lw+15, _bar_y + _bar_h, false); // Bar
     }
     
@@ -2339,19 +2442,22 @@ if (scene_modal_open) {
     }
 	var _c_y = _myo + _mh - 50;
 	var _can_hov = (_mx > _mxo+20 && _mx < _mxo+_mw-20 && _my > _c_y && _my < _c_y+35);
-	draw_set_color(_can_hov ? make_color_rgb(200,50,50) : make_color_rgb(150,30,30));
-	draw_rectangle(_mxo+20, _c_y, _mxo+_mw-20, _c_y+35, false);
-	draw_set_color(c_white); draw_text(_mxo+(_mw/2)-20, _c_y+8, "CANCEL");
+	draw_set_color(_can_hov ? make_color_rgb(200,40,40) : make_color_rgb(148,22,22));
+	draw_roundrect_ext(_mxo+20, _c_y, _mxo+_mw-20, _c_y+35, 7, 7, false);
+	draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_mxo+_mw/2, _c_y+8, "CANCEL"); draw_set_halign(fa_left);
 }
 
 if (action_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
     var _mw = 900; var _mh = 550; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
-    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, false);
-    draw_set_color(c_aqua); draw_rectangle(_mxo, _myo, _mxo+_mw, _myo+_mh, true);
-    
-    draw_set_color(c_aqua); draw_text(_mxo + 20, _myo + 20, "GENERAL ACTIONS");
-    draw_line(_mxo + 20, _myo + 45, _mxo + 250, _myo + 45);
+    draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 12, 12, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+52, 12, 12, false);
+    draw_rectangle(_mxo, _myo+32, _mxo+_mw, _myo+52, false);
+    draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 12, 12, true);
+    draw_set_color(c_black); draw_text(_mxo+20, _myo+18, "ADD ACTION");
+    draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_mxo + 20, _myo + 58, "GENERAL ACTIONS");
+    draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_mxo + 20, _myo + 78, _mxo + 250, _myo + 78);
 
     var _char_header_drawn = false;
     for (var i = 0; i < array_length(all_actions); i++) {
@@ -2362,10 +2468,9 @@ if (action_modal_open) {
 
         if (!_is_gen && !_char_header_drawn) {
             _char_header_drawn = true;
-            draw_set_color(make_color_rgb(200, 180, 255)); draw_set_alpha(0.9);
+            draw_set_color(make_color_rgb(196, 213, 20));
             draw_text(_mxo + 20, _by - 38, "CHARACTER ACTIONS");
-            draw_set_alpha(1.0);
-            draw_line(_mxo + 20, _by - 14, _mxo + 250, _by - 14);
+            draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_mxo + 20, _by - 14, _mxo + 250, _by - 14);
         }
 
         var _disabled = false;
@@ -2377,14 +2482,15 @@ if (action_modal_open) {
         }
 
         var _hov = (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40);
-        var _col = make_color_rgb(30,30,40);
-        if (_disabled) _col = make_color_rgb(20,20,25);
-        else if (action_modal_selected_idx == i) _col = _is_gen ? make_color_rgb(80,80,150) : make_color_rgb(75,48,120);
-        else if (_hov) _col = make_color_rgb(60,60,80);
+        var _col = make_color_rgb(10, 40, 15);
+        if (_disabled) _col = make_color_rgb(8, 28, 10);
+        else if (action_modal_selected_idx == i) _col = make_color_rgb(16, 55, 148);
+        else if (_hov) _col = make_color_rgb(18, 68, 24);
 
         draw_set_color(_col);
-        draw_rectangle(_mxo+20, _by, _mxo+250, _by+40, false);
-        draw_set_color(_disabled ? c_gray : c_white); draw_text(_mxo+30, _by+10, string_upper(all_actions[i].name));
+        draw_roundrect_ext(_mxo+20, _by, _mxo+250, _by+40, 5, 5, false);
+        if (action_modal_selected_idx == i) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_mxo+20, _by, _mxo+250, _by+40, 5, 5, true); }
+        draw_set_color(_disabled ? make_color_rgb(70,90,72) : c_white); draw_text(_mxo+30, _by+10, string_upper(all_actions[i].name));
     }
     
     // OK / Cancel Buttons
@@ -2399,18 +2505,21 @@ if (action_modal_open) {
     
     var _ok_locked = (action_modal_locked && _can_proceed);
     var _ok_hov = (_ok_locked && _mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _myo+_mh-50 && _my < _myo+_mh-15);
-    draw_set_color(_ok_locked ? (_ok_hov ? make_color_rgb(50,200,50) : make_color_rgb(30,150,30)) : make_color_rgb(50,50,60));
-    draw_rectangle(_mxo+_mw-280, _myo+_mh-50, _mxo+_mw-150, _myo+_mh-15, false);
-    draw_set_color(_ok_locked ? c_white : c_gray); draw_text(_mxo+_mw-230, _myo+_mh-42, "OK");
-    
+    draw_set_color(_ok_locked ? (_ok_hov ? make_color_rgb(22,110,32) : make_color_rgb(14,75,22)) : make_color_rgb(28,45,30));
+    draw_roundrect_ext(_mxo+_mw-280, _myo+_mh-50, _mxo+_mw-150, _myo+_mh-15, 7, 7, false);
+    draw_set_color(_ok_locked ? make_color_rgb(196,213,20) : make_color_rgb(55,78,57));
+    draw_roundrect_ext(_mxo+_mw-280, _myo+_mh-50, _mxo+_mw-150, _myo+_mh-15, 7, 7, true);
+    draw_set_color(_ok_locked ? c_white : make_color_rgb(80,100,82));
+    draw_set_halign(fa_center); draw_text(_mxo+_mw-215, _myo+_mh-42, "OK"); draw_set_halign(fa_left);
+
     var _can_hov = (_mx > _mxo+_mw-130 && _mx < _mxo+_mw-20 && _my > _myo+_mh-50 && _my < _myo+_mh-15);
-    draw_set_color(_can_hov ? make_color_rgb(200,50,50) : make_color_rgb(150,30,30));
-    draw_rectangle(_mxo+_mw-130, _myo+_mh-50, _mxo+_mw-20, _myo+_mh-15, false);
-    draw_set_color(c_white); draw_text(_mxo+_mw-110, _myo+_mh-42, "CANCEL");
+    draw_set_color(_can_hov ? make_color_rgb(200,40,40) : make_color_rgb(148,22,22));
+    draw_roundrect_ext(_mxo+_mw-130, _myo+_mh-50, _mxo+_mw-20, _myo+_mh-15, 7, 7, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_mxo+_mw-75, _myo+_mh-42, "CANCEL"); draw_set_halign(fa_left);
 
     // Description Box
-    draw_set_color(make_color_rgb(30,30,40));
-    draw_rectangle(_mxo+280, _myo+60, _mxo+880, _myo+480, false);
+    draw_set_color(make_color_rgb(10, 38, 14));
+    draw_roundrect_ext(_mxo+280, _myo+60, _mxo+880, _myo+480, 8, 8, false);
     if (action_modal_selected_idx != -1) {
         draw_set_color(c_white);
         draw_text_ext(_mxo+290, _myo+70, all_actions[action_modal_selected_idx].desc, 25, 580);
@@ -2419,9 +2528,8 @@ if (action_modal_open) {
             var _wx = _mxo + 320; var _wy = _myo + 170;
             var _sw = 400;
             
-            draw_set_color(c_aqua); draw_text(_wx, _wy, "PARAMETERS");
-            draw_line(_wx, _wy + 25, _wx + _sw + 80, _wy + 25);
-            
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_wx, _wy, "PARAMETERS");
+            draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_wx, _wy + 25, _wx + _sw + 80, _wy + 25);
             draw_set_color(c_white);
             draw_text(_wx, _wy + 40, "Wait Duration:");
             
@@ -2437,13 +2545,14 @@ if (action_modal_open) {
             draw_text(_wx + _sw + 50, _ty, ">");
 
             // Slider Track
-            draw_set_color(make_color_rgb(60, 60, 80));
+            draw_set_color(make_color_rgb(15, 55, 20));
             draw_rectangle(_wx + 30, _ty + 8, _wx + 30 + _sw, _ty + 13, false);
-            
+
             // Slider Handle
             var _perc = (action_modal_wait_duration - 0.1) / 9.9;
             var _hx = _wx + 30 + (_perc * _sw);
-            draw_set_color(c_aqua);
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_wx + 30, _ty + 8, _hx, _ty + 13, false);
+            draw_set_color(make_color_rgb(196, 213, 20));
             draw_circle(_hx, _ty + 10, 8, false);
             
             draw_set_color(c_white);
@@ -2451,8 +2560,8 @@ if (action_modal_open) {
         } else if (all_actions[action_modal_selected_idx].name == "play sfx") {
             var _wx = _mxo + 300; var _wy = _myo + 130;
 
-            draw_set_color(c_aqua); draw_text(_wx, _wy, "PARAMETERS");
-            draw_line(_wx, _wy + 25, _wx + 560, _wy + 25);
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_wx, _wy, "PARAMETERS");
+            draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_wx, _wy + 25, _wx + 560, _wy + 25);
 
             var _fx = _mxo + 280;
             var _lx = _mxo + 550;
@@ -2481,14 +2590,14 @@ if (action_modal_open) {
                 // SEARCH RESULTS — full-width single list
                 var _rc = array_length(action_modal_sfx_search_results);
                 draw_set_color(c_white); draw_text(_fx + 10, _boxy - 20, "Results (" + string(_rc) + "):");
-                draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_fx + 10, _boxy, _fx + 580, _boxy2, false);
+                draw_set_color(make_color_rgb(10, 38, 14)); draw_roundrect_ext(_fx + 10, _boxy, _fx + 580, _boxy2, 5, 5, false);
                 gpu_set_scissor(_fx + 10, _boxy, 570, _boxh);
                 for (var f = 0; f < _rc; f++) {
                     var _res = action_modal_sfx_search_results[f];
                     var _rby = _boxy + (f * 28) - action_modal_sfx_search_scroll_y;
                     var _is_sel = (action_modal_sfx_search_sel == f);
                     var _r_hov = (_mx > _fx + 10 && _mx < _fx + 578 && _my > _rby && _my < _rby + 28 && _my > _boxy && _my < _boxy2);
-                    draw_set_color(_is_sel ? make_color_rgb(80, 80, 150) : (_r_hov ? make_color_rgb(50, 50, 70) : make_color_rgb(30, 30, 40)));
+                    draw_set_color(_is_sel ? make_color_rgb(16, 55, 148) : (_r_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 38, 14)));
                     draw_rectangle(_fx + 10, _rby, _fx + 580, _rby + 28, false);
                     draw_set_color(make_color_rgb(120, 120, 160)); draw_text(_fx + 15, _rby + 6, string_upper(_res.folder) + " /");
                     draw_set_color(_is_sel ? c_white : c_ltgray);
@@ -2499,21 +2608,21 @@ if (action_modal_open) {
                 var _rtot = _rc * 28;
                 if (_rtot > _boxh) {
                     _sb_x = _fx + 572;
-                    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
+                    draw_set_color(make_color_rgb(8, 28, 12)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
                     var _bar_h = (_boxh / _rtot) * _boxh;
                     var _bar_y = _boxy + (action_modal_sfx_search_scroll_y / _rtot) * _boxh;
-                    draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
+                    draw_set_color(make_color_rgb(148, 162, 35)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
                 }
             } else {
                 // FOLDERS
                 draw_set_color(c_white); draw_text(_fx + 10, _boxy - 20, "Category:");
-                draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_fx + 10, _boxy, _fx + 240, _boxy2, false);
+                draw_set_color(make_color_rgb(10, 38, 14)); draw_roundrect_ext(_fx + 10, _boxy, _fx + 240, _boxy2, 5, 5, false);
                 gpu_set_scissor(_fx + 10, _boxy, 230, _boxh);
                 for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
                     var _fby = _boxy + (f * 30) - action_modal_sfx_scroll_y;
                     var _is_sel = (action_modal_sfx_folder_idx == f);
                     var _f_hov = (!action_modal_sfx_dragging_folder && _mx > _fx + 10 && _mx < _fx + 230 && _my > _fby && _my < _fby + 30 && _my > _boxy && _my < _boxy2);
-                    draw_set_color(_is_sel ? make_color_rgb(80, 80, 150) : (_f_hov ? make_color_rgb(50, 50, 70) : make_color_rgb(30, 30, 40)));
+                    draw_set_color(_is_sel ? make_color_rgb(16, 55, 148) : (_f_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 38, 14)));
                     draw_rectangle(_fx + 10, _fby, _fx + 240, _fby + 30, false);
                     draw_set_color(_is_sel ? c_white : c_ltgray); draw_text(_fx + 15, _fby + 5, string_upper(action_modal_sfx_folders[f]));
                 }
@@ -2521,14 +2630,14 @@ if (action_modal_open) {
 
                 // FILES
                 draw_set_color(c_white); draw_text(_lx - 10, _boxy - 20, "Sound Effect:");
-                draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_lx - 10, _boxy, _lx + 310, _boxy2, false);
+                draw_set_color(make_color_rgb(10, 38, 14)); draw_roundrect_ext(_lx - 10, _boxy, _lx + 310, _boxy2, 5, 5, false);
                 gpu_set_scissor(_lx - 10, _boxy, 320, _boxh);
                 if (action_modal_sfx_folder_idx != -1) {
                     for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
                         var _fby = _boxy + (f * 30) - action_modal_sfx_files_scroll_y;
                         var _is_sel = (action_modal_sfx_file_idx == f);
                         var _f_hov = (!action_modal_sfx_dragging_file && _mx > _lx - 10 && _mx < _lx + 300 && _my > _fby && _my < _fby + 30 && _my > _boxy && _my < _boxy2);
-                        draw_set_color(_is_sel ? make_color_rgb(80, 80, 150) : (_f_hov ? make_color_rgb(50, 50, 70) : make_color_rgb(30, 30, 40)));
+                        draw_set_color(_is_sel ? make_color_rgb(16, 55, 148) : (_f_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 38, 14)));
                         draw_rectangle(_lx - 10, _fby, _lx + 310, _fby + 30, false);
                         draw_set_color(_is_sel ? c_white : c_ltgray); draw_text(_lx - 5, _fby + 5, string_replace(string_upper(action_modal_sfx_files[f]), ".WAV", ""));
                     }
@@ -2539,20 +2648,20 @@ if (action_modal_open) {
                 var _ftot = array_length(action_modal_sfx_folders) * 30;
                 if (_ftot > _boxh) {
                     _sb_x = _fx + 240 - 8;
-                    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
+                    draw_set_color(make_color_rgb(8, 28, 12)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
                     var _bar_h = (_boxh / _ftot) * _boxh;
                     var _bar_y = _boxy + (action_modal_sfx_scroll_y / _ftot) * _boxh;
-                    draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
+                    draw_set_color(make_color_rgb(148, 162, 35)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
                 }
 
                 // FILE SCROLLBAR
                 var _ltot = array_length(action_modal_sfx_files) * 30;
                 if (_ltot > _boxh) {
                     _sb_x = _lx + 310 - 8;
-                    draw_set_color(make_color_rgb(40, 40, 50)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
+                    draw_set_color(make_color_rgb(8, 28, 12)); draw_rectangle(_sb_x, _boxy, _sb_x + 8, _boxy2, false);
                     var _bar_h = (_boxh / _ltot) * _boxh;
                     var _bar_y = _boxy + (action_modal_sfx_files_scroll_y / _ltot) * _boxh;
-                    draw_set_color(make_color_rgb(100, 100, 120)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
+                    draw_set_color(make_color_rgb(148, 162, 35)); draw_rectangle(_sb_x, _bar_y, _sb_x + 8, _bar_y + _bar_h, false);
                 }
             }
 
@@ -2569,12 +2678,12 @@ if (action_modal_open) {
         } else if (all_actions[action_modal_selected_idx].name == "display title") {
             var _wx = _mxo + 300; var _wy = _myo + 100;
             
-            draw_set_color(c_aqua); draw_text(_wx, _wy, "PARAMETERS");
-            draw_line(_wx, _wy + 25, _wx + 560, _wy + 25);
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_wx, _wy, "PARAMETERS");
+            draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_wx, _wy + 25, _wx + 560, _wy + 25);
             
             draw_set_color(c_white); draw_text(_wx, _wy + 40, "Title Text (Max 100 chars, Auto-wraps):");
-            draw_set_color(make_color_rgb(20, 20, 25)); draw_rectangle(_wx, _wy + 65, _wx + 560, _wy + 150, false);
-            draw_set_color(c_white); draw_text_ext(_wx + 10, _wy + 75, action_modal_title_text + (cursor_visible ? "|" : ""), 25, 540);
+            draw_set_color(make_color_rgb(228, 242, 232)); draw_roundrect_ext(_wx, _wy + 65, _wx + 560, _wy + 150, 5, 5, false);
+            draw_set_color(c_black); draw_text_ext(_wx + 10, _wy + 75, action_modal_title_text + (cursor_visible ? "|" : ""), 25, 540);
             
             draw_set_color(c_white); draw_text(_wx, _wy + 170, "Duration:");
             var _sw = 300; var _sx = _wx + 100; var _sy = _wy + 170;
@@ -2584,27 +2693,28 @@ if (action_modal_open) {
             var _r_hov = (_mx > _sx + _sw + 5 && _mx < _sx + _sw + 45 && _my > _sy - 10 && _my < _sy + 35);
             draw_set_color(_r_hov ? c_aqua : c_gray); draw_text(_sx + _sw + 20, _sy, ">");
 
-            draw_set_color(make_color_rgb(60, 60, 80)); draw_rectangle(_sx, _sy + 8, _sx + _sw, _sy + 13, false);
+            draw_set_color(make_color_rgb(15, 55, 20)); draw_rectangle(_sx, _sy + 8, _sx + _sw, _sy + 13, false);
             var _perc = (action_modal_wait_duration - 0.1) / 9.9;
-            draw_set_color(c_aqua); draw_circle(_sx + (_perc * _sw), _sy + 10, 8, false);
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_sx, _sy + 8, _sx + (_perc * _sw), _sy + 13, false);
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_circle(_sx + (_perc * _sw), _sy + 10, 8, false);
             draw_set_color(c_white); draw_text(_sx + _sw + 50, _sy, string(action_modal_wait_duration) + "s");
 
             var draw_dropdown = function(dx, dy, label, val_idx, opts_array, is_open) {
                 draw_set_color(c_white); draw_text(dx, dy, label);
                 var _bx = dx + 60; var _bw = 200;
-                draw_set_color(is_open ? make_color_rgb(60,60,80) : make_color_rgb(40,40,50));
-                draw_rectangle(_bx, dy, _bx + _bw, dy + 25, false);
-                draw_set_color(c_aqua); draw_rectangle(_bx, dy, _bx + _bw, dy + 25, true);
+                draw_set_color(is_open ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 42, 16));
+                draw_roundrect_ext(_bx, dy, _bx + _bw, dy + 25, 4, 4, false);
+                draw_set_color(make_color_rgb(196, 213, 20)); draw_roundrect_ext(_bx, dy, _bx + _bw, dy + 25, 4, 4, true);
                 draw_set_color(c_white); draw_text(_bx + 10, dy + 3, opts_array[val_idx]);
                 draw_text(_bx + _bw - 20, dy + 3, "v");
                 
                 if (is_open) {
-                    draw_set_color(make_color_rgb(30,30,40)); draw_rectangle(_bx, dy + 25, _bx + _bw, dy + 25 + (array_length(opts_array) * 30), false);
-                    draw_set_color(c_aqua); draw_rectangle(_bx, dy + 25, _bx + _bw, dy + 25 + (array_length(opts_array) * 30), true);
+                    draw_set_color(make_color_rgb(10, 40, 15)); draw_rectangle(_bx, dy + 25, _bx + _bw, dy + 25 + (array_length(opts_array) * 30), false);
+                    draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_bx, dy + 25, _bx + _bw, dy + 25 + (array_length(opts_array) * 30), true);
                     for (var d = 0; d < array_length(opts_array); d++) {
                         var _dhov = (mouse_x > _bx && mouse_x < _bx + _bw && mouse_y > dy + 25 + (d * 30) && mouse_y < dy + 25 + ((d+1) * 30));
-                        if (_dhov) { draw_set_color(make_color_rgb(80,80,120)); draw_rectangle(_bx, dy + 25 + (d * 30), _bx + _bw, dy + 25 + ((d+1) * 30), false); }
-                        draw_set_color(d == val_idx ? c_yellow : c_white);
+                        if (_dhov) { draw_set_color(make_color_rgb(20, 72, 28)); draw_rectangle(_bx, dy + 25 + (d * 30), _bx + _bw, dy + 25 + ((d+1) * 30), false); }
+                        draw_set_color(d == val_idx ? make_color_rgb(220, 238, 88) : c_white);
                         draw_text(_bx + 10, dy + 30 + (d * 30), opts_array[d]);
                     }
                 }
@@ -2620,48 +2730,43 @@ if (action_modal_open) {
             if (action_modal_dropdown_open == "font") draw_dropdown(_wx, _wy + 280, "Font:", action_modal_title_font, action_modal_title_font_opts, true);
             if (action_modal_dropdown_open == "color") draw_dropdown(_wx + 290, _wy + 280, "Color:", action_modal_title_color, action_modal_title_color_opts, true);
         } else if (all_actions[action_modal_selected_idx].name == "disappear") {
-            draw_set_color(make_color_rgb(200, 180, 255)); draw_text(_mxo+290, _myo+120, "STYLE");
-            draw_line(_mxo+290, _myo+140, _mxo+880, _myo+140);
-            // Style buttons
-            var _disp_styles = ["pop", "eat dirt", "home planet"];
-            var _disp_labels = ["POP", "EAT DIRT", "HOME PLANET"];
-            var _disp_descs  = [
-                "Character vanishes instantly\nfrom wherever they're standing.",
-                "Character sinks straight down\nthrough the floor.",
-                "Character rises straight up\nand off-screen.",
-            ];
-            for (var _dsi = 0; _dsi < 3; _dsi++) {
-                var _dsy = _myo + 155 + _dsi * 50;
+            var _disp_styles = ["pop", "eat dirt", "home planet", "disintegrate", "melt"];
+            var _disp_labels = ["POP", "EAT DIRT", "HOME PLANET", "DISINTEGRATE", "MELT"];
+            var _has_speed = (action_modal_disappear_style != "pop");
+
+            // Style column
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_mxo+290, _myo+120, "STYLE");
+            draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_mxo+290, _myo+138, _mxo+460, _myo+138);
+            for (var _dsi = 0; _dsi < 5; _dsi++) {
+                var _dsy = _myo + 148 + _dsi * 44;
                 var _dssel = (action_modal_disappear_style == _disp_styles[_dsi]);
-                var _dshov = (_mx > _mxo+300 && _mx < _mxo+465 && _my > _dsy && _my < _dsy+40);
-                draw_set_color(_dssel ? make_color_rgb(95,55,145) : (_dshov ? make_color_rgb(65,45,95) : make_color_rgb(38,32,58)));
-                draw_rectangle(_mxo+300, _dsy, _mxo+465, _dsy+40, false);
-                if (_dssel) { draw_set_color(make_color_rgb(190,165,240)); draw_rectangle(_mxo+300, _dsy, _mxo+465, _dsy+40, true); }
-                draw_set_color(_dssel ? c_white : c_gray);
-                draw_text(_mxo+315, _dsy+12, _disp_labels[_dsi]);
-                draw_set_color(c_ltgray);
-                draw_text_ext(_mxo+480, _dsy+6, _disp_descs[_dsi], 18, 370);
+                var _dshov = (_mx > _mxo+290 && _mx < _mxo+460 && _my > _dsy && _my < _dsy+38);
+                draw_set_color(_dssel ? make_color_rgb(16,55,148) : (_dshov ? make_color_rgb(18,65,24) : make_color_rgb(10,40,15)));
+                draw_roundrect_ext(_mxo+290, _dsy, _mxo+460, _dsy+38, 5, 5, false);
+                if (_dssel) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_mxo+290, _dsy, _mxo+460, _dsy+38, 5, 5, true); }
+                draw_set_color(_dssel ? c_white : make_color_rgb(178,210,182));
+                draw_set_halign(fa_center); draw_text(_mxo+375, _dsy+10, _disp_labels[_dsi]); draw_set_halign(fa_left);
             }
-            // Speed selector (only for animated styles)
-            if (action_modal_disappear_style == "eat dirt" || action_modal_disappear_style == "home planet") {
-                draw_set_color(make_color_rgb(200, 180, 255)); draw_text(_mxo+300, _myo+312, "SPEED");
-                draw_line(_mxo+300, _myo+330, _mxo+880, _myo+330);
-                for (var _spi = 0; _spi < 5; _spi++) {
-                    var _spx = _mxo + 300 + _spi * 94;
-                    var _spsel = (action_modal_disappear_speed == _spi);
-                    var _sphov = (_mx > _spx && _mx < _spx+88 && _my > _myo+338 && _my < _myo+368);
-                    draw_set_color(_spsel ? make_color_rgb(95,55,145) : (_sphov ? make_color_rgb(65,45,95) : make_color_rgb(38,32,58)));
-                    draw_rectangle(_spx, _myo+338, _spx+88, _myo+368, false);
-                    if (_spsel) { draw_set_color(make_color_rgb(190,165,240)); draw_rectangle(_spx, _myo+338, _spx+88, _myo+368, true); }
-                    draw_set_color(_spsel ? c_white : c_gray);
-                    draw_set_halign(fa_center); draw_text(_spx+44, _myo+349, move_speed_labels[_spi]); draw_set_halign(fa_left);
-                }
+
+            // Speed column
+            draw_set_color(_has_speed ? make_color_rgb(196, 213, 20) : make_color_rgb(70, 88, 30)); draw_text(_mxo+475, _myo+120, "SPEED");
+            draw_set_color(_has_speed ? make_color_rgb(100, 120, 40) : make_color_rgb(35, 50, 15)); draw_line(_mxo+475, _myo+138, _mxo+660, _myo+138);
+            for (var _spi = 0; _spi < 5; _spi++) {
+                var _spy = _myo + 148 + _spi * 44;
+                var _spsel = (_has_speed && action_modal_disappear_speed == _spi);
+                var _sphov = (_has_speed && _mx > _mxo+475 && _mx < _mxo+660 && _my > _spy && _my < _spy+38);
+                draw_set_color(_spsel ? make_color_rgb(16,55,148) : (_sphov ? make_color_rgb(18,65,24) : (_has_speed ? make_color_rgb(10,40,15) : make_color_rgb(8,25,10))));
+                draw_roundrect_ext(_mxo+475, _spy, _mxo+660, _spy+38, 5, 5, false);
+                if (_spsel) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_mxo+475, _spy, _mxo+660, _spy+38, 5, 5, true); }
+                draw_set_color(_spsel ? c_white : (_has_speed ? make_color_rgb(178,210,182) : make_color_rgb(50,65,52)));
+                draw_set_halign(fa_center); draw_text(_mxo+567, _spy+10, disappear_speed_labels[_spi]); draw_set_halign(fa_left);
             }
+
             // Disabled notices
             if (selected_character_index == 0) {
-                draw_set_color(make_color_rgb(255,120,120)); draw_text(_mxo+290, _myo+395, "Narrator cannot use character actions.");
+                draw_set_color(make_color_rgb(255,120,120)); draw_text(_mxo+290, _myo+415, "Narrator cannot use character actions.");
             } else if (!action_modal_char_onstage) {
-                draw_set_color(make_color_rgb(255,180,80)); draw_text(_mxo+290, _myo+395, "Character is not currently on stage.");
+                draw_set_color(make_color_rgb(255,200,80)); draw_text(_mxo+290, _myo+415, "Character is not currently on stage.");
             }
         }
     }
@@ -2669,65 +2774,87 @@ if (action_modal_open) {
 
 if (move_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    var _m_w = 400; var _m_h = 420;
+    var _m_w = 400; var _m_h = 580;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
-    draw_set_color(make_color_rgb(30, 30, 40)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, false);
-    draw_set_color(c_aqua); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 20, 20, true);
-    draw_set_color(c_white); draw_text(_m_x + 20, _m_y + 20, "MOVEMENT PARAMETERS");
-    
+    draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 14, 14, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+52, 14, 14, false);
+    draw_rectangle(_m_x, _m_y+32, _m_x+_m_w, _m_y+52, false);
+    draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 14, 14, true);
+    draw_set_color(c_black); draw_text_transformed(_m_x + 20, _m_y + 13, "MOVEMENT PARAMETERS", 1.1, 1.1, 0);
+
+    // Speed list
     for (var i = 0; i < array_length(move_speed_labels); i++) {
         var _by = _m_y + 80 + (i * 45);
         var _is_sel = (move_modal_temp_speed_index == i);
         var _hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40);
-        
-        draw_set_color(_is_sel ? c_aqua : (_hov ? make_color_rgb(60,60,80) : make_color_rgb(45,45,55)));
-        draw_rectangle(_m_x + 50, _by, _m_x + 350, _by + 40, false);
-        draw_set_color(_is_sel ? c_black : c_white);
-        draw_text(_m_x + 60, _by + 10, move_speed_labels[i]);
+
+        draw_set_color(_is_sel ? make_color_rgb(16, 55, 148) : (_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 40, 15)));
+        draw_roundrect_ext(_m_x + 50, _by, _m_x + 350, _by + 40, 6, 6, false);
+        if (_is_sel) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_m_x + 50, _by, _m_x + 350, _by + 40, 6, 6, true); }
+        draw_set_color(_is_sel ? c_white : make_color_rgb(200, 220, 200));
+        draw_set_halign(fa_center); draw_text(_m_x + 200, _by + 10, move_speed_labels[i]); draw_set_halign(fa_left);
     }
-    
+
     // Moonwalk Toggle
-    var _m_hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 310 && _my < _m_y + 345);
-    draw_set_color(_m_hov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 50, _m_y + 310, _m_x + 70, _m_y + 330, true);
-    if (move_modal_temp_moonwalk) { draw_set_color(c_orange); draw_rectangle(_m_x + 54, _m_y + 314, _m_x + 66, _m_y + 326, false); }
-    draw_set_color(c_white); draw_text(_m_x + 80, _m_y + 312, "ENABLE MOONWALK");
-    
+    var _m_hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 316 && _my < _m_y + 340);
+    draw_set_color(_m_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 40, 15));
+    draw_roundrect_ext(_m_x + 50, _m_y + 314, _m_x + 350, _m_y + 340, 5, 5, false);
+    draw_set_color(c_white); draw_circle(_m_x + 65, _m_y + 327, 9, true);
+    if (move_modal_temp_moonwalk) { draw_set_color(make_color_rgb(196, 213, 20)); draw_circle(_m_x + 65, _m_y + 327, 6, false); }
+    draw_set_color(c_white); draw_text(_m_x + 82, _m_y + 319, "ENABLE MOONWALK");
+
+    // Trick section
+    draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_m_x + 50, _m_y + 356, "TRICK");
+    draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_m_x + 50, _m_y + 374, _m_x + 350, _m_y + 374);
+    var _trick_labels = ["JUMP", "FRONT FLIP", "BACK FLIP"];
+    var _trick_vals   = ["jump", "front flip", "back flip"];
+    for (var _ti = 0; _ti < 3; _ti++) {
+        var _ty = _m_y + 380 + _ti * 44;
+        var _t_sel = (move_modal_temp_trick == _trick_vals[_ti]);
+        var _t_hov = (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _ty && _my < _ty + 38);
+        draw_set_color(_t_sel ? make_color_rgb(16, 55, 148) : (_t_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 40, 15)));
+        draw_roundrect_ext(_m_x + 50, _ty, _m_x + 350, _ty + 38, 6, 6, false);
+        if (_t_sel) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_m_x + 50, _ty, _m_x + 350, _ty + 38, 6, 6, true); }
+        draw_set_color(_t_sel ? c_white : make_color_rgb(200, 220, 200));
+        draw_set_halign(fa_center); draw_text(_m_x + 200, _ty + 10, _trick_labels[_ti]); draw_set_halign(fa_left);
+    }
+
     // OK Button
     var _ok_hov = (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
-    draw_set_color(_ok_hov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 40, _m_y + _m_h - 60, _m_x + 180, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + 95, _m_y + _m_h - 50, "OK");
-    
+    draw_set_color(_ok_hov ? make_color_rgb(22, 110, 32) : make_color_rgb(14, 75, 22));
+    draw_roundrect_ext(_m_x + 40, _m_y + _m_h - 60, _m_x + 180, _m_y + _m_h - 20, 7, 7, false);
+    draw_set_color(_ok_hov ? c_white : make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_m_x + 40, _m_y + _m_h - 60, _m_x + 180, _m_y + _m_h - 20, 7, 7, true);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_m_x + 110, _m_y + _m_h - 50, "OK"); draw_set_halign(fa_left);
+
     // Cancel Button
     var _can_hov = (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);
-    draw_set_color(_can_hov ? c_white : c_ltgray);
-    draw_rectangle(_m_x + 220, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, false);
-    draw_set_color(c_black); draw_text(_m_x + 255, _m_y + _m_h - 50, "CANCEL");
+    draw_set_color(_can_hov ? make_color_rgb(200, 40, 40) : make_color_rgb(148, 22, 22));
+    draw_roundrect_ext(_m_x + 220, _m_y + _m_h - 60, _m_x + 360, _m_y + _m_h - 20, 7, 7, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_m_x + 290, _m_y + _m_h - 50, "CANCEL"); draw_set_halign(fa_left);
 }
 
 if (pose_expr_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
     var _m_w = 1060; var _m_h = 520;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
-    draw_set_color(make_color_rgb(20, 22, 35));
-    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 16, 16, false);
-    draw_set_color(make_color_rgb(70, 95, 200));
-    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 16, 16, true);
-
-    // Section labels
-    draw_set_color(c_ltgray);
-    draw_text(_m_x + 18, _m_y + 14, "POSE");
-    draw_text(_m_x + 232, _m_y + 14, "EXPRESSION");
+    draw_set_color(make_color_rgb(14, 48, 20));
+    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 14, 14, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + 30, 14, 14, false);
+    draw_rectangle(_m_x, _m_y + 14, _m_x + _m_w, _m_y + 30, false);
+    draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 14, 14, true);
+    draw_set_color(c_black); draw_text(_m_x + 18, _m_y + 8, "POSE / EXPRESSION");
 
     // ── POSE LIST ──
     for (var i = 1; i <= 4; i++) {
         var _by = _m_y + 38 + (i - 1) * 58;
         var _hov_p = (_mx > _m_x + 12 && _mx < _m_x + 208 && _my > _by && _my < _by + 50);
         var _locked_p = (pose_modal_locked_pose == i);
-        draw_set_color(_locked_p ? make_color_rgb(40, 60, 130) : (_hov_p ? make_color_rgb(48, 52, 78) : make_color_rgb(28, 30, 48)));
+        draw_set_color(_locked_p ? make_color_rgb(16, 55, 148) : (_hov_p ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 40, 15)));
         draw_roundrect_ext(_m_x + 12, _by, _m_x + 208, _by + 50, 5, 5, false);
-        if (_locked_p) { draw_set_color(make_color_rgb(80, 120, 255)); draw_roundrect_ext(_m_x + 12, _by, _m_x + 208, _by + 50, 5, 5, true); }
+        if (_locked_p) { draw_set_color(make_color_rgb(196, 213, 20)); draw_roundrect_ext(_m_x + 12, _by, _m_x + 208, _by + 50, 5, 5, true); }
         draw_set_color(_locked_p ? c_white : c_ltgray);
         var _plbl = get_pose_label(selected_character_index, i);
         var _plbl_max_w = 178;
@@ -2745,9 +2872,9 @@ if (pose_expr_modal_open) {
         var _ex = _gx_ep + _col * _col_w_ep; var _ey = _gy_ep + _row * _row_h_ep;
         var _hov_e = (_mx > _ex + 2 && _mx < _ex + _col_w_ep - 2 && _my > _ey + 2 && _my < _ey + _row_h_ep - 2);
         var _locked_e = (expression_modal_locked_expr == e);
-        draw_set_color(_locked_e ? make_color_rgb(35, 85, 48) : (_hov_e ? make_color_rgb(40, 65, 48) : make_color_rgb(22, 32, 26)));
-        draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w_ep - 2, _ey + _row_h_ep - 2, false);
-        if (_locked_e) { draw_set_color(c_lime); draw_rectangle(_ex + 2, _ey + 2, _ex + _col_w_ep - 2, _ey + _row_h_ep - 2, true); draw_rectangle(_ex + 3, _ey + 3, _ex + _col_w_ep - 3, _ey + _row_h_ep - 3, true); }
+        draw_set_color(_locked_e ? make_color_rgb(16, 55, 148) : (_hov_e ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 40, 15)));
+        draw_roundrect_ext(_ex + 2, _ey + 2, _ex + _col_w_ep - 2, _ey + _row_h_ep - 2, 4, 4, false);
+        if (_locked_e) { draw_set_color(make_color_rgb(196, 213, 20)); draw_roundrect_ext(_ex + 2, _ey + 2, _ex + _col_w_ep - 2, _ey + _row_h_ep - 2, 4, 4, true); }
         draw_set_color(_locked_e ? c_white : c_ltgray);
         draw_set_halign(fa_center); draw_text(_ex + _col_w_ep / 2, _ey + _row_h_ep / 2 - 8, mood_names[e - 1]); draw_set_halign(fa_left);
     }
@@ -2755,9 +2882,9 @@ if (pose_expr_modal_open) {
     // ── PREVIEW (full body) ──
     var _pre_x = _m_x + 706; var _pre_y = _m_y + 14;
     var _pre_w = 340; var _pre_h = 460;
-    draw_set_color(make_color_rgb(12, 14, 22));
+    draw_set_color(make_color_rgb(8, 30, 12));
     draw_roundrect_ext(_pre_x, _pre_y, _pre_x + _pre_w, _pre_y + _pre_h, 8, 8, false);
-    draw_set_color(make_color_rgb(40, 50, 90));
+    draw_set_color(make_color_rgb(100, 120, 40));
     draw_roundrect_ext(_pre_x, _pre_y, _pre_x + _pre_w, _pre_y + _pre_h, 8, 8, true);
     if (selected_character_index != -1) {
         var _prev_pose = (pose_modal_temp_pose != -1) ? pose_modal_temp_pose : 1;
@@ -2787,15 +2914,17 @@ if (pose_expr_modal_open) {
     var _can_apply = (pose_modal_locked_pose != -1 && expression_modal_locked_expr != -1);
     var _ap_x = _m_x + 228; var _btn_y_pe = _m_y + _m_h - 52; var _btn_w_pe = 210; var _btn_h_pe = 40;
     var _ap_hov = (_can_apply && _mx > _ap_x && _mx < _ap_x + _btn_w_pe && _my > _btn_y_pe && _my < _btn_y_pe + _btn_h_pe);
-    draw_set_color(_can_apply ? (_ap_hov ? c_white : make_color_rgb(140, 200, 140)) : make_color_rgb(55, 55, 55));
-    draw_rectangle(_ap_x, _btn_y_pe, _ap_x + _btn_w_pe, _btn_y_pe + _btn_h_pe, false);
-    draw_set_color(_can_apply ? c_black : make_color_rgb(80, 80, 80));
+    draw_set_color(_can_apply ? (_ap_hov ? make_color_rgb(22, 110, 32) : make_color_rgb(14, 75, 22)) : make_color_rgb(28, 45, 30));
+    draw_roundrect_ext(_ap_x, _btn_y_pe, _ap_x + _btn_w_pe, _btn_y_pe + _btn_h_pe, 7, 7, false);
+    draw_set_color(_can_apply ? make_color_rgb(196, 213, 20) : make_color_rgb(55, 78, 57));
+    draw_roundrect_ext(_ap_x, _btn_y_pe, _ap_x + _btn_w_pe, _btn_y_pe + _btn_h_pe, 7, 7, true);
+    draw_set_color(_can_apply ? c_white : make_color_rgb(80, 100, 82));
     draw_set_halign(fa_center); draw_text(_ap_x + _btn_w_pe / 2, _btn_y_pe + 11, "APPLY"); draw_set_halign(fa_left);
     var _cx_pe = _ap_x + _btn_w_pe + 14;
     var _can_hov = (_mx > _cx_pe && _mx < _cx_pe + _btn_w_pe && _my > _btn_y_pe && _my < _btn_y_pe + _btn_h_pe);
-    draw_set_color(_can_hov ? c_white : c_ltgray);
-    draw_rectangle(_cx_pe, _btn_y_pe, _cx_pe + _btn_w_pe, _btn_y_pe + _btn_h_pe, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_cx_pe + _btn_w_pe / 2, _btn_y_pe + 11, "CANCEL"); draw_set_halign(fa_left);
+    draw_set_color(_can_hov ? make_color_rgb(200, 40, 40) : make_color_rgb(148, 22, 22));
+    draw_roundrect_ext(_cx_pe, _btn_y_pe, _cx_pe + _btn_w_pe, _btn_y_pe + _btn_h_pe, 7, 7, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_cx_pe + _btn_w_pe / 2, _btn_y_pe + 11, "CANCEL"); draw_set_halign(fa_left);
 }
 
 // ── EXPRESSION TILE CONFIGURATOR MODAL ──
@@ -2804,10 +2933,12 @@ if (expr_cfg_open) {
     draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
 
     var _m_x = 85; var _m_y = 55; var _m_w = 1110; var _m_h = 770;
-    draw_set_color(make_color_rgb(16, 20, 30));
-    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 10, 10, false);
-    draw_set_color(make_color_rgb(70, 110, 200));
-    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 10, 10, true);
+    draw_set_color(make_color_rgb(14, 48, 20));
+    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 12, 12, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + 48, 12, 12, false);
+    draw_rectangle(_m_x, _m_y + 28, _m_x + _m_w, _m_y + 48, false);
+    draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 12, 12, true);
 
     var _lx = _m_x + 12; var _ly = _m_y + 12;
     var _c_ec = characters[expr_cfg_char_idx];
@@ -2823,8 +2954,8 @@ if (expr_cfg_open) {
     }
 
     // Title
-    draw_set_color(c_white);
-    draw_text(_lx, _ly, "EXPRESSION TILE CONFIGURATOR  [DEBUG]");
+    draw_set_color(c_black);
+    draw_text_transformed(_lx, _m_y + 12, "EXPRESSION TILE CONFIGURATOR  [DEBUG]", 1.05, 1.05, 0);
 
     // Character navigation
     var _nav_y = _ly + 28;
@@ -3634,6 +3765,9 @@ if (expr_cfg_open) {
         draw_set_color(make_color_rgb(80,100,160)); draw_rectangle(_sb2_x, _bar2_y, _sb2_x + 8, _bar2_y + _bar2_h, false);
     }
 }
+
+// Restore default texture filter after modals
+gpu_set_texfilter(false);
 
 // --- 5c. LIVE TITLE RENDERING ---
 _render_live_titles();

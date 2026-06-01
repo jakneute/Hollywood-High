@@ -114,9 +114,12 @@ move_modal_open = false;
 move_speed_index = 2; // Default: WALK
 move_speeds = [0.6, 1.25, 1.9, 3.1, 5.6];
 move_speed_labels = ["CRAWL", "SLOW", "WALK", "JOG", "RUN"];
+disappear_speed_labels = ["VERY SLOW", "SLOW", "MEDIUM", "FAST", "VERY FAST"];
 moonwalk_enabled = false;
+move_trick = "none";
 move_modal_temp_speed_index = 2;
 move_modal_temp_moonwalk = false;
+move_modal_temp_trick = "none";
 move_modal_edit_mode = false;
 move_modal_target_index = -1;
 

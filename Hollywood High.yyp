@@ -107,6 +107,7 @@
   },
   "name":"Hollywood High",
   "resources":[
+    {"id":{"name":"Windows","path":"options/windows/options_windows.yy",},},
     {"id":{"name":"Chewy","path":"fonts/Chewy/Chewy.yy",},},
     {"id":{"name":"GochiHand","path":"fonts/GochiHand/GochiHand.yy",},},
     {"id":{"name":"IndieFlower","path":"fonts/IndieFlower/IndieFlower.yy",},},

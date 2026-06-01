@@ -978,17 +978,19 @@ if (!scene_edit_mode && !particle_edit_mode && !is_speaking && playing_block_ind
                 var _lbl = move_speed_labels[move_speed_index];
                 if (_lbl != "WALK") _aname += " (" + _lbl + ")";
                 if (moonwalk_enabled) _aname += " [MOONWALK]";
-                
-                array_insert(script_blocks, _insert_idx, { 
-                    type: "action", 
-                    action_name: _aname, 
-                    char_index: _act.char_index, 
-                    target_x: _act.x, 
+                if (move_trick != "none") _aname += " [" + string_upper(move_trick) + "]";
+
+                array_insert(script_blocks, _insert_idx, {
+                    type: "action",
+                    action_name: _aname,
+                    char_index: _act.char_index,
+                    target_x: _act.x,
                     target_y: _act.y,
                     facing: _act.facing,
                     height: 85,
                     speed: move_speeds[move_speed_index],
-                    moonwalk: moonwalk_enabled
+                    moonwalk: moonwalk_enabled,
+                    trick: move_trick
                 });
                 focused_block = _insert_idx;
                 insertion_idx = -1; // Reset after commit
@@ -1536,6 +1538,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         move_modal_edit_mode = true;
                         var _blk_spd = variable_struct_exists(_block, "speed") ? _block.speed : 1.9;
                         move_modal_temp_moonwalk = variable_struct_exists(_block, "moonwalk") ? _block.moonwalk : false;
+                        move_modal_temp_trick = variable_struct_exists(_block, "trick") ? _block.trick : "none";
                         move_modal_temp_speed_index = 2;
                         for (var j = 0; j < array_length(move_speeds); j++) {
                             if (abs(move_speeds[j] - _blk_spd) < 0.01) { move_modal_temp_speed_index = j; break; }
@@ -1694,6 +1697,7 @@ if (mouse_check_button_pressed(mb_left)) {
                                 move_modal_open = true; move_modal_target_index = i; move_modal_edit_mode = true;
                                 var _dbl_spd = variable_struct_exists(_block, "speed") ? _block.speed : 1.9;
                                 move_modal_temp_moonwalk = variable_struct_exists(_block, "moonwalk") ? _block.moonwalk : false;
+                                move_modal_temp_trick = variable_struct_exists(_block, "trick") ? _block.trick : "none";
                                 move_modal_temp_speed_index = 2;
                                 for (var _dj2 = 0; _dj2 < array_length(move_speeds); _dj2++) {
                                     if (abs(move_speeds[_dj2] - _dbl_spd) < 0.01) { move_modal_temp_speed_index = _dj2; break; }
@@ -2179,7 +2183,8 @@ if (!_overlay_active && playing_block_index == -1 && dragging_char_index != -1) 
                     var _lbl = move_speed_labels[move_speed_index];
                     if (_lbl != "WALK") _aname += " (" + _lbl + ")";
                     if (moonwalk_enabled) _aname += " [MOONWALK]";
-                    
+                    if (move_trick != "none") _aname += " [" + string_upper(move_trick) + "]";
+
                     var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
                     var _ec = characters[dragging_char_index];
                     array_insert(script_blocks, _insert_idx, {
@@ -2192,6 +2197,7 @@ if (!_overlay_active && playing_block_index == -1 && dragging_char_index != -1) 
                         height: 85,
                         speed: move_speeds[move_speed_index],
                         moonwalk: moonwalk_enabled,
+                        trick: move_trick,
                         enter_expression: variable_struct_exists(_ec, "expression") ? _ec.expression : 21,
                         enter_pose:       variable_struct_exists(_ec, "pose")       ? _ec.pose       : 1
                     });

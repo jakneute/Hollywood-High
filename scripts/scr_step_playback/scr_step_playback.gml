@@ -111,10 +111,72 @@ function step_tts_playback() {
             }
             if (_act_idx != -1) {
                 var _act = preview_actors[_act_idx];
+
+                if (_anim.type == "melt") {
+                    _anim.progress = min(1.0, _anim.progress + 1.0 / max(1, _anim.duration));
+                    _act.melt_progress = _anim.progress;
+                    // Emit occasional green drip particles
+                    if (irandom(3) == 0) {
+                        var _msc = (scene_win_h * 1.5) / 450;
+                        var _mspr = get_character_sprite(_act.char_index);
+                        var _mhw = (_mspr != -1) ? sprite_get_width(_mspr) * _msc * 0.4 : 40;
+                        array_push(active_particles, {
+                            x: scene_win_x + _act.x + random_range(-_mhw, _mhw),
+                            y: scene_win_y + _act.y,
+                            vx: random_range(-0.3, 0.3),
+                            vy: random_range(0.5, 2.0),
+                            life: irandom_range(12, 22), max_life: 20,
+                            size: random_range(2, 5),
+                            r: irandom_range(20, 80), g: irandom_range(140, 200), b: irandom_range(20, 60),
+                            gravity: 0.08,
+                        });
+                    }
+                    if (_anim.progress >= 1.0) {
+                        array_delete(preview_actors, _act_idx, 1);
+                        array_delete(active_animations, _ai, 1);
+                    }
+                } else if (_anim.type == "disintegrate") {
+                    // Time-based: advance progress, emit electric particles, then remove
+                    _anim.progress = min(1.0, _anim.progress + 1.0 / max(1, _anim.duration));
+                    _act.dissolve_progress = _anim.progress;
+
+                    var _ds = (scene_win_h * 1.5) / 450;
+                    var _dspr3 = get_character_sprite(_act.char_index);
+                    var _dhw = (_dspr3 != -1) ? sprite_get_width(_dspr3)  * _ds * 0.36 : 50;
+                    var _dht = (_dspr3 != -1) ? sprite_get_height(_dspr3) * _ds * 0.80 : 180;
+                    repeat (max(1, round(_anim.progress * _anim.progress * 12))) {
+                        var _dpx  = _act.x + random_range(-_dhw, _dhw);
+                        var _dpy  = _act.y - random_range(0, _dht);
+                        var _dspd = random_range(0.4, 2.8) * (0.6 + _anim.progress * 3.0);
+                        var _dang = random_range(0, 2 * pi);
+                        var _dlf  = irandom_range(10, 26);
+                        var _dclr = irandom(2);
+                        array_push(active_particles, {
+                            x:        scene_win_x + _dpx,
+                            y:        scene_win_y + _dpy,
+                            vx:       cos(_dang) * _dspd,
+                            vy:       sin(_dang) * _dspd - random_range(0, 1.2),
+                            life:     _dlf, max_life: _dlf,
+                            size:     random_range(0.8, 3.0),
+                            r:        (_dclr == 0) ? irandom_range(160, 255) : irandom_range(20, 80),
+                            g:        irandom_range(200, 255),
+                            b:        255,
+                            gravity:  -0.04,
+                        });
+                    }
+                    if (_anim.progress >= 1.0) {
+                        array_delete(preview_actors, _act_idx, 1);
+                        array_delete(active_animations, _ai, 1);
+                    }
+                } else {
+
                 var _dist = point_distance(_act.x, _act.y, _anim.target_x, _anim.target_y);
                 if (!variable_struct_exists(_act, "bounce_timer")) _act.bounce_timer = 0;
                 if (!variable_struct_exists(_act, "y_offset"))     _act.y_offset = 0;
                 if (!variable_struct_exists(_anim, "cur_speed"))   _anim.cur_speed = 0;
+                var _trick = variable_struct_exists(_anim, "trick") ? _anim.trick : "none";
+                // Initialize trick_start_dist on first frame
+                if (_trick != "none" && _anim.trick_start_dist < 0) _anim.trick_start_dist = max(1, _dist);
                 var _target_speed = _anim.speed;
                 var _decel_dist = _anim.speed * 12;
                 if (_dist < _decel_dist) _target_speed = max(0.2, _anim.speed * (_dist / _decel_dist));
@@ -123,17 +185,35 @@ function step_tts_playback() {
                     var _dir = point_direction(_act.x, _act.y, _anim.target_x, _anim.target_y);
                     var _dx = lengthdir_x(_anim.cur_speed, _dir); var _dy = lengthdir_y(_anim.cur_speed, _dir);
                     _act.x += _dx; _act.y += _dy;
-                    var _h_speed = abs(_dx);
-                    if (_h_speed > 0.2) {
-                        _act.bounce_timer += _h_speed * 0.07;
-                        _act.y_offset = -round(abs(sin(_act.bounce_timer)) * clamp(_h_speed * 0.8, 0, 4));
-                    } else { _act.y_offset = 0; _act.bounce_timer = 0; }
+                    if (_trick != "none") {
+                        // Sine arc instead of walk bounce
+                        var _prog = clamp(1.0 - (_dist / _anim.trick_start_dist), 0, 1);
+                        _act.y_offset = -sin(_prog * pi) * (scene_win_h * 0.18);
+                        _act.bounce_timer = 0;
+                        if (_trick != "jump") {
+                            // Flip: direction based on travel direction (positive angle = CCW in GML = CW on screen)
+                            var _moving_right = (_anim.target_x > _act.x);
+                            var _flip_dir = (_trick == "front flip") ? (_moving_right ? -1 : 1) : (_moving_right ? 1 : -1);
+                            _act.image_angle = _prog * 360 * _flip_dir;
+                        } else {
+                            _act.image_angle = 0;
+                        }
+                    } else {
+                        _act.image_angle = 0;
+                        var _h_speed = abs(_dx);
+                        if (_h_speed > 0.2) {
+                            _act.bounce_timer += _h_speed * 0.07;
+                            _act.y_offset = -round(abs(sin(_act.bounce_timer)) * clamp(_h_speed * 0.8, 0, 4));
+                        } else { _act.y_offset = 0; _act.bounce_timer = 0; }
+                    }
                 } else {
-                    _act.x = _anim.target_x; _act.y = _anim.target_y; _act.y_offset = 0; _act.bounce_timer = 0;
+                    _act.x = _anim.target_x; _act.y = _anim.target_y;
+                    _act.y_offset = 0; _act.bounce_timer = 0; _act.image_angle = 0;
                     speaking_pause_timer = max(speaking_pause_timer, 5);
                     if (_anim.type == "exit") array_delete(preview_actors, _act_idx, 1);
                     array_delete(active_animations, _ai, 1);
                 }
+                } // end else (non-disintegrate)
             } else { array_delete(active_animations, _ai, 1); }
         }
         if (array_length(active_animations) == 0) action_animating = false;
@@ -288,7 +368,9 @@ function step_tts_playback() {
                             array_push(active_animations, {
                                 char_index: _b.char_index, type: "enter", speed: _spd,
                                 target_x: variable_struct_exists(_b, "target_x") ? _b.target_x : (_is_left ? (_w/2)+20 : scene_win_w-(_w/2)-20),
-                                target_y: variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h
+                                target_y: variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h,
+                                trick: variable_struct_exists(_b, "trick") ? _b.trick : "none",
+                                trick_start_dist: -1
                             });
                         }
                     } else if (_is_exit) {
@@ -305,7 +387,9 @@ function step_tts_playback() {
                             array_push(active_animations, {
                                 char_index: _b.char_index, type: "exit", speed: _spd,
                                 target_x: _exit_left ? -(_w/2)-50 : scene_win_w+(_w/2)+50,
-                                target_y: preview_actors[_act_idx].y
+                                target_y: preview_actors[_act_idx].y,
+                                trick: variable_struct_exists(_b, "trick") ? _b.trick : "none",
+                                trick_start_dist: -1
                             });
                         }
                     } else if (string_pos("turn", _aname) > 0) {
@@ -352,7 +436,7 @@ function step_tts_playback() {
                             var _base_face = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
                             char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                             preview_actors[_act_idx].facing = char_facings[_b.char_index];
-                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y });
+                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y, trick: variable_struct_exists(_b, "trick") ? _b.trick : "none", trick_start_dist: -1 });
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                     } else if (string_pos("expression:", _aname) > 0) {
                         if (_act_idx != -1) {
@@ -420,6 +504,26 @@ function step_tts_playback() {
                                     char_index: _b.char_index, type: "exit", speed: _dspd,
                                     target_x: preview_actors[_act_idx].x,
                                     target_y: -20,
+                                });
+                            } else if (_dstyle == "disintegrate") {
+                                action_animating = true;
+                                var _d_dur = max(20, round(240.0 / max(0.5, _dspd)));
+                                array_push(active_animations, {
+                                    char_index: _b.char_index,
+                                    type:       "disintegrate",
+                                    speed:      _dspd,
+                                    duration:   _d_dur,
+                                    progress:   0.0,
+                                });
+                            } else if (_dstyle == "melt") {
+                                action_animating = true;
+                                var _m_dur = max(20, round(200.0 / max(0.5, _dspd)));
+                                array_push(active_animations, {
+                                    char_index: _b.char_index,
+                                    type:       "melt",
+                                    speed:      _dspd,
+                                    duration:   _m_dur,
+                                    progress:   0.0,
                                 });
                             } else {
                                 // pop: instant removal

@@ -74,7 +74,7 @@ function step_modal_dictionary() {
 
 function step_modal_movement() {
     var _mx = mouse_x; var _my = mouse_y;
-    var _m_w = 400; var _m_h = 420;
+    var _m_w = 400; var _m_h = 580;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
 
     if (mouse_check_button_pressed(mb_left)) {
@@ -82,8 +82,16 @@ function step_modal_movement() {
             var _by = _m_y + 80 + (i * 45);
             if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _by && _my < _by + 40) move_modal_temp_speed_index = i;
         }
-        if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 310 && _my < _m_y + 330) {
+        if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _m_y + 314 && _my < _m_y + 340) {
             move_modal_temp_moonwalk = !move_modal_temp_moonwalk;
+        }
+        // Trick buttons
+        var _trick_vals = ["jump", "front flip", "back flip"];
+        for (var _ti = 0; _ti < 3; _ti++) {
+            var _ty = _m_y + 380 + _ti * 44;
+            if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _ty && _my < _ty + 38) {
+                move_modal_temp_trick = (move_modal_temp_trick == _trick_vals[_ti]) ? "none" : _trick_vals[_ti];
+            }
         }
         if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             if (move_modal_edit_mode && move_modal_target_index != -1) {
@@ -94,17 +102,23 @@ function step_modal_movement() {
                     if (variable_struct_exists(_b, "facing")) _b.facing *= -1;
                     _b.moonwalk = move_modal_temp_moonwalk;
                 }
+                _b.trick = move_modal_temp_trick;
                 var _bn = _b.action_name;
                 var _pos = string_pos(" (", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
                 _pos = string_pos(" [MOONWALK]", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                _pos = string_pos(" [JUMP]", string_upper(_bn)); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                _pos = string_pos(" [FRONT FLIP]", string_upper(_bn)); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                _pos = string_pos(" [BACK FLIP]", string_upper(_bn)); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
                 var _lbl = move_speed_labels[move_modal_temp_speed_index];
                 if (_lbl != "WALK") _bn += " (" + _lbl + ")";
                 if (_b.moonwalk) _bn += " [MOONWALK]";
+                if (_b.trick != "none") _bn += " [" + string_upper(_b.trick) + "]";
                 _b.action_name = _bn;
                 move_modal_edit_mode = false;
             } else {
                 move_speed_index = move_modal_temp_speed_index;
                 moonwalk_enabled = move_modal_temp_moonwalk;
+                move_trick = move_modal_temp_trick;
             }
             move_modal_open = false;
         }
@@ -391,19 +405,20 @@ function step_modal_action() {
         }
         // Disappear sub-options (style + speed)
         if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "disappear") {
-            var _dstyles = ["pop", "eat dirt", "home planet"];
-            for (var _dsi = 0; _dsi < 3; _dsi++) {
-                var _dsy = _myo + 155 + _dsi * 50;
-                if (_mx > _mxo+300 && _mx < _mxo+465 && _my > _dsy && _my < _dsy+40) {
+            var _dstyles = ["pop", "eat dirt", "home planet", "disintegrate", "melt"];
+            for (var _dsi = 0; _dsi < 5; _dsi++) {
+                var _dsy = _myo + 148 + _dsi * 44;
+                if (_mx > _mxo+290 && _mx < _mxo+460 && _my > _dsy && _my < _dsy+38) {
                     action_modal_disappear_style = _dstyles[_dsi];
                     if (action_modal_disappear_style == "pop") action_modal_disappear_speed = 2;
                     return;
                 }
             }
-            if (action_modal_disappear_style == "eat dirt" || action_modal_disappear_style == "home planet") {
+            // Speed selector (vertical list)
+            if (action_modal_disappear_style != "pop") {
                 for (var _spi = 0; _spi < 5; _spi++) {
-                    var _spx = _mxo + 300 + _spi * 94;
-                    if (_mx > _spx && _mx < _spx+88 && _my > _myo+338 && _my < _myo+368) {
+                    var _spy = _myo + 148 + _spi * 44;
+                    if (_mx > _mxo+475 && _mx < _mxo+660 && _my > _spy && _my < _spy+38) {
                         action_modal_disappear_speed = _spi; return;
                     }
                 }

@@ -199,15 +199,44 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
         if (abs(_dx) > 0.001) _blen = min(_blen, _dx>0 ? (scene_win_w-_ox)/_dx : -_ox/_dx);
         if (abs(_dy) > 0.001) _blen = min(_blen, _dy>0 ? (scene_win_h-_oy)/_dy : -_oy/_dy);
         _blen = max(0, _blen);
-        // Stop early if beam hits a character
+        // Stop early if beam hits a character — uses actual composite bounds per facing/pose
         var _char_scale = (scene_win_h * 1.5) / 450;
-        var _char_hw = 55 * _char_scale;
-        var _char_ht = 360 * _char_scale;
         for (var _lai = 0; _lai < array_length(preview_actors); _lai++) {
-            var _la = preview_actors[_lai];
-            // Skip the character whose body contains the emitter (laser-eyes source)
-            if (_ox >= _la.x - _char_hw && _ox <= _la.x + _char_hw && _oy >= _la.y - _char_ht && _oy <= _la.y + 5) continue;
-            var _lt = ray_aabb(_ox, _oy, _dx, _dy, _la.x - _char_hw, _la.y - _char_ht, _la.x + _char_hw, _la.y + 5);
+            var _la    = preview_actors[_lai];
+            var _lface = variable_struct_exists(_la, "facing")     ? _la.facing     : 1;
+            var _lpose = variable_struct_exists(_la, "pose")       ? _la.pose       : 1;
+            var _lexpr = variable_struct_exists(_la, "expression") ? _la.expression : 21;
+
+            var _layers = get_composite_character_sprite(_la.char_index, _lpose, _lexpr, _lface);
+            if (array_length(_layers) == 0 || _layers[0].spr == -1) continue;
+
+            var _body_spr = _layers[0].spr;
+            var _body_w   = sprite_get_width(_body_spr);
+            var _body_h   = sprite_get_height(_body_spr);
+
+            // Compute composite bounding box in sprite-canvas units (same logic as draw_composite_character_ext)
+            var _bb_x1 = 0; var _bb_x2 = _body_w;
+            var _bb_y1 = 0;
+            for (var _li2 = 1; _li2 < array_length(_layers); _li2++) {
+                var _ll = _layers[_li2];
+                if (_ll.spr == -1) continue;
+                _bb_x1 = min(_bb_x1, _ll.dx);
+                _bb_x2 = max(_bb_x2, _ll.dx + sprite_get_width(_ll.spr));
+                _bb_y1 = min(_bb_y1, _ll.dy);
+            }
+
+            // Convert to scene coordinates (draw_x = act.x - body_w * scale / 2)
+            var _draw_x0 = _la.x - _body_w * _char_scale * 0.5;
+            var _draw_y0 = _la.y - _body_h * _char_scale;
+            var _sc_x1 = _draw_x0 + _bb_x1 * _char_scale;
+            var _sc_x2 = _draw_x0 + _bb_x2 * _char_scale;
+            var _sc_y1 = max(_draw_y0 + _bb_y1 * _char_scale, -scene_win_h * 0.1);
+            var _sc_y2 = _la.y + 5;
+
+            // Skip source character (emitter inside box, with generous horizontal margin for eyes)
+            if (_ox >= _sc_x1 - 8 && _ox <= _sc_x2 + 8 && _oy >= _sc_y1 && _oy <= _sc_y2) continue;
+
+            var _lt = ray_aabb(_ox, _oy, _dx, _dy, _sc_x1, _sc_y1, _sc_x2, _sc_y2);
             if (_lt > 8 && _lt < _blen) _blen = _lt;
         }
         array_push(active_beams, {
