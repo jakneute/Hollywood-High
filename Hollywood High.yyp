@@ -107,7 +107,6 @@
   },
   "name":"Hollywood High",
   "resources":[
-    {"id":{"name":"Windows","path":"options/windows/options_windows.yy",},},
     {"id":{"name":"Chewy","path":"fonts/Chewy/Chewy.yy",},},
     {"id":{"name":"GochiHand","path":"fonts/GochiHand/GochiHand.yy",},},
     {"id":{"name":"IndieFlower","path":"fonts/IndieFlower/IndieFlower.yy",},},
@@ -115,6 +114,7 @@
     {"id":{"name":"Schoolbell","path":"fonts/Schoolbell/Schoolbell.yy",},},
     {"id":{"name":"Sniglet","path":"fonts/Sniglet/Sniglet.yy",},},
     {"id":{"name":"oHollywoodUI","path":"objects/oHollywoodUI/oHollywoodUI.yy",},},
+    {"id":{"name":"Windows","path":"options/windows/options_windows.yy",},},
     {"id":{"name":"MainWindow","path":"rooms/MainWindow/MainWindow.yy",},},
     {"id":{"name":"scr_character_sprite","path":"scripts/scr_character_sprite/scr_character_sprite.yy",},},
     {"id":{"name":"scr_expr_cfg","path":"scripts/scr_expr_cfg/scr_expr_cfg.yy",},},

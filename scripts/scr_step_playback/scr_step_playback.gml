@@ -191,9 +191,10 @@ function step_tts_playback() {
                         _act.y_offset = -sin(_prog * pi) * (scene_win_h * 0.18);
                         _act.bounce_timer = 0;
                         if (_trick != "jump") {
-                            // Flip: direction based on travel direction (positive angle = CCW in GML = CW on screen)
+                            // Flip: direction based on travel direction; moonwalk reverses it
                             var _moving_right = (_anim.target_x > _act.x);
                             var _flip_dir = (_trick == "front flip") ? (_moving_right ? -1 : 1) : (_moving_right ? 1 : -1);
+                            if (variable_struct_exists(_anim, "moonwalk") && _anim.moonwalk) _flip_dir *= -1;
                             _act.image_angle = _prog * 360 * _flip_dir;
                         } else {
                             _act.image_angle = 0;
@@ -370,7 +371,7 @@ function step_tts_playback() {
                                 target_x: variable_struct_exists(_b, "target_x") ? _b.target_x : (_is_left ? (_w/2)+20 : scene_win_w-(_w/2)-20),
                                 target_y: variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h,
                                 trick: variable_struct_exists(_b, "trick") ? _b.trick : "none",
-                                trick_start_dist: -1
+                                trick_start_dist: -1, moonwalk: _moon
                             });
                         }
                     } else if (_is_exit) {
@@ -389,7 +390,7 @@ function step_tts_playback() {
                                 target_x: _exit_left ? -(_w/2)-50 : scene_win_w+(_w/2)+50,
                                 target_y: preview_actors[_act_idx].y,
                                 trick: variable_struct_exists(_b, "trick") ? _b.trick : "none",
-                                trick_start_dist: -1
+                                trick_start_dist: -1, moonwalk: _moon
                             });
                         }
                     } else if (string_pos("turn", _aname) > 0) {
@@ -436,7 +437,7 @@ function step_tts_playback() {
                             var _base_face = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
                             char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                             preview_actors[_act_idx].facing = char_facings[_b.char_index];
-                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y, trick: variable_struct_exists(_b, "trick") ? _b.trick : "none", trick_start_dist: -1 });
+                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y, trick: variable_struct_exists(_b, "trick") ? _b.trick : "none", trick_start_dist: -1, moonwalk: _moon });
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                     } else if (string_pos("expression:", _aname) > 0) {
                         if (_act_idx != -1) {

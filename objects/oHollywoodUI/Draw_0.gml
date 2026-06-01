@@ -214,7 +214,9 @@ if (theater_mode) {
 					array_push(_final_layers, { spr: _lspr, dx: _ldx, dy: _ldy });
 				}
 				var _clip = (target_surface == -1) ? [_stg_x, _stg_y, _stg_w, _stg_h] : undefined;
-				var _dp_th = variable_struct_exists(_act, "dissolve_progress") ? _act.dissolve_progress : 0;
+				var _dp_th   = variable_struct_exists(_act, "dissolve_progress") ? _act.dissolve_progress : 0;
+				var _melt_th = variable_struct_exists(_act, "melt_progress")     ? _act.melt_progress     : 0;
+				var _ang_th  = variable_struct_exists(_act, "image_angle")       ? _act.image_angle       : 0;
 				if (_dp_th > 0) {
 					var _dta = max(0, (1.0 - _dp_th) * (1.0 - _dp_th * 0.5));
 					var _dtc = make_color_rgb(max(80, 255 - round(_dp_th * 175)), min(255, 180 + round(_dp_th * 75)), 255);
@@ -229,6 +231,35 @@ if (theater_mode) {
 								_draw_y + sin(_tfang) * _tsp * 0.35,
 								_asc * (1.0 - _dp_th * 0.35), _tfa, _dtc, false, 0, c_white, _clip);
 						}
+					}
+				} else if (_melt_th > 0) {
+					var _mxsc_th   = _asc * (1.0 + _melt_th * 0.8);
+					var _mysc_th   = _asc * max(0.04, 1.0 - _melt_th * 0.96);
+					var _malpha_th = max(0.0, 1.0 - max(0.0, _melt_th - 0.55) / 0.45);
+					var _sink_th   = _melt_th * _csh * _asc * 0.5;
+					var _char_cx_th = _draw_x + _csw * _asc * 0.5;
+					var _feet_y_th  = _draw_y + _csh * _asc;
+					for (var _mli_th = 0; _mli_th < array_length(_final_layers); _mli_th++) {
+						var _ml_th = _final_layers[_mli_th];
+						if (_ml_th.spr == -1) continue;
+						var _mlw_th = sprite_get_width(_ml_th.spr);
+						var _mlh_th = sprite_get_height(_ml_th.spr);
+						var _orig_cx_th = _draw_x + (_ml_th.dx + _mlw_th * 0.5) * _asc;
+						var _ml_x_th = _char_cx_th + (_orig_cx_th - _char_cx_th) * (_mxsc_th / _asc) - _mlw_th * _mxsc_th * 0.5;
+						var _dist_th = (_draw_y + (_ml_th.dy + _mlh_th) * _asc) - _feet_y_th;
+						var _ml_y_th = (_feet_y_th + _sink_th) + _dist_th * (_mysc_th / _asc) - _mlh_th * _mysc_th;
+						draw_sprite_ext(_ml_th.spr, 0, _ml_x_th, _ml_y_th, _mxsc_th, _mysc_th, 0, c_white, _malpha_th);
+					}
+				} else if (_ang_th != 0) {
+					var _rpx_th = (target_surface == -1) ? (_stg_x + _ax) : _ax;
+					var _rpy_th = (target_surface == -1) ? (_stg_y + _ay - _csh * _asc * 0.82 + _y_off) : (_ay - _csh * _asc * 0.82 + _y_off);
+					var _cos_th = dcos(_ang_th); var _sin_th = dsin(_ang_th);
+					for (var _rli_th = 0; _rli_th < array_length(_final_layers); _rli_th++) {
+						var _rl_th = _final_layers[_rli_th];
+						if (_rl_th.spr == -1) continue;
+						var _vx_th = (_draw_x + _rl_th.dx * _asc) - _rpx_th;
+						var _vy_th = (_draw_y + _rl_th.dy * _asc) - _rpy_th;
+						draw_sprite_ext(_rl_th.spr, 0, _rpx_th + _vx_th * _cos_th + _vy_th * _sin_th, _rpy_th - _vx_th * _sin_th + _vy_th * _cos_th, _asc, _asc, _ang_th, c_white, 1);
 					}
 				} else {
 					draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, 1, c_white, false, 3, c_yellow, _clip);
@@ -2264,7 +2295,7 @@ if (edit_mode) {
     draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+56, 14, 14, false);
     draw_rectangle(_mxo, _myo+36, _mxo+_mw, _myo+56, false);
     draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 14, 14, true);
-    draw_set_color(c_black); draw_text(_mxo+28, _myo+19, "VOICE STUDIO");
+    draw_set_color(c_black); draw_text(_mxo+28, _myo+19, modal_is_local_edit ? "ALTER VOICE — THIS BLOCK ONLY" : "VOICE STUDIO");
     
     var _cols = 4; var _bw = 170; var _bh = 45; var _gx = (_mw - (_cols * (_bw + 15))) / 2;
     for (var i = 0; i < array_length(all_voices); i++) {

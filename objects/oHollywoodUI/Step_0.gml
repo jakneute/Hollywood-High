@@ -1670,7 +1670,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
             } else if (_is_action || _is_voice) {
                 // Other Blocks (Dialogue/Action) - Disable Staging
-                if (playing_block_index == -1 && _mx > box_x + 55 && _mx < box_x + 55 + _wrap_w + 20 && _my > _box_y && _my < _box_y + (_bh - 55)) {
+                if (playing_block_index == -1 && _mx > box_x + 55 && _mx < box_x + 55 + _wrap_w + 20 && _my > _box_y && _my < _cy + _bh) {
                     var _is_dbl = (block_last_click_idx == i && current_time - block_last_click_time < 380);
                     block_last_click_idx  = i;
                     block_last_click_time = current_time;
