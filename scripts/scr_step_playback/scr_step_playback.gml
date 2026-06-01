@@ -399,6 +399,34 @@ function step_tts_playback() {
                             if (_pn >= 1 && _pn <= 4) preview_actors[_act_idx].pose = _pn;
                             speaking_pause_timer = max(speaking_pause_timer, 6);
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                    } else if (string_pos("disappears", _aname) > 0) {
+                        var _dstyle = variable_struct_exists(_b, "disappear_style") ? _b.disappear_style : "pop";
+                        var _dspeed_idx = variable_struct_exists(_b, "disappear_speed") ? _b.disappear_speed : 2;
+                        var _dspd = move_speeds[clamp(_dspeed_idx, 0, array_length(move_speeds)-1)];
+                        if (_act_idx != -1) {
+                            if (_dstyle == "eat dirt") {
+                                var _dspr = get_character_sprite(_b.char_index);
+                                var _dscale = (scene_win_h * 1.5) / 450;
+                                var _dch = (_dspr != -1) ? sprite_get_height(_dspr) * _dscale : 300;
+                                action_animating = true;
+                                array_push(active_animations, {
+                                    char_index: _b.char_index, type: "exit", speed: _dspd,
+                                    target_x: preview_actors[_act_idx].x,
+                                    target_y: scene_win_h + _dch + 20,
+                                });
+                            } else if (_dstyle == "home planet") {
+                                action_animating = true;
+                                array_push(active_animations, {
+                                    char_index: _b.char_index, type: "exit", speed: _dspd,
+                                    target_x: preview_actors[_act_idx].x,
+                                    target_y: -20,
+                                });
+                            } else {
+                                // pop: instant removal
+                                array_delete(preview_actors, _act_idx, 1);
+                                speaking_pause_timer = max(speaking_pause_timer, 4);
+                            }
+                        } else { speaking_pause_timer = max(speaking_pause_timer, 4); }
                     } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                 } else if (_is_particle) {
                     var _psize  = variable_struct_exists(_b, "size")     ? _b.size     : 1.0;
@@ -406,7 +434,13 @@ function step_tts_playback() {
                     var _pden   = variable_struct_exists(_b, "density")  ? _b.density  : 2;
                     var _pspd   = variable_struct_exists(_b, "speed")    ? _b.speed    : 1.0;
                     var _pspr   = variable_struct_exists(_b, "spread")   ? _b.spread   : 65;
-                    start_particle_emitter(_b.effect, _b.x, _b.y, _b.angle, _psize, _pdur, _pden, _pspd, _pspr);
+                    var _pcol   = variable_struct_exists(_b, "color")   ? _b.color   : "red";
+                    var _pcr    = variable_struct_exists(_b, "color_r") ? _b.color_r : 200;
+                    var _pcg    = variable_struct_exists(_b, "color_g") ? _b.color_g : 0;
+                    var _pcb    = variable_struct_exists(_b, "color_b") ? _b.color_b : 0;
+                    var _paw    = variable_struct_exists(_b, "area_w")  ? _b.area_w  : 0;
+                    var _pah    = variable_struct_exists(_b, "area_h")  ? _b.area_h  : 0;
+                    start_particle_emitter(_b.effect, _b.x, _b.y, _b.angle, _psize, _pdur, _pden, _pspd, _pspr, _pcol, _pcr, _pcg, _pcb, _paw, _pah);
                     speaking_pause_timer = max(speaking_pause_timer, round(_pdur * 60));
                 } else {
                     var _is_empty = true;

@@ -420,6 +420,8 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                         var _pn = real(string_copy(_aname, string_pos("pose ", _aname) + 5, 1));
                         if (_pn >= 1 && _pn <= 4) preview_actors[_act_idx].pose = _pn;
                     }
+                } else if (string_pos("disappears", _aname) > 0) {
+                    if (_act_idx != -1) array_delete(preview_actors, _act_idx, 1);
                 }
             }
         }
@@ -441,8 +443,27 @@ function play_from_index(_idx) {
         }
     }
 
-    scene_edit_mode = false;
-    insertion_idx   = -1;
+    // Exit all special modes before playback begins
+    scene_edit_mode            = false;
+    particle_edit_mode         = false;
+    particle_drag_pos          = false;
+    particle_drag_dir          = false;
+    particle_drag_area_w       = false;
+    particle_drag_area_h       = false;
+    edit_mode                  = false;   // voice config modal
+    dictionary_open            = false;
+    pose_modal_open            = false;
+    pose_modal_edit_mode       = false;
+    expression_modal_open      = false;
+    expression_modal_edit_mode = false;
+    pose_expr_modal_open       = false;
+    move_modal_open            = false;
+    move_modal_edit_mode       = false;
+    action_modal_open          = false;
+    action_modal_edit_mode     = false;
+    scene_modal_open           = false;
+    scene_modal_edit_mode      = false;
+    insertion_idx              = -1;
     update_preview_actors_for_block(_idx, false);
     playing_block_index  = _idx;
     playing_linked_index = -1;

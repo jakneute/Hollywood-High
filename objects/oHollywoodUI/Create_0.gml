@@ -63,8 +63,11 @@ particle_edit_mode     = false;
 particle_edit_block_idx = -1;
 particle_drag_pos      = false;   // dragging the emitter position handle
 particle_drag_dir      = false;   // dragging the direction arrow tip
+particle_drag_area_w   = false;   // dragging the area width handle
+particle_drag_area_h   = false;   // dragging the area height handle
 active_particles       = [];      // live particle instances
 active_emitters        = [];      // continuous particle streams (effect, x, y, angle, size, frames_remaining)
+active_beams           = [];      // laser beam instances
 
 fx_picker_open = false;
 heat_surface = -1;
@@ -228,6 +231,8 @@ selected_character_index = 0;
 edit_mode = false; 
 modal_is_local_edit = false; // Tracks if we are editing a block or a character global
 modal_target_block_idx = -1;  // The specific block being edited locally
+block_last_click_idx  = -1;   // double-click detection
+block_last_click_time = -1;
 modal_voice_id = ""; 
 tweak_enabled = false;
 modal_pitch = 50;
@@ -440,10 +445,13 @@ sfx_base_path = datafiles_path + "sounds/";
 // refresh_sfx_files = function(_folder) — defined in scr_scene/scr_utils/scr_expr_cfg
 
 all_actions = [
-    { name: "wait", desc: "Pauses the script for a set duration of time.", category: "general" },
-    { name: "play sfx", desc: "Plays a sound effect from the library.", category: "general" },
-    { name: "display title", desc: "Displays a text title on screen for a set duration.", category: "general" }
+    { name: "wait",          desc: "Pauses the script for a set duration of time.",                             category: "general"   },
+    { name: "play sfx",      desc: "Plays a sound effect from the library.",                                   category: "general"   },
+    { name: "display title", desc: "Displays a text title on screen for a set duration.",                      category: "general"   },
+    { name: "disappear",     desc: "Instantly removes the character from the scene.\nChoose a vanish style.",  category: "character" },
 ];
+action_modal_disappear_style = "pop";
+action_modal_disappear_speed = 2; // index into move_speeds (default: WALK)
 
 char_facings = array_create(array_length(characters), 1);
 

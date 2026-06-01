@@ -169,10 +169,18 @@ function step_modal_pose() {
                     pose_modal_edit_mode = false;
                 } else {
                     var _new_a = { type: "action", char_index: selected_character_index, action_name: _action_text, height: 85 };
-                    var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                    var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : ((focused_block != -1) ? focused_block + 1 : array_length(script_blocks));
+                    var _spliced = (insertion_idx != -1);
                     array_insert(script_blocks, _insert_idx, _new_a);
                     update_block_height(_insert_idx);
                     focused_block = _insert_idx;
+                    if (_spliced) {
+                        insertion_idx = -1;
+                        var _block_y = 0;
+                        for (var k = 0; k < _insert_idx; k++) _block_y += script_blocks[k].height + 20;
+                        block_scroll_y = min(0, -(_block_y - box_h / 3));
+                        update_preview_actors_for_block(_insert_idx, true);
+                    }
                 }
             }
             pose_modal_open = false; pose_modal_edit_mode = false;
@@ -225,10 +233,18 @@ function step_modal_expression() {
                 expression_modal_edit_mode = false;
             } else if (_is_onstage && !scene_edit_mode) {
                 var _new_a = { type: "action", char_index: selected_character_index, action_name: _action_text, height: 85 };
-                var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : ((focused_block != -1) ? focused_block + 1 : array_length(script_blocks));
+                var _spliced = (insertion_idx != -1);
                 array_insert(script_blocks, _insert_idx, _new_a);
                 update_block_height(_insert_idx);
                 focused_block = _insert_idx;
+                if (_spliced) {
+                    insertion_idx = -1;
+                    var _block_y = 0;
+                    for (var k = 0; k < _insert_idx; k++) _block_y += script_blocks[k].height + 20;
+                    block_scroll_y = min(0, -(_block_y - box_h / 3));
+                    update_preview_actors_for_block(_insert_idx, true);
+                }
             }
             expression_modal_open = false; expression_modal_edit_mode = false;
         }
@@ -317,10 +333,18 @@ function step_modal_pose_expr() {
                     script_blocks[expression_modal_target_index].action_name = _action_text;
                 } else {
                     var _new_a = { type: "action", char_index: selected_character_index, action_name: _action_text, height: 85 };
-                    var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                    var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : ((focused_block != -1) ? focused_block + 1 : array_length(script_blocks));
+                    var _spliced = (insertion_idx != -1);
                     array_insert(script_blocks, _insert_idx, _new_a);
                     update_block_height(_insert_idx);
                     focused_block = _insert_idx;
+                    if (_spliced) {
+                        insertion_idx = -1;
+                        var _block_y = 0;
+                        for (var k = 0; k < _insert_idx; k++) _block_y += script_blocks[k].height + 20;
+                        block_scroll_y = min(0, -(_block_y - box_h / 3));
+                        update_preview_actors_for_block(_insert_idx, true);
+                    }
                 }
             }
 
@@ -347,24 +371,42 @@ function step_modal_action() {
     if (mouse_check_button_pressed(mb_left)) {
         for (var i = 0; i < array_length(all_actions); i++) {
             var _is_gen = (all_actions[i].category == "general");
-            var _by = _myo + 60 + (i * 45) + (_is_gen ? 25 : 0);
-            var _aname = string_lower(all_actions[i].name);
+            var _ng = 0; var _nc = 0;
+            for (var _k = 0; _k < i; _k++) { if (all_actions[_k].category == "general") _ng++; else _nc++; }
+            var _by = _myo + 85 + (_ng * 45) + (!_is_gen ? 50 : 0) + (_nc * 45);
             var _disabled = false;
             if (action_modal_edit_mode) {
                 if (action_modal_selected_idx != i) _disabled = true;
-            } else {
-                if (selected_character_index == 0 && !_is_gen) _disabled = true;
-                else if (!_is_gen) {
-                    if (action_modal_char_onstage && string_pos("enter", _aname) > 0) _disabled = true;
-                    if (!action_modal_char_onstage && string_pos("exit",  _aname) > 0) _disabled = true;
-                    if (!action_modal_char_onstage && string_pos("turn",  _aname) > 0) _disabled = true;
-                }
+            } else if (!_is_gen) {
+                if (selected_character_index == 0) _disabled = true;
+                else if (!action_modal_char_onstage) _disabled = true;
             }
             if (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40) {
                 action_modal_selected_idx = i; action_modal_locked = true;
                 if (all_actions[i].name == "play sfx") { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; action_modal_sfx_search = ""; action_modal_sfx_search_results = []; action_modal_sfx_search_sel = -1; action_modal_sfx_search_focused = false; action_modal_sfx_search_scroll_y = 0; keyboard_string = ""; }
                 else if (all_actions[i].name == "display title") { action_modal_title_text = ""; action_modal_wait_duration = 2.0; action_modal_dropdown_open = ""; keyboard_string = ""; }
+                else if (all_actions[i].name == "disappear") { action_modal_disappear_style = "pop"; action_modal_disappear_speed = 2; }
                 return;
+            }
+        }
+        // Disappear sub-options (style + speed)
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "disappear") {
+            var _dstyles = ["pop", "eat dirt", "home planet"];
+            for (var _dsi = 0; _dsi < 3; _dsi++) {
+                var _dsy = _myo + 155 + _dsi * 50;
+                if (_mx > _mxo+300 && _mx < _mxo+465 && _my > _dsy && _my < _dsy+40) {
+                    action_modal_disappear_style = _dstyles[_dsi];
+                    if (action_modal_disappear_style == "pop") action_modal_disappear_speed = 2;
+                    return;
+                }
+            }
+            if (action_modal_disappear_style == "eat dirt" || action_modal_disappear_style == "home planet") {
+                for (var _spi = 0; _spi < 5; _spi++) {
+                    var _spx = _mxo + 300 + _spi * 94;
+                    if (_mx > _spx && _mx < _spx+88 && _my > _myo+338 && _my < _myo+368) {
+                        action_modal_disappear_speed = _spi; return;
+                    }
+                }
             }
         }
 
@@ -527,6 +569,9 @@ function step_modal_action() {
                     _sfx_path = "sounds/" + _folder + "/" + _sfx_file;
                     _act_name = "Play SFX: " + string_replace(string_upper(_sfx_file), ".WAV", "");
                 }
+            } else if (_act_name == "disappear") {
+                if (selected_character_index == 0 || !action_modal_char_onstage) _can_proceed = false;
+                else _act_name = "disappears (" + action_modal_disappear_style + ")";
             }
             if (_can_proceed) {
                 if (action_modal_edit_mode) {
@@ -537,7 +582,11 @@ function step_modal_action() {
                         _b.duration = action_modal_wait_duration; _b.title_text = action_modal_title_text;
                         _b.title_align = action_modal_title_align; _b.title_font = action_modal_title_font;
                         _b.title_size = action_modal_title_size; _b.title_color = action_modal_title_color;
-                    } else if (all_actions[action_modal_selected_idx].name == "play sfx") _b.sfx_path = _sfx_path;
+                    } else if (all_actions[action_modal_selected_idx].name == "play sfx") { _b.sfx_path = _sfx_path; }
+                    else if (all_actions[action_modal_selected_idx].name == "disappear") {
+                        _b.disappear_style = action_modal_disappear_style;
+                        _b.disappear_speed = action_modal_disappear_speed;
+                    }
                     action_modal_edit_mode = false;
                 } else {
                     var _new_a = { type: "action", char_index: selected_character_index, action_name: _act_name, height: 85 };
@@ -548,11 +597,16 @@ function step_modal_action() {
                         _new_a.title_size = action_modal_title_size; _new_a.title_color = action_modal_title_color;
                         _new_a.char_index = 0;
                     } else if (all_actions[action_modal_selected_idx].name == "play sfx") { _new_a.sfx_path = _sfx_path; _new_a.char_index = 0; }
+                    else if (all_actions[action_modal_selected_idx].name == "disappear") {
+                        _new_a.disappear_style = action_modal_disappear_style;
+                        _new_a.disappear_speed = action_modal_disappear_speed;
+                    }
                     if (action_modal_target_index == -1) array_push(script_blocks, _new_a);
                     else array_insert(script_blocks, action_modal_target_index, _new_a);
                 }
                 update_all_block_heights();
                 action_modal_open = false;
+                insertion_idx = -1; // Reset splice mode!
                 var _ins_idx = (action_modal_target_index != -1) ? action_modal_target_index : (array_length(script_blocks) - 1);
                 var _block_y = 0;
                 for (var k = 0; k < _ins_idx; k++) _block_y += script_blocks[k].height + 20;
