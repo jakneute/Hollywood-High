@@ -234,6 +234,15 @@ if (expr_cfg_pending_save_path != "") {
 }
 
 // --- 0. MODAL OVERLAY BLOCKING ---
+// Export polling — check each step until PowerShell writes the zip
+if (export_state == 1 && file_exists(export_dest_path)) {
+    export_state = 0;
+    export_status_msg = "Exported!";
+    export_status_timer = 180;
+    if (file_exists(export_ps1_path)) file_delete(export_ps1_path);
+}
+if (export_status_timer > 0) export_status_timer--;
+
 // Ensure modals capture all input and prevent background logic from running
 if (dictionary_open)       { step_modal_dictionary();  return; }
 
@@ -244,6 +253,7 @@ if (move_modal_open)       { step_modal_movement();    return; }
 if (pose_expr_modal_open)  { step_modal_pose_expr();   return; }
 
 if (action_modal_open)     { step_modal_action();      return; }
+if (import_modal_open)     { step_modal_import();      return; }
 
 // --- CHARACTER RENAME ---
 if (char_rename_active) {
@@ -561,7 +571,7 @@ if (scene_modal_open) {
 // --- 2c2. FILE MENU ---
 if (file_menu_open) {
     if (mouse_check_button_pressed(mb_left)) {
-        var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 105;
+        var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 175;
         var _clicked_option = false;
 
         // ── SAVE SCRIPT ──
@@ -678,6 +688,19 @@ if (file_menu_open) {
                     file_text_close(_sf);
                 }
             }
+            _clicked_option = true;
+
+        // ── IMPORT ASSETS ──
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 105 && _my < _fm_y + 140) {
+            import_modal_open = true;
+            import_modal_mode = 0;
+            import_modal_bg_path = ""; import_modal_mask_path = ""; import_modal_snd_path = "";
+            import_modal_status = ""; keyboard_string = "";
+            _clicked_option = true;
+
+        // ── EXPORT SCRIPT ──
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 140 && _my < _fm_y + 175) {
+            do_export_script();
             _clicked_option = true;
         }
 
@@ -1135,7 +1158,7 @@ if (mouse_check_button_pressed(mb_left)) {
         file_menu_open = true;
         return;
     }
-    
+
     if (_mx > btn_play_x && _mx < btn_play_x + btn_play_w && _my > btn_play_y && _my < btn_play_y + btn_play_h) {
         focused_block = -1; block_last_click_idx = -1;
         selection_start = 0; selection_end = 0;

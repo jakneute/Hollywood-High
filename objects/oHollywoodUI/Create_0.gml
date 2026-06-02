@@ -526,6 +526,24 @@ scene_edit_menu_orig_face = 1;
 
 file_menu_open = false;
 
+export_state = 0;        // 0=idle, 1=waiting for zip to appear
+export_dest_path = "";
+export_tmp_dir = "";
+export_ps1_path = "";
+export_status_msg = "";
+export_status_timer = 0;
+
+import_modal_open = false;
+import_modal_mode = 0; // 0 = image, 1 = sound
+import_modal_bg_path = "";
+import_modal_mask_path = "";
+import_modal_snd_path = "";
+import_modal_subcat = "";
+import_modal_subcat_caret = 0;
+import_modal_subcat_repeat_timer = 0;
+import_modal_status = "";
+import_modal_status_ok = true;
+
 o_char_surface = -1;
 o_mask_surface = -1;
 

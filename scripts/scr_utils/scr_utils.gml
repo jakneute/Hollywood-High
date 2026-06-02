@@ -197,6 +197,118 @@ function get_particle_rgb_ex(_color, _cr, _cg, _cb) {
     return get_particle_rgb(_color);
 }
 
+// Scans a WAV buffer for the fmt and data chunks, returning format info and the
+// actual data chunk offset/size. Handles WAVs with extended headers or extra chunks.
+function parse_wav_header(_buf) {
+    var _sz = buffer_get_size(_buf);
+    var _result = { chan: 1, rate: 44100, bits: 16, data_offset: 44, data_size: max(0, _sz - 44) };
+    if (_sz < 12) return _result;
+    var _pos = 12; // skip "RIFF xxxx WAVE"
+    while (_pos + 8 <= _sz) {
+        buffer_seek(_buf, buffer_seek_start, _pos);
+        var _id = "";
+        for (var _j = 0; _j < 4; _j++) _id += chr(buffer_read(_buf, buffer_u8));
+        var _csz = buffer_read(_buf, buffer_u32);
+        if (_id == "fmt ") {
+            buffer_seek(_buf, buffer_seek_start, _pos + 10);
+            _result.chan = buffer_read(_buf, buffer_u16);
+            _result.rate = buffer_read(_buf, buffer_u32);
+            buffer_seek(_buf, buffer_seek_start, _pos + 22);
+            _result.bits = buffer_read(_buf, buffer_u16);
+        } else if (_id == "data") {
+            _result.data_offset = _pos + 8;
+            _result.data_size   = _csz;
+            return _result;
+        }
+        _pos += 8 + _csz + (_csz & 1); // advance past chunk, pad to even boundary
+    }
+    return _result;
+}
+
+function do_export_script() {
+    var _base = (current_script_path != "") ? filename_change_ext(filename_name(current_script_path), "") : "screenplay";
+    var _dest = get_save_filename("Hollywood High Package|*.zip", working_directory + _base + ".zip");
+    if (_dest == "") return;
+
+    var _tmp = working_directory + "__hhexport__/";
+    directory_create(_tmp + "scenes/");
+
+    // Save .hhi into temp dir
+    var _hhi_name = (current_script_path != "") ? filename_name(current_script_path) : "screenplay.hhi";
+    var _save_data = { version: 2, script: script_blocks, chars: characters, dict: dictionary_list };
+    var _json = json_stringify(_save_data);
+    var _buf = buffer_create(string_byte_length(_json) + 1, buffer_fixed, 1);
+    buffer_write(_buf, buffer_string, _json);
+    buffer_seek(_buf, buffer_seek_start, 0);
+    var _cbuf = buffer_compress(_buf, 0, buffer_get_size(_buf));
+    buffer_save(_cbuf, _tmp + _hhi_name);
+    buffer_delete(_buf); buffer_delete(_cbuf);
+
+    // Collect custom scenes referenced in the script
+    var _seen_scenes = ds_map_create();
+    for (var _i = 0; _i < array_length(script_blocks); _i++) {
+        var _bl = script_blocks[_i];
+        if (!variable_struct_exists(_bl, "type") || _bl.type != "scene") continue;
+        if (!variable_struct_exists(_bl, "internal_name") || _bl.internal_name == "") continue;
+        var _iname_lo = string_lower(_bl.internal_name);
+        if (ds_map_exists(_seen_scenes, _iname_lo)) continue;
+        ds_map_add(_seen_scenes, _iname_lo, true);
+        for (var _s = 0; _s < array_length(all_scenes); _s++) {
+            if (string_lower(all_scenes[_s].internal_name) != _iname_lo) continue;
+            if (!all_scenes[_s].is_custom) break; // in pack, no file to bundle
+            var _bg_src = datafiles_path + all_scenes[_s].path;
+            if (file_exists(_bg_src)) file_copy(_bg_src, _tmp + "scenes/" + filename_name(_bg_src));
+            // Include mask if present
+            var _mexts = [".png", ".jpg", ".jpeg"];
+            for (var _e = 0; _e < array_length(_mexts); _e++) {
+                var _msrc = datafiles_path + "scenes/" + _bl.internal_name + "_mask" + _mexts[_e];
+                if (file_exists(_msrc)) { file_copy(_msrc, _tmp + "scenes/" + filename_name(_msrc)); break; }
+            }
+            break;
+        }
+    }
+    ds_map_destroy(_seen_scenes);
+
+    // Collect custom sounds referenced in the script (loose files only, not in pack)
+    var _seen_snds = ds_map_create();
+    for (var _i = 0; _i < array_length(script_blocks); _i++) {
+        var _bl = script_blocks[_i];
+        if (!variable_struct_exists(_bl, "type") || _bl.type != "action") continue;
+        if (!variable_struct_exists(_bl, "sfx_path") || _bl.sfx_path == "") continue;
+        var _rel = string_replace(_bl.sfx_path, "sounds/sfx/", "sounds/");
+        if (string_copy(_rel, 1, 7) != "sounds/") continue;
+        var _pack_key = string_delete(_rel, 1, 7); // "folder/file.wav"
+        if (ds_map_exists(_seen_snds, _pack_key)) continue;
+        ds_map_add(_seen_snds, _pack_key, true);
+        // Skip sounds that live in the pack
+        if (global.sounds_pack_header != undefined && variable_struct_exists(global.sounds_pack_header, _pack_key)) continue;
+        var _src = sfx_base_path + _pack_key;
+        if (!file_exists(_src)) continue;
+        var _slash = string_pos("/", _pack_key);
+        if (_slash > 0) directory_create(_tmp + "sounds/" + string_copy(_pack_key, 1, _slash - 1) + "/");
+        file_copy(_src, _tmp + "sounds/" + _pack_key);
+    }
+    ds_map_destroy(_seen_snds);
+
+    // Write a .ps1 and execute it — PowerShell Compress-Archive handles the zip
+    var _ps1 = working_directory + "__hhexport__.ps1";
+    var _tmp_w  = string_replace_all(_tmp,  "/", "\\");
+    var _dest_w = string_replace_all(_dest, "/", "\\");
+    if (file_exists(_dest)) file_delete(_dest);
+    var _f = file_text_open_write(_ps1);
+    file_text_write_string(_f, "Compress-Archive -Path '" + _tmp_w + "*' -DestinationPath '" + _dest_w + "' -Force");
+    file_text_close(_f);
+    var _ps1_w = string_replace_all(_ps1, "/", "\\");
+    external_call(global.win_exec_id, "powershell -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File \"" + _ps1_w + "\"", 0);
+
+    export_state      = 1;
+    export_dest_path  = _dest;
+    export_tmp_dir    = _tmp;
+    export_ps1_path   = _ps1;
+    export_status_msg = "Exporting...";
+    export_status_timer = 9999;
+}
+
 function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_sec, _density = 2, _speed = 1.0, _spread = 65, _color = "red", _color_r = 200, _color_g = 0, _color_b = 0, _area_w = 0, _area_h = 0) {
     if (_effect == "laser") {
         var _frames = max(2, round(_duration_sec * 60));

@@ -1,7 +1,7 @@
 /// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
-var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || pose_expr_modal_open || expr_cfg_open);
+var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || pose_expr_modal_open || expr_cfg_open || import_modal_open);
 
 draw_clear(make_color_rgb(10, 42, 16));
 
@@ -686,6 +686,7 @@ draw_roundrect_ext(_fm_btn_x, _fm_btn_y, _fm_btn_x + _fm_btn_w, _fm_btn_y + _fm_
 draw_set_color(c_white); draw_set_halign(fa_center);
 draw_text(_fm_btn_x + (_fm_btn_w / 2), _fm_btn_y + 10, "FILE");
 draw_set_halign(fa_left);
+
 
 // --- 1b. SCENE WINDOW ---
 draw_set_color(c_black);
@@ -1508,16 +1509,25 @@ if (playing_block_index == -1 && current_scene_sprite != -1) {
 }
 
 if (file_menu_open) {
-    var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 105;
+    var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 175;
     draw_set_color(make_color_rgb(10, 42, 15)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, false);
     draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, true);
-    var _opts = ["SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY"];
-    for (var i = 0; i < 3; i++) {
+    var _opts = ["SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY", "IMPORT ASSETS", "EXPORT SCRIPT"];
+    for (var i = 0; i < 5; i++) {
         var _hov = (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + (i * 35) && _my < _fm_y + ((i + 1) * 35));
         if (_hov) { draw_set_color(make_color_rgb(18, 72, 26)); draw_rectangle(_fm_x + 1, _fm_y + (i * 35) + 1, _fm_x + _fm_w - 1, _fm_y + ((i + 1) * 35) - 1, false); }
-        draw_set_color(i == 2 ? make_color_rgb(180, 220, 255) : c_white);
+        draw_set_color(i == 2 ? make_color_rgb(180, 220, 255) : (i == 3 ? make_color_rgb(190, 160, 240) : (i == 4 ? make_color_rgb(130, 210, 155) : c_white)));
         draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _opts[i]);
     }
+}
+
+// Export status (shows while zipping or briefly on completion)
+if (export_status_timer > 0 || export_state == 1) {
+    var _ealpha = (export_state == 1) ? 1.0 : min(1.0, export_status_timer / 60.0);
+    draw_set_alpha(_ealpha);
+    draw_set_color(export_state == 1 ? c_yellow : make_color_rgb(100, 220, 130));
+    draw_text(200, 17, export_status_msg);
+    draw_set_alpha(1.0);
 }
 
 if (!script_expanded) { // --- 1c. CHARACTER SELECTOR WINDOW ---
@@ -3896,6 +3906,121 @@ if (expr_cfg_open) {
         var _bar2_y = _sb2_y + (expr_cfg_file_scroll / max(1, _total_rows - _fb_vis_rows)) * (_sb2_h - _bar2_h);
         draw_set_color(make_color_rgb(80,100,160)); draw_rectangle(_sb2_x, _bar2_y, _sb2_x + 8, _bar2_y + _bar2_h, false);
     }
+}
+
+// --- IMPORT MODAL ---
+if (import_modal_open) {
+    var _imw = 580; var _imh = 330;
+    var _imx = (1280 - _imw) / 2; var _imy = (800 - _imh) / 2;
+
+    // Background
+    draw_set_color(make_color_rgb(12, 8, 22)); draw_roundrect_ext(_imx, _imy, _imx + _imw, _imy + _imh, 8, 8, false);
+    draw_set_color(make_color_rgb(175, 130, 230)); draw_roundrect_ext(_imx, _imy, _imx + _imw, _imy + _imh, 8, 8, true);
+
+    // Header
+    draw_set_color(make_color_rgb(175, 130, 230)); draw_text(_imx + 14, _imy + 10, "IMPORT ASSETS");
+    draw_set_color(make_color_rgb(80, 55, 110)); draw_line(_imx + 1, _imy + 33, _imx + _imw - 1, _imy + 33);
+
+    // Close button
+    var _ic_hov = (_mx > _imx + _imw - 34 && _mx < _imx + _imw - 6 && _my > _imy + 6 && _my < _imy + 30);
+    draw_set_color(_ic_hov ? c_red : make_color_rgb(100, 30, 30)); draw_roundrect_ext(_imx + _imw - 34, _imy + 6, _imx + _imw - 6, _imy + 30, 4, 4, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_imx + _imw - 20, _imy + 10, "X"); draw_set_halign(fa_left);
+
+    // Mode tabs
+    var _it0 = (import_modal_mode == 0); var _it1 = (import_modal_mode == 1);
+    draw_set_color(_it0 ? make_color_rgb(80, 40, 130) : make_color_rgb(30, 20, 50));
+    draw_roundrect_ext(_imx + 10, _imy + 38, _imx + 100, _imy + 63, 5, 5, false);
+    draw_set_color(_it0 ? make_color_rgb(175, 130, 230) : make_color_rgb(90, 70, 120));
+    draw_roundrect_ext(_imx + 10, _imy + 38, _imx + 100, _imy + 63, 5, 5, true);
+    draw_set_color(_it0 ? c_white : make_color_rgb(150, 120, 180)); draw_set_halign(fa_center); draw_text(_imx + 55, _imy + 43, "IMAGE"); draw_set_halign(fa_left);
+
+    draw_set_color(_it1 ? make_color_rgb(80, 40, 130) : make_color_rgb(30, 20, 50));
+    draw_roundrect_ext(_imx + 106, _imy + 38, _imx + 196, _imy + 63, 5, 5, false);
+    draw_set_color(_it1 ? make_color_rgb(175, 130, 230) : make_color_rgb(90, 70, 120));
+    draw_roundrect_ext(_imx + 106, _imy + 38, _imx + 196, _imy + 63, 5, 5, true);
+    draw_set_color(_it1 ? c_white : make_color_rgb(150, 120, 180)); draw_set_halign(fa_center); draw_text(_imx + 151, _imy + 43, "SOUND"); draw_set_halign(fa_left);
+
+    var _browse_w = 92;
+    var _browse_x = _imx + _imw - 10 - _browse_w;
+
+    if (import_modal_mode == 0) {
+        // Background image row
+        draw_set_color(make_color_rgb(175, 130, 230)); draw_text(_imx + 14, _imy + 75, "Background Image:");
+        var _bg_disp = (import_modal_bg_path != "") ? filename_name(import_modal_bg_path) : "no file selected";
+        draw_set_color(make_color_rgb(200, 200, 210)); draw_roundrect_ext(_imx + 14, _imy + 92, _browse_x - 8, _imy + 120, 4, 4, false);
+        gpu_set_scissor(_imx + 14, _imy + 92, _browse_x - 24, 28);
+        draw_set_color(import_modal_bg_path != "" ? c_white : make_color_rgb(120, 110, 140)); draw_text(_imx + 20, _imy + 100, _bg_disp);
+        gpu_set_scissor(0, 0, 1280, 960);
+        var _bb_hov = (_mx > _browse_x && _mx < _browse_x + _browse_w && _my > _imy + 92 && _my < _imy + 120);
+        draw_set_color(_bb_hov ? make_color_rgb(110, 60, 175) : make_color_rgb(70, 35, 120)); draw_roundrect_ext(_browse_x, _imy + 92, _browse_x + _browse_w, _imy + 120, 4, 4, false);
+        draw_set_color(_bb_hov ? c_white : make_color_rgb(175, 130, 230)); draw_roundrect_ext(_browse_x, _imy + 92, _browse_x + _browse_w, _imy + 120, 4, 4, true);
+        draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_browse_x + _browse_w / 2, _imy + 100, "BROWSE"); draw_set_halign(fa_left);
+
+        // Mask image row
+        draw_set_color(make_color_rgb(175, 130, 230)); draw_text(_imx + 14, _imy + 148, "Mask Image (optional):");
+        var _mk_disp = (import_modal_mask_path != "") ? filename_name(import_modal_mask_path) : "none";
+        draw_set_color(make_color_rgb(200, 200, 210)); draw_roundrect_ext(_imx + 14, _imy + 165, _browse_x - 8, _imy + 193, 4, 4, false);
+        gpu_set_scissor(_imx + 14, _imy + 165, _browse_x - 24, 28);
+        draw_set_color(import_modal_mask_path != "" ? c_white : make_color_rgb(120, 110, 140)); draw_text(_imx + 20, _imy + 173, _mk_disp);
+        gpu_set_scissor(0, 0, 1280, 960);
+        var _mb_hov = (_mx > _browse_x && _mx < _browse_x + _browse_w && _my > _imy + 165 && _my < _imy + 193);
+        draw_set_color(_mb_hov ? make_color_rgb(110, 60, 175) : make_color_rgb(70, 35, 120)); draw_roundrect_ext(_browse_x, _imy + 165, _browse_x + _browse_w, _imy + 193, 4, 4, false);
+        draw_set_color(_mb_hov ? c_white : make_color_rgb(175, 130, 230)); draw_roundrect_ext(_browse_x, _imy + 165, _browse_x + _browse_w, _imy + 193, 4, 4, true);
+        draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_browse_x + _browse_w / 2, _imy + 173, "BROWSE"); draw_set_halign(fa_left);
+        if (import_modal_mask_path != "") {
+            var _clr_hov = (_mx > _browse_x && _mx < _browse_x + _browse_w && _my > _imy + 198 && _my < _imy + 216);
+            draw_set_color(_clr_hov ? make_color_rgb(140, 40, 40) : make_color_rgb(80, 25, 25)); draw_roundrect_ext(_browse_x, _imy + 198, _browse_x + _browse_w, _imy + 216, 3, 3, false);
+            draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_browse_x + _browse_w / 2, _imy + 202, "CLEAR"); draw_set_halign(fa_left);
+        }
+        // Mask rename note
+        if (import_modal_mask_path != "" && import_modal_bg_path != "") {
+            var _note = "Will be saved as: " + filename_change_ext(filename_name(import_modal_bg_path), "") + "_mask" + filename_ext(import_modal_mask_path);
+            draw_set_color(make_color_rgb(140, 120, 170)); draw_text(_imx + 14, _imy + 220, _note);
+        }
+    } else {
+        // Subcategory row
+        draw_set_color(make_color_rgb(175, 130, 230)); draw_text(_imx + 14, _imy + 75, "Subcategory (folder name):");
+        draw_set_color(make_color_rgb(200, 200, 210)); draw_roundrect_ext(_imx + 14, _imy + 92, _imx + _imw - 14, _imy + 120, 4, 4, false);
+        var _sc_txt = import_modal_subcat + (cursor_visible ? "|" : "");
+        draw_set_color(string_length(import_modal_subcat) > 0 ? make_color_rgb(20, 15, 35) : make_color_rgb(155, 140, 175));
+        draw_text(_imx + 20, _imy + 100, string_length(import_modal_subcat) > 0 ? import_modal_subcat : "e.g.  humans");
+        if (cursor_visible) {
+            var _cp = get_text_pos(import_modal_subcat, import_modal_subcat_caret, _imw - 34, 20);
+            draw_set_color(make_color_rgb(20, 15, 35));
+            draw_line(_imx + 20 + _cp.x, _imy + 100, _imx + 20 + _cp.x, _imy + 116);
+        }
+
+        // Sound file row
+        draw_set_color(make_color_rgb(175, 130, 230)); draw_text(_imx + 14, _imy + 148, "Sound File (.wav):");
+        var _snd_disp = (import_modal_snd_path != "") ? filename_name(import_modal_snd_path) : "no file selected";
+        draw_set_color(make_color_rgb(200, 200, 210)); draw_roundrect_ext(_imx + 14, _imy + 165, _browse_x - 8, _imy + 193, 4, 4, false);
+        gpu_set_scissor(_imx + 14, _imy + 165, _browse_x - 24, 28);
+        draw_set_color(import_modal_snd_path != "" ? c_white : make_color_rgb(120, 110, 140)); draw_text(_imx + 20, _imy + 173, _snd_disp);
+        gpu_set_scissor(0, 0, 1280, 960);
+        var _sb_hov = (_mx > _browse_x && _mx < _browse_x + _browse_w && _my > _imy + 165 && _my < _imy + 193);
+        draw_set_color(_sb_hov ? make_color_rgb(110, 60, 175) : make_color_rgb(70, 35, 120)); draw_roundrect_ext(_browse_x, _imy + 165, _browse_x + _browse_w, _imy + 193, 4, 4, false);
+        draw_set_color(_sb_hov ? c_white : make_color_rgb(175, 130, 230)); draw_roundrect_ext(_browse_x, _imy + 165, _browse_x + _browse_w, _imy + 193, 4, 4, true);
+        draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_browse_x + _browse_w / 2, _imy + 173, "BROWSE"); draw_set_halign(fa_left);
+    }
+
+    // Divider above bottom bar
+    draw_set_color(make_color_rgb(60, 40, 90)); draw_line(_imx + 1, _imy + _imh - 65, _imx + _imw - 1, _imy + _imh - 65);
+
+    // Status message
+    if (import_modal_status != "") {
+        draw_set_color(import_modal_status_ok ? make_color_rgb(100, 220, 120) : make_color_rgb(220, 100, 100));
+        draw_text(_imx + 14, _imy + _imh - 55, import_modal_status);
+    }
+
+    // Import button
+    var _can_import = (import_modal_mode == 0) ? (import_modal_bg_path != "") : (import_modal_snd_path != "" && string_length(string_trim(import_modal_subcat)) > 0);
+    var _imp_hov = (_can_import && _mx > _browse_x && _mx < _browse_x + _browse_w && _my > _imy + _imh - 55 && _my < _imy + _imh - 20);
+    draw_set_color(_can_import ? (_imp_hov ? make_color_rgb(80, 160, 80) : make_color_rgb(40, 110, 40)) : make_color_rgb(30, 40, 30));
+    draw_roundrect_ext(_browse_x, _imy + _imh - 55, _browse_x + _browse_w, _imy + _imh - 20, 5, 5, false);
+    draw_set_color(_can_import ? (_imp_hov ? c_white : make_color_rgb(130, 210, 130)) : make_color_rgb(60, 70, 60));
+    draw_roundrect_ext(_browse_x, _imy + _imh - 55, _browse_x + _browse_w, _imy + _imh - 20, 5, 5, true);
+    draw_set_color(_can_import ? c_white : make_color_rgb(80, 90, 80)); draw_set_halign(fa_center);
+    draw_text(_browse_x + _browse_w / 2, _imy + _imh - 44, "IMPORT"); draw_set_halign(fa_left);
 }
 
 // Restore default texture filter after modals

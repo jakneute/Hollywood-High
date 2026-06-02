@@ -115,7 +115,7 @@ function refresh_sfx_folders() {
                 var _folder = string_copy(_k, 1, _slash - 1);
                 var _already = false;
                 for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
-                    if (action_modal_sfx_folders[f] == _folder) { _already = true; break; }
+                    if (string_lower(action_modal_sfx_folders[f]) == string_lower(_folder)) { _already = true; break; }
                 }
                 if (!_already) array_push(action_modal_sfx_folders, _folder);
             }
@@ -128,7 +128,7 @@ function refresh_sfx_folders() {
         if (_file != "." && _file != ".." && directory_exists(sfx_base_path + _file)) {
             var _already = false;
             for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
-                if (action_modal_sfx_folders[f] == _file) { _already = true; break; }
+                if (string_lower(action_modal_sfx_folders[f]) == string_lower(_file)) { _already = true; break; }
             }
             if (!_already) array_push(action_modal_sfx_folders, _file);
         }
@@ -152,7 +152,7 @@ function refresh_sfx_files(_folder) {
         var _prefix_len = string_length(_prefix);
         for (var i = 0; i < array_length(_keys); i++) {
             var _k = _keys[i];
-            if (string_copy(_k, 1, _prefix_len) == _prefix) {
+            if (string_lower(string_copy(_k, 1, _prefix_len)) == string_lower(_prefix)) {
                 var _fname = string_delete(_k, 1, _prefix_len);
                 array_push(action_modal_sfx_files, _fname);
             }
@@ -166,7 +166,7 @@ function refresh_sfx_files(_folder) {
         while (_file != "") {
             var _already = false;
             for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
-                if (action_modal_sfx_files[f] == _file) { _already = true; break; }
+                if (string_lower(action_modal_sfx_files[f]) == string_lower(_file)) { _already = true; break; }
             }
             if (!_already) array_push(action_modal_sfx_files, _file);
             _file = file_find_next();
@@ -225,8 +225,12 @@ function load_sfx_buffer_by_path(_sfx_path) {
                 }
             }
         }
+        // Try sfx_base_path (covers dev datafiles path and runtime-imported sounds)
+        var _base = sfx_base_path + _rel;
+        if (file_exists(_base)) return buffer_load(_base);
     }
-    
+
+    // Fallback: build path from working_directory (shipped layout)
     var _path = working_directory + _sfx_path_corr;
     if (file_exists(_path)) {
         return buffer_load(_path);
@@ -243,12 +247,10 @@ function play_sfx_preview(_folder, _file) {
     test_sfx_buffer = buffer_create(_sz, buffer_fixed, 1);
     buffer_copy(_tmp_buf, 0, _sz, test_sfx_buffer, 0);
     buffer_delete(_tmp_buf);
-    buffer_seek(test_sfx_buffer, buffer_seek_start, 22); var _chan = buffer_read(test_sfx_buffer, buffer_u16);
-    buffer_seek(test_sfx_buffer, buffer_seek_start, 24); var _rate = buffer_read(test_sfx_buffer, buffer_u32);
-    buffer_seek(test_sfx_buffer, buffer_seek_start, 34); var _bits = buffer_read(test_sfx_buffer, buffer_u16);
-    var _fmt  = (_bits == 16) ? buffer_s16 : buffer_u8;
-    var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
-    test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+    var _wav = parse_wav_header(test_sfx_buffer);
+    var _fmt  = (_wav.bits == 16) ? buffer_s16 : buffer_u8;
+    var _cfmt = (_wav.chan == 2) ? audio_stereo : audio_mono;
+    test_sfx_sound = audio_create_buffer_sound(test_sfx_buffer, _fmt, _wav.rate, _wav.data_offset, _wav.data_size, _cfmt);
     if (test_sfx_sound != -1) audio_play_sound(test_sfx_sound, 1, false);
 }
 
@@ -271,7 +273,7 @@ function refresh_sfx_search(_query) {
             var _fil = string_copy(_k, _sl + 1, string_length(_k) - _sl);
             if (string_pos(_q, string_lower(_fil)) > 0 || string_pos(_q, string_lower(_fld)) > 0) {
                 array_push(action_modal_sfx_search_results, { folder: _fld, file: _fil });
-                ds_map_add(_seen, _k, 1);
+                ds_map_add(_seen, string_lower(_k), 1);
             }
         }
     }
@@ -281,7 +283,7 @@ function refresh_sfx_search(_query) {
     while (_lf != "" && _lf != "." && _lf != "..") {
         var _ff = file_find_first(_sdir + _lf + "/*.wav", 0);
         while (_ff != "") {
-            var _pk = _lf + "/" + _ff;
+            var _pk = string_lower(_lf + "/" + _ff);
             if (!ds_map_exists(_seen, _pk) && (string_pos(_q, string_lower(_ff)) > 0 || string_pos(_q, string_lower(_lf)) > 0)) {
                 array_push(action_modal_sfx_search_results, { folder: _lf, file: _ff });
             }

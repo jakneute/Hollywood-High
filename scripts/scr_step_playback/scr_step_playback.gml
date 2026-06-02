@@ -419,12 +419,10 @@ function step_tts_playback() {
                                 _b.last_buffer = buffer_create(_sz, buffer_fixed, 1);
                                 buffer_copy(_tmp_buf, 0, _sz, _b.last_buffer, 0);
                                 buffer_delete(_tmp_buf);
-                                buffer_seek(_b.last_buffer, buffer_seek_start, 22); var _chan = buffer_read(_b.last_buffer, buffer_u16);
-                                buffer_seek(_b.last_buffer, buffer_seek_start, 24); var _rate = buffer_read(_b.last_buffer, buffer_u32);
-                                buffer_seek(_b.last_buffer, buffer_seek_start, 34); var _bits = buffer_read(_b.last_buffer, buffer_u16);
-                                var _fmt = (_bits == 16) ? buffer_s16 : buffer_u8;
-                                var _cfmt = (_chan == 2) ? audio_stereo : audio_mono;
-                                _b.last_sound = audio_create_buffer_sound(_b.last_buffer, _fmt, _rate, 44, _sz - 44, _cfmt);
+                                var _wav = parse_wav_header(_b.last_buffer);
+                                var _fmt = (_wav.bits == 16) ? buffer_s16 : buffer_u8;
+                                var _cfmt = (_wav.chan == 2) ? audio_stereo : audio_mono;
+                                _b.last_sound = audio_create_buffer_sound(_b.last_buffer, _fmt, _wav.rate, _wav.data_offset, _wav.data_size, _cfmt);
                                 if (_b.last_sound != -1) {
                                     audio_play_sound(_b.last_sound, 1, false);
                                     speaking_pause_timer = max(speaking_pause_timer, ceil(audio_sound_length(_b.last_sound) * 60));
