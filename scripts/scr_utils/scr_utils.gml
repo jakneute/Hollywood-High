@@ -139,6 +139,13 @@ function get_particle_rgb(_color_name) {
     if (_color_name == "orange")    return { r: irandom_range(175, 215), g: irandom_range(45, 80), b: irandom_range(0,  12) };
     if (_color_name == "black")     return { r: irandom_range(8,   35),  g: irandom_range(5,  18), b: irandom_range(5,  15) };
     if (_color_name == "glass")     return { r: irandom_range(175, 225), g: irandom_range(210, 240), b: irandom_range(228, 255) };
+    if (_color_name == "wood") {
+        var _wt = irandom(3);
+        if (_wt == 0) return { r: irandom_range(120, 168), g: irandom_range(78, 108), b: irandom_range(28, 52)  }; // mid plank
+        if (_wt == 1) return { r: irandom_range(178, 215), g: irandom_range(145, 172), b: irandom_range(88, 112) }; // raw cut
+        if (_wt == 2) return { r: irandom_range(48,  82),  g: irandom_range(24,  46),  b: irandom_range(6,  22)  }; // dark grain
+                      return { r: irandom_range(222, 242), g: irandom_range(212, 228), b: irandom_range(185, 208) }; // paint chip
+    }
     if (_color_name == "electric")  {
         if (irandom(1) == 0) return { r: irandom_range(210, 255), g: irandom_range(210, 255), b: irandom_range(80,  160) };
         else                 return { r: irandom_range(60,  160), g: irandom_range(180, 240), b: irandom_range(230, 255) };
@@ -174,6 +181,7 @@ function get_beam_rgb(_color, _cr, _cg, _cb) {
     if (_color == "orange")    return { r: 200,  g: 70,   b: 5    };
     if (_color == "yellow")    return { r: 215,  g: 198,  b: 12   };
     if (_color == "glass")     return { r: 185,  g: 220,  b: 248  };
+    if (_color == "wood")      return { r: 145,  g: 95,   b: 42   };
     if (_color == "white")     return { r: 242,  g: 238,  b: 228  };
     if (_color == "electric")  return { r: 70,   g: 195,  b: 255  };
     if (_color == "black")     return { r: 22,   g: 14,   b: 14   };

@@ -35,6 +35,7 @@ current_script_path = ""; // full path of the last saved/loaded .hhi file
 // --- 2. UI & LAYOUT CONSTANTS ---
 scene_win_x = 50; scene_win_y = 60; scene_win_w = 800; scene_win_h = 450; // Scene window (16:9)
 box_x = 50; box_y = 570; box_w = 1180; box_h = 370; // Main text box
+script_expanded = false;
 btn_play_w = 100; btn_play_h = 35; // Play Button
 btn_play_x = (box_x + box_w / 2) - (btn_play_w / 2); btn_play_y = 535; 
 
@@ -194,7 +195,7 @@ characters = [
     { name: "SUSAN",     voice_id: all_voices[7].voice_id,  pitch: 45, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 15, pose: 1, expression:  9, default_facing: -1, pose_labels: ["stands straight", "points", "puts her hands on her hips", "uses the phone"] }, // frightened
     { name: "GARY",      voice_id: all_voices[5].voice_id,  pitch: 30, speed: 35, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 16, pose: 1, expression:  8, default_facing:  1, pose_labels: ["stands straight", "crosses his arms", "puts his hands on his hips", "uses the phone"] }, // surprised
     { name: "RUTH",      voice_id: all_voices[13].voice_id, pitch: 20, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 17, pose: 1, expression:  1, default_facing:  1, pose_labels: ["stands straight", "crosses her arms", "puts her hands on her hips", "uses the phone"] }, // happy
-    { name: "GLENN",     voice_id: all_voices[15].voice_id, pitch: 55, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 18, pose: 1, expression:  4, default_facing: -1, pose_labels: ["stands straight", "crosses his arms", "puts his ", "uses the phone"] }, // cool
+    { name: "GLENN",     voice_id: all_voices[15].voice_id, pitch: 55, speed: 50, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 18, pose: 1, expression:  4, default_facing: -1, pose_labels: ["stands straight", "crosses his arms", "puts his hands on his hips ", "uses the phone"] }, // cool
     { name: "BABY",      voice_id: all_voices[3].voice_id,  pitch: 90, speed: 40, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 19, pose: 1, expression:  1, default_facing:  1, pose_labels: ["sits up straight", "leans to the side", "covers his eyes with his hands", "rests his chin in his hands"] }, // happy
     { name: "STELLA",    voice_id: all_voices[1].voice_id,  pitch: 55, speed: 30, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 20, pose: 1, expression:  1, default_facing:  1, pose_labels: ["stands straight", "crosses her arms", "cups her hand", "uses the phone"] }, // happy
     { name: "ANNA",      voice_id: all_voices[2].voice_id,  pitch: 45, speed: 65, mode: 0, style: 0, tweaked: true,  sprite: -1, act_index: 21, pose: 1, expression:  1, default_facing:  1, pose_labels: ["stands straight", "holds some books", "puts her hands on her hips", "uses the phone"] }, // happy
@@ -395,6 +396,11 @@ action_modal_slider_dragging = false;
 action_modal_wait_duration = 1.0;
 
 action_modal_title_text = "";
+action_modal_title_caret = 0;
+action_modal_title_sel_start = 0;
+action_modal_title_sel_end = 0;
+action_modal_title_dragging = false;
+action_modal_title_repeat_timer = 0;
 action_modal_title_align = 1;
 action_modal_title_font = 0;
 action_modal_title_size = 1;

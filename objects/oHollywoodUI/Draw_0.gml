@@ -372,6 +372,17 @@ if (theater_mode) {
                 var _tx2 = _stage_x + ((_pp.x - _pp.vx * 2) - scene_win_x) * _p_sx;
                 var _ty2 = _stage_y + ((_pp.y - _pp.vy * 2) - scene_win_y) * _p_sy;
                 draw_line_width(_tx, _ty, _tx2, _ty2, max(1, _pp.size * _t * 0.5 * _p_sy));
+            } else if (variable_struct_exists(_pp, "shape") && _pp.shape == "chunk") {
+                var _crot_t = _pp.rot + (_pp.max_life - _pp.life) * _pp.spin;
+                var _hw_t = max(0.5, _pp.cw * _pp.size * _t * _p_sy);
+                var _hh_t = max(0.5, _pp.ch * _pp.size * _t * _p_sy);
+                var _cc_t = cos(_crot_t); var _cs_t = sin(_crot_t);
+                var _tx1 = _tx + (-_hw_t)*_cc_t - (-_hh_t)*_cs_t; var _ty1 = _ty + (-_hw_t)*_cs_t + (-_hh_t)*_cc_t;
+                var _tx2 = _tx + ( _hw_t)*_cc_t - (-_hh_t)*_cs_t; var _ty2 = _ty + ( _hw_t)*_cs_t + (-_hh_t)*_cc_t;
+                var _tx3 = _tx + ( _hw_t)*_cc_t - ( _hh_t)*_cs_t; var _ty3 = _ty + ( _hw_t)*_cs_t + ( _hh_t)*_cc_t;
+                var _tx4 = _tx + (-_hw_t)*_cc_t - ( _hh_t)*_cs_t; var _ty4 = _ty + (-_hw_t)*_cs_t + ( _hh_t)*_cc_t;
+                draw_triangle(_tx1, _ty1, _tx2, _ty2, _tx3, _ty3, false);
+                draw_triangle(_tx1, _ty1, _tx3, _ty3, _tx4, _ty4, false);
             } else if (variable_struct_exists(_pp, "shape") && _pp.shape == "shard") {
                 var _sang = arctan2(_pp.vy, _pp.vx);
                 var _ssz  = max(0.5, _pp.size * _t * _p_sy);
@@ -598,6 +609,16 @@ if (theater_mode) {
     return; // Stop here if in theater mode
 }
 
+// Layout override for expanded script mode (recalculated every frame)
+if (script_expanded) {
+    box_x = 5; box_w = 1270;
+    box_y = 90; box_h = 855;
+    btn_play_y = 52;
+} else {
+    box_x = 50; box_w = 1180;
+    box_y = 570; box_h = 370;
+    btn_play_y = 535;
+}
 
 // --- 1. GLOBAL BUTTONS (Shuffled Midsection) ---
 btn_add_x = box_x + 10; btn_add_y = btn_play_y;
@@ -618,6 +639,12 @@ btn_theater_y = scene_win_y - 45;
 
 btn_dictionary_x = scene_win_x + scene_win_w - btn_dictionary_w;
 btn_dictionary_y = btn_theater_y;
+
+if (script_expanded) {
+    // Push off-screen so they don't draw or intercept clicks
+    btn_theater_x = -1000; btn_theater_y = -1000;
+    btn_dictionary_x = -1000; btn_dictionary_y = -1000;
+}
 var _d_hov = (!_overlay_active && playing_block_index == -1 && _mx > btn_dictionary_x && _mx < btn_dictionary_x + btn_dictionary_w && _my > btn_dictionary_y && _my < btn_dictionary_y + btn_dictionary_h);
 var _d_dis = (playing_block_index != -1);
 draw_set_color(_d_dis ? make_color_rgb(50,50,60) : (_d_hov ? make_color_rgb(35,130,145) : make_color_rgb(25,95,105)));
@@ -1047,6 +1074,17 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				draw_triangle(_pp.x + cos(_sang)*_slen,  _pp.y + sin(_sang)*_slen,
 				              _pp.x + cos(_sperp)*_swid, _pp.y + sin(_sperp)*_swid,
 				              _pp.x - cos(_sperp)*_swid, _pp.y - sin(_sperp)*_swid, false);
+			} else if (variable_struct_exists(_pp, "shape") && _pp.shape == "chunk") {
+				var _crot = _pp.rot + (_pp.max_life - _pp.life) * _pp.spin;
+				var _hw = max(0.5, _pp.cw * _pp.size * _t);
+				var _hh = max(0.5, _pp.ch * _pp.size * _t);
+				var _cc = cos(_crot); var _cs = sin(_crot);
+				var _qx1 = _pp.x + (-_hw)*_cc - (-_hh)*_cs;  var _qy1 = _pp.y + (-_hw)*_cs + (-_hh)*_cc;
+				var _qx2 = _pp.x + ( _hw)*_cc - (-_hh)*_cs;  var _qy2 = _pp.y + ( _hw)*_cs + (-_hh)*_cc;
+				var _qx3 = _pp.x + ( _hw)*_cc - ( _hh)*_cs;  var _qy3 = _pp.y + ( _hw)*_cs + ( _hh)*_cc;
+				var _qx4 = _pp.x + (-_hw)*_cc - ( _hh)*_cs;  var _qy4 = _pp.y + (-_hw)*_cs + ( _hh)*_cc;
+				draw_triangle(_qx1, _qy1, _qx2, _qy2, _qx3, _qy3, false);
+				draw_triangle(_qx1, _qy1, _qx3, _qy3, _qx4, _qy4, false);
 			} else {
 				draw_circle(_pp.x, _pp.y, max(0.5, _pp.size * _t), false);
 			}
@@ -1482,7 +1520,7 @@ if (file_menu_open) {
     }
 }
 
-// --- 1c. CHARACTER SELECTOR WINDOW ---
+if (!script_expanded) { // --- 1c. CHARACTER SELECTOR WINDOW ---
 draw_set_color(make_color_rgb(12, 48, 18));
 draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, false);
 draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, true);
@@ -1610,6 +1648,7 @@ gpu_set_scissor(0, 0, 1280, 960);
         ["shatter",   "SHATTER",   [10,28,58],  [16,52,98],  [6,18,42],   [22,90,175],  [155,210,245]],
         ["electrify", "ELECTRIFY", [22,18,58],  [42,35,98],  [15,12,44],  [82,62,175],  [230,220,55]],
         ["laser",     "LASER",     [35,10,5],   [62,20,8],   [22,6,3],    [195,75,18],  [255,155,38]],
+        ["debris",    "DEBRIS",    [38,28,12],  [58,42,16],  [24,18,7],   [105,72,30],  [175,140,68]],
     ];
     var _tile_w = 155; var _tile_h = 82;
     for (var _pei = 0; _pei < array_length(_pe_list); _pei++) {
@@ -1640,6 +1679,13 @@ gpu_set_scissor(0, 0, 1280, 960);
             draw_set_alpha(0.18); draw_line_width(_tx+20, _ty+28, _tx+_tile_w-12, _ty+28, 12);
             draw_set_alpha(0.50); draw_line_width(_tx+20, _ty+28, _tx+_tile_w-12, _ty+28, 5);
             draw_set_alpha(1.0);  draw_line_width(_tx+20, _ty+28, _tx+_tile_w-12, _ty+28, 1.5);
+        } else if (_pe[0] == "debris") {
+            var _dcx = _tx + _tile_w/2;
+            // Irregular chunks + splinters flying outward
+            draw_triangle(_dcx-12, _ty+22, _dcx-2,  _ty+18, _dcx-8,  _ty+33, false); // big chunk
+            draw_triangle(_dcx+4,  _ty+22, _dcx+14, _ty+25, _dcx+9,  _ty+38, false); // smaller chunk
+            draw_line_width(_dcx-6, _ty+38, _dcx+16, _ty+20, 2);                      // splinter
+            draw_line_width(_dcx-14, _ty+28, _dcx+2,  _ty+15, 1.5);                  // thin splinter
         } else {
             draw_circle(_tx + _tile_w/2, _ty + 28, 12, false);
         }
@@ -1730,6 +1776,7 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         gpu_set_scissor(0, 0, 1280, 960);
     }
 }
+} // end !script_expanded char selector
 
 // Particle drag ghost
 if (dragging_particle_effect != "") {
@@ -1742,6 +1789,35 @@ if (dragging_particle_effect != "") {
     draw_set_halign(fa_center);
     draw_text(drag_particle_x, drag_particle_y - 26, string_upper(dragging_particle_effect));
     draw_set_halign(fa_left);
+}
+
+// --- EXPAND / COLLAPSE TOGGLE ---
+if (script_expanded) {
+    gpu_set_scissor(0, 0, 1280, 960); // Full-screen scissor so header+collapse draw unclipped
+    // Header strip
+    draw_set_color(make_color_rgb(14, 52, 20));
+    draw_rectangle(box_x - 4, 0, box_x + box_w + 4, box_y, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_line(box_x - 4, box_y, box_x + box_w + 4, box_y);
+    // Collapse button (top-right of header)
+    var _tog_x = box_x + box_w - 98; var _tog_y = 30;
+    var _tog_hov = (_mx > _tog_x && _mx < _tog_x + 92 && _my > _tog_y && _my < _tog_y + 30);
+    draw_set_color(_tog_hov ? make_color_rgb(130, 50, 18) : make_color_rgb(90, 32, 10));
+    draw_roundrect_ext(_tog_x, _tog_y, _tog_x+92, _tog_y+30, 5, 5, false);
+    draw_set_color(make_color_rgb(220, 160, 80));
+    draw_roundrect_ext(_tog_x, _tog_y, _tog_x+92, _tog_y+30, 5, 5, true);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text(_tog_x+46, _tog_y+7, "v COLLAPSE"); draw_set_halign(fa_left);
+} else {
+    // Expand button — sits right of the PLAY button, same row
+    var _tog_x = btn_play_x + btn_play_w + 12; var _tog_y = btn_play_y;
+    var _tog_hov = (_mx > _tog_x && _mx < _tog_x + 92 && _my > _tog_y && _my < _tog_y + btn_play_h);
+    draw_set_color(_tog_hov ? make_color_rgb(28, 90, 35) : make_color_rgb(14, 55, 20));
+    draw_roundrect_ext(_tog_x, _tog_y, _tog_x+92, _tog_y+btn_play_h, 5, 5, false);
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_roundrect_ext(_tog_x, _tog_y, _tog_x+92, _tog_y+btn_play_h, 5, 5, true);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text(_tog_x+46, _tog_y+10, "^ EXPAND"); draw_set_halign(fa_left);
 }
 
 // --- 2. SCRIPT BLOCKS RENDERING ---
@@ -2162,6 +2238,7 @@ draw_roundrect_ext(btn_theater_x, btn_theater_y, btn_theater_x+btn_theater_w, bt
 draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_theater_x+(btn_theater_w/2), btn_theater_y+10, "ENTER THEATER"); draw_set_halign(fa_left);
 
 // --- POSE, EXPRESSION & VOICE CONTROLS ---
+if (!script_expanded) {
 // Footer panel that visually connects to the character selector above
 var _fp_y = char_sel_y + char_sel_h;
 var _fp_h = (btn_pose_y + btn_pose_h) - _fp_y;
@@ -2188,19 +2265,20 @@ draw_set_color(_pe_dis ? make_color_rgb(110,110,120) : c_white); draw_set_halign
 draw_text(btn_pose_x+_pe_btn_w/2, btn_pose_y+10, "POSE / EXPRESSION");
 draw_set_halign(fa_left);
 
-// RENDER VOICE BUTTON
+// RENDER VOICE BUTTON (amber — distinct from the green +VOICE add button)
 var _ev_dis = (playing_block_index != -1 || _foc_particle);
-draw_set_color(_ev_dis ? make_color_rgb(28,42,30) : (_evhov ? make_color_rgb(14,72,22) : make_color_rgb(10,50,16)));
+draw_set_color(_ev_dis ? make_color_rgb(45,35,20) : (_evhov ? make_color_rgb(145,75,10) : make_color_rgb(100,52,8)));
 draw_roundrect_ext(btn_edit_x, btn_edit_y, btn_edit_x+btn_edit_w, btn_edit_y+btn_edit_h, 5, 5, false);
-draw_set_color(_ev_dis ? make_color_rgb(52,65,54) : (_evhov ? c_white : make_color_rgb(196,213,20)));
+draw_set_color(_ev_dis ? make_color_rgb(80,68,50) : (_evhov ? c_white : make_color_rgb(220,150,55)));
 draw_roundrect_ext(btn_edit_x, btn_edit_y, btn_edit_x+btn_edit_w, btn_edit_y+btn_edit_h, 5, 5, true);
-draw_set_color(c_white); draw_set_halign(fa_center);
+draw_set_color(_ev_dis ? make_color_rgb(120,110,90) : c_white); draw_set_halign(fa_center);
 draw_text(btn_edit_x+btn_edit_w/2, btn_edit_y+10, "VOICE");
 draw_set_halign(fa_left);
 
 draw_set_color(make_color_rgb(8, 32, 12)); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, false);
 draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(dropdown_x, dropdown_y, dropdown_x + dropdown_w, dropdown_y + dropdown_h, true);
 draw_set_color(c_white); draw_text(dropdown_x + 10, dropdown_y + 5, characters[selected_character_index].name);
+} // end if (!script_expanded) — side panels
 
 // --- 6. MODALS ---
 // Nearest-neighbour rendering for all modal UI — prevents fuzzy text on bright headers.
@@ -2714,7 +2792,30 @@ if (action_modal_open) {
             
             draw_set_color(c_white); draw_text(_wx, _wy + 40, "Title Text (Max 100 chars, Auto-wraps):");
             draw_set_color(make_color_rgb(228, 242, 232)); draw_roundrect_ext(_wx, _wy + 65, _wx + 560, _wy + 150, 5, 5, false);
-            draw_set_color(c_black); draw_text_ext(_wx + 10, _wy + 75, action_modal_title_text + (cursor_visible ? "|" : ""), 25, 540);
+            gpu_set_scissor(_wx, _wy + 65, 561, 86);
+            var _ttx = _wx + 10; var _tty = _wy + 75;
+            if (action_modal_title_sel_start != action_modal_title_sel_end) {
+                var _tss = min(action_modal_title_sel_start, action_modal_title_sel_end);
+                var _tse = max(action_modal_title_sel_start, action_modal_title_sel_end);
+                var _tsp = get_text_pos(action_modal_title_text, _tss, 540, 25);
+                var _tep = get_text_pos(action_modal_title_text, _tse, 540, 25);
+                draw_set_color(make_color_rgb(100, 160, 220)); draw_set_alpha(0.45);
+                if (_tsp.y == _tep.y) {
+                    draw_rectangle(_ttx + _tsp.x, _tty + _tsp.y, _ttx + _tep.x, _tty + _tsp.y + 22, false);
+                } else {
+                    draw_rectangle(_ttx + _tsp.x, _tty + _tsp.y, _ttx + 540, _tty + _tsp.y + 22, false);
+                    if (_tep.y > _tsp.y + 25) draw_rectangle(_ttx, _tty + _tsp.y + 25, _ttx + 540, _tty + _tep.y, false);
+                    draw_rectangle(_ttx, _tty + _tep.y, _ttx + _tep.x, _tty + _tep.y + 22, false);
+                }
+                draw_set_alpha(1.0);
+            }
+            draw_set_color(c_black); draw_text_ext(_ttx, _tty, action_modal_title_text, 25, 540);
+            if (cursor_visible) {
+                var _tcp = get_text_pos(action_modal_title_text, action_modal_title_caret, 540, 25);
+                draw_set_color(c_black);
+                draw_line(_ttx + _tcp.x, _tty + _tcp.y, _ttx + _tcp.x, _tty + _tcp.y + 22);
+            }
+            gpu_set_scissor(0, 0, 1280, 960);
             
             draw_set_color(c_white); draw_text(_wx, _wy + 170, "Duration:");
             var _sw = 300; var _sx = _wx + 100; var _sy = _wy + 170;

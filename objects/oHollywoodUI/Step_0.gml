@@ -50,6 +50,40 @@ for (var _ei = array_length(active_emitters) - 1; _ei >= 0; _ei--) {
                 _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
                         life: _elife, max_life: _elife, size: random_range(2.0, 5.5)*_em.size,
                         r: _ergb.r, g: _ergb.g, b: _ergb.b, shape: "shard" };
+            } else if (_em.effect == "debris") {
+                var _dtype = irandom(5);
+                if (_dtype <= 1) {
+                    // Spinning chunk — slow, heavy, lots of gravity
+                    var _espd = random_range(1.2, 5.5) * _em.size * _espd_mul;
+                    var _elife = irandom_range(30, 50);
+                    _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
+                            life: _elife, max_life: _elife,
+                            size: random_range(5, 11) * _em.size,
+                            r: _ergb.r, g: _ergb.g, b: _ergb.b,
+                            shape: "chunk",
+                            cw: random_range(0.45, 1.7), ch: random_range(0.2, 0.75),
+                            rot: random_range(0, 2*pi),
+                            spin: random_range(-0.28, 0.28),
+                            gravity: random_range(0.25, 0.45) };
+                } else if (_dtype <= 3) {
+                    // Splinter — long, thin, fast
+                    var _espd = random_range(4.0, 13.0) * _em.size * _espd_mul;
+                    var _elife = irandom_range(16, 30);
+                    _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
+                            life: _elife, max_life: _elife,
+                            size: random_range(6, 15) * _em.size,
+                            r: _ergb.r, g: _ergb.g, b: _ergb.b,
+                            shape: "shard", gravity: 0.18 };
+                } else {
+                    // Dust — tiny, scatters in all directions
+                    var _dust_a = random_range(0, 2*pi);
+                    var _espd = random_range(0.6, 3.5) * _em.size * _espd_mul;
+                    var _elife = irandom_range(22, 38);
+                    _ep = { x: _epx, y: _epy, vx: cos(_dust_a)*_espd, vy: sin(_dust_a)*_espd,
+                            life: _elife, max_life: _elife,
+                            size: random_range(1.2, 3.2) * _em.size,
+                            r: _ergb.r, g: _ergb.g, b: _ergb.b, gravity: 0.08 };
+                }
             } else {
                 var _espd = random_range(1.5, 7.0) * _em.size * _espd_mul;
                 var _elife = irandom_range(26, 42);
@@ -81,7 +115,7 @@ if (dragging_particle_effect != "") {
             array_insert(script_blocks, _pblk_i, {
                 type: "particle", effect: dragging_particle_effect,
                 x: _pblk_x, y: _pblk_y, angle: 315, size: 1.0, duration: 1.0, density: 2, speed: 1.0, spread: 65,
-                color: (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : "red")),
+                color: (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : (dragging_particle_effect == "debris" ? "wood" : "red"))),
                 color_r: 200, color_g: 0, color_b: 0,
                 area_w: 0, area_h: 0,
                 height: 85,
@@ -150,6 +184,30 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
                     _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
                              life: _elife2, max_life: _elife2, size: random_range(2.0, 5.5)*_esz,
                              r: _ergb2.r, g: _ergb2.g, b: _ergb2.b, shape: "shard" };
+                } else if (_peb.effect == "debris") {
+                    var _dtype2 = irandom(5);
+                    if (_dtype2 <= 1) {
+                        var _espd2 = random_range(1.2, 5.5) * _esz * _espd_m;
+                        var _elife2 = irandom_range(30, 50);
+                        _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
+                                 life: _elife2, max_life: _elife2, size: random_range(5, 11)*_esz,
+                                 r: _ergb2.r, g: _ergb2.g, b: _ergb2.b,
+                                 shape: "chunk", cw: random_range(0.45, 1.7), ch: random_range(0.2, 0.75),
+                                 rot: random_range(0, 2*pi), spin: random_range(-0.28, 0.28), gravity: random_range(0.25, 0.45) };
+                    } else if (_dtype2 <= 3) {
+                        var _espd2 = random_range(4.0, 13.0) * _esz * _espd_m;
+                        var _elife2 = irandom_range(16, 30);
+                        _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
+                                 life: _elife2, max_life: _elife2, size: random_range(6, 15)*_esz,
+                                 r: _ergb2.r, g: _ergb2.g, b: _ergb2.b, shape: "shard", gravity: 0.18 };
+                    } else {
+                        var _dust_a2 = random_range(0, 2*pi);
+                        var _espd2 = random_range(0.6, 3.5) * _esz * _espd_m;
+                        var _elife2 = irandom_range(22, 38);
+                        _ep2 = { x: _epx2, y: _epy2, vx: cos(_dust_a2)*_espd2, vy: sin(_dust_a2)*_espd2,
+                                 life: _elife2, max_life: _elife2, size: random_range(1.2, 3.2)*_esz,
+                                 r: _ergb2.r, g: _ergb2.g, b: _ergb2.b, gravity: 0.08 };
+                    }
                 } else {
                     var _espd2 = random_range(1.5, 7.0) * _esz * _espd_m;
                     var _elife2 = irandom_range(26, 42);
@@ -697,8 +755,30 @@ if (theater_mode) {
     }
 }
 
-// --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
+// --- EXPAND/COLLAPSE TOGGLE ---
 if (mouse_check_button_pressed(mb_left)) {
+    if (script_expanded) {
+        if (_mx > box_x+box_w-98 && _mx < box_x+box_w-6 && _my > 30 && _my < 60) {
+            script_expanded = false; block_scroll_y = 0; return;
+        }
+    } else {
+        var _exp_x = btn_play_x + btn_play_w + 12;
+        if (_mx > _exp_x && _mx < _exp_x + 92 && _my > btn_play_y && _my < btn_play_y + btn_play_h) {
+            script_expanded = true; block_scroll_y = 0;
+            dragging_char_index = -1; dragging_actor_idx = -1;
+            scene_edit_mode = false;
+            insertion_idx = -1;
+            particle_edit_mode = false;
+            particle_drag_pos = false; particle_drag_dir = false;
+            particle_drag_area_w = false; particle_drag_area_h = false;
+            dragging_particle_effect = "";
+            return;
+        }
+    }
+}
+
+// --- 2d. CHARACTER SELECTOR CLICKS & DRAGS ---
+if (!script_expanded && mouse_check_button_pressed(mb_left)) {
     // Block interaction if any modal is open
     _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open);
 
@@ -837,7 +917,7 @@ if (playing_block_index == -1 && scene_edit_mode && active_scene_block_idx != -1
 }
 
 // --- 3d. FLIP FACING BUTTON ---
-if (playing_block_index == -1 && current_scene_sprite != -1 && mouse_check_button_pressed(mb_left)) {
+if (!script_expanded && playing_block_index == -1 && current_scene_sprite != -1 && mouse_check_button_pressed(mb_left)) {
     var _flip_act_idx = -1;
     for (var _fci = 0; _fci < array_length(preview_actors); _fci++) {
         if (preview_actors[_fci].char_index == selected_character_index) { _flip_act_idx = _fci; break; }
@@ -880,7 +960,7 @@ if (playing_block_index == -1 && current_scene_sprite != -1 && mouse_check_butto
 }
 
 // --- 2f. LIVE MOVE DRAGGING (When NOT in edit mode) ---
-if (!scene_edit_mode && !particle_edit_mode && !is_speaking && playing_block_index == -1 && active_scene_block_idx != -1) {
+if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !is_speaking && playing_block_index == -1 && active_scene_block_idx != -1) {
     if (mouse_check_button_pressed(mb_left)) {
         if (_mx > scene_win_x && _mx < scene_win_x + scene_win_w && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
             for (var a = array_length(preview_actors) - 1; a >= 0; a--) {
@@ -1372,7 +1452,7 @@ if (mouse_check_button_pressed(mb_left)) {
     // EDIT VOICE Button
     _overlay_active = (scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open);
     var _voice_foc_particle = (insertion_idx == -1 && focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
-    if (!_overlay_active && !is_speaking && !_voice_foc_particle && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
+    if (!script_expanded && !_overlay_active && !is_speaking && !_voice_foc_particle && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
         focused_block = -1;
         selection_start = 0; selection_end = 0;
         edit_mode = true;
@@ -1454,6 +1534,7 @@ if (mouse_check_button_pressed(mb_left)) {
             // PENCIL (EDIT)
             else if (playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cy + 35 && _my < _cy + 35 + _btn_h) {
                 if (variable_struct_exists(_block, "type") && _block.type == "particle") {
+                    if (script_expanded) script_expanded = false;
                     particle_edit_mode = true; particle_edit_block_idx = i; return;
                 }
                 else if (_is_scene) {
@@ -1473,6 +1554,8 @@ if (mouse_check_button_pressed(mb_left)) {
                     
                     if (_is_title) {
                         action_modal_title_text = variable_struct_exists(_block, "title_text") ? _block.title_text : "";
+                        action_modal_title_caret = string_length(action_modal_title_text);
+                        action_modal_title_sel_start = 0; action_modal_title_sel_end = 0;
                         action_modal_title_align = variable_struct_exists(_block, "title_align") ? _block.title_align : 1;
                         action_modal_title_font = variable_struct_exists(_block, "title_font") ? _block.title_font : 0;
                         action_modal_title_size = variable_struct_exists(_block, "title_size") ? _block.title_size : 1;
@@ -1637,7 +1720,7 @@ if (mouse_check_button_pressed(mb_left)) {
             }
 
             if (_is_particle) {
-                // Particle block click → toggle edit mode
+                // Particle block click → toggle edit mode (auto-collapse if expanded)
                 if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _box_y && _my < _box_y + 80) {
                     focused_block = i;
                     if (particle_edit_mode && particle_edit_block_idx == i) {
@@ -1645,6 +1728,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         particle_drag_pos  = false;
                         particle_drag_dir  = false;
                     } else {
+                        if (script_expanded) script_expanded = false;
                         particle_edit_mode      = true;
                         particle_edit_block_idx = i;
                         scene_edit_mode         = false;
@@ -1710,6 +1794,8 @@ if (mouse_check_button_pressed(mb_left)) {
                                 if (_aw2 || _at2) action_modal_wait_duration = variable_struct_exists(_block, "duration") ? _block.duration : 1.0;
                                 if (_at2) {
                                     action_modal_title_text  = variable_struct_exists(_block, "title_text")  ? _block.title_text  : "";
+                                    action_modal_title_caret = string_length(action_modal_title_text);
+                                    action_modal_title_sel_start = 0; action_modal_title_sel_end = 0;
                                     action_modal_title_align = variable_struct_exists(_block, "title_align") ? _block.title_align : 1;
                                     action_modal_title_font  = variable_struct_exists(_block, "title_font")  ? _block.title_font  : 0;
                                     action_modal_title_size  = variable_struct_exists(_block, "title_size")  ? _block.title_size  : 1;
@@ -2030,7 +2116,7 @@ if (!_overlay_active) {
         if (particle_panel_mode) {
             // Particle tile drag start — positions must match Draw exactly
             var _tile_w3 = 155; var _tile_h3 = 82;
-            var _pe_ids = ["splatter", "shatter", "electrify", "laser"];
+            var _pe_ids = ["splatter", "shatter", "electrify", "laser", "debris"];
             for (var _pei3 = 0; _pei3 < array_length(_pe_ids); _pei3++) {
                 var _tx3 = char_sel_x + 10 + (_pei3 % 2) * 168;
                 var _ty3 = char_sel_y + 40 + floor(_pei3 / 2) * 95;
@@ -2105,7 +2191,7 @@ if (!_overlay_active) {
 // --- UNIFIED DRAGGING FROM PANE LOGIC ---
 _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open);
 
-if (!_overlay_active && playing_block_index == -1 && dragging_char_index != -1) {
+if (!script_expanded && !_overlay_active && playing_block_index == -1 && dragging_char_index != -1) {
     if (!mouse_check_button(mb_left)) {
         var _spr_ghost = get_character_sprite(dragging_char_index);
         var _char_h = (_spr_ghost != -1) ? sprite_get_height(_spr_ghost) * ((scene_win_h * 1.5) / 450) : 100;
@@ -2244,6 +2330,31 @@ if (playing_block_index == -1 && !is_speaking && focused_block >= 0) {
             else { key_repeat_timer--; if (key_repeat_timer <= 0) { _do_action = true; key_repeat_timer = 2; } }
         }
 
+        if (_ctrl && keyboard_check_pressed(ord("C"))) {
+            var _copy_txt = (selection_start != selection_end)
+                ? string_copy(_b.text, min(selection_start, selection_end) + 1, abs(selection_end - selection_start))
+                : _b.text;
+            clipboard_set_text(_copy_txt);
+            keyboard_string = "";
+        }
+
+        if (_ctrl && keyboard_check_pressed(ord("V"))) {
+            var _paste = clipboard_get_text();
+            if (string_length(_paste) > 0) {
+                if (selection_start != selection_end) {
+                    var _s = min(selection_start, selection_end);
+                    var _e = max(selection_start, selection_end);
+                    _b.text = string_delete(_b.text, _s + 1, _e - _s);
+                    _b.caret_pos = _s;
+                    selection_start = _s; selection_end = _s;
+                }
+                _b.text = string_insert(_paste, _b.text, _b.caret_pos + 1);
+                _b.caret_pos += string_length(_paste);
+                update_block_height(focused_block);
+            }
+            keyboard_string = "";
+        }
+
         if (string_length(keyboard_string) > 0) {
             if (selection_start != selection_end) {
                 var _s = min(selection_start, selection_end);
@@ -2299,8 +2410,9 @@ if (playing_block_index == -1 && !is_speaking && focused_block >= 0) {
             if (_repeat_key == vk_backspace && _b.caret_pos > 0) { _b.text = string_delete(_b.text, _b.caret_pos, 1); _b.caret_pos--; update_block_height(focused_block); }
             if (_repeat_key == vk_delete && _b.caret_pos < string_length(_b.text)) { _b.text = string_delete(_b.text, _b.caret_pos + 1, 1); update_block_height(focused_block); }
         }
-        if (keyboard_check_pressed(vk_home)) _b.caret_pos = 0;
-        if (keyboard_check_pressed(vk_end)) _b.caret_pos = string_length(_b.text);
+        if (keyboard_check_pressed(vk_home)) { _b.caret_pos = 0; selection_start = 0; selection_end = 0; }
+        if (keyboard_check_pressed(vk_end))  { _b.caret_pos = string_length(_b.text); selection_start = _b.caret_pos; selection_end = _b.caret_pos; }
+        if (_ctrl && keyboard_check_pressed(ord("A"))) { selection_start = 0; selection_end = string_length(_b.text); _b.caret_pos = selection_end; keyboard_string = ""; }
         if (keyboard_check_pressed(vk_enter)) { _b.text = string_insert("\n", _b.text, _b.caret_pos + 1); _b.caret_pos++; update_block_height(focused_block); }
     }
 }
