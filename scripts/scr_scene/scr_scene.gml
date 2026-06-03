@@ -136,6 +136,15 @@ function refresh_sfx_folders() {
     }
     file_find_close();
     
+    if (!action_modal_sfx_show_actors) {
+        var _filtered = [];
+        for (var _fi = 0; _fi < array_length(action_modal_sfx_folders); _fi++) {
+            if (string_lower(string_copy(action_modal_sfx_folders[_fi], 1, 8)) != "actors -")
+                array_push(_filtered, action_modal_sfx_folders[_fi]);
+        }
+        action_modal_sfx_folders = _filtered;
+    }
+
     array_sort(action_modal_sfx_folders, function(a, b) {
         var _la = string_lower(a); var _lb = string_lower(b);
         if (_la < _lb) return -1; if (_la > _lb) return 1; return 0;

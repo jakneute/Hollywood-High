@@ -48,6 +48,48 @@ for (var _bmi = array_length(active_beams) - 1; _bmi >= 0; _bmi--) {
     if (active_beams[_bmi].frames_remaining <= 0) array_delete(active_beams, _bmi, 1);
 }
 
+// --- Explosion update ---
+for (var _exi = array_length(active_explosions) - 1; _exi >= 0; _exi--) {
+    var _ex = active_explosions[_exi];
+    _ex.frames_elapsed++;
+
+    // Spawn sparks at the flash peak (~t=0.22)
+    if (!_ex.sparks_done) {
+        var _spark_t = _ex.frames_elapsed / max(1, _ex.frames_total);
+        if (_spark_t >= 0.22) {
+            _ex.sparks_done = true;
+            var _scx  = scene_win_x + _ex.x;
+            var _scy  = scene_win_y + _ex.y;
+            var _ssz  = _ex.size;
+            var _scr  = variable_struct_exists(_ex, "color_r") ? _ex.color_r : 165;
+            var _scg  = variable_struct_exists(_ex, "color_g") ? _ex.color_g : 12;
+            var _scb  = variable_struct_exists(_ex, "color_b") ? _ex.color_b : 8;
+            var _sden = variable_struct_exists(_ex, "density") ? _ex.density : 2;
+            for (var _si = 0; _si < max(4, round(8 * _sden)); _si++) {
+                var _sa = random_range(0, 2 * pi);
+                var _sp = random_range(3.5, 9.0) * _ssz;
+                var _sl = irandom_range(14, 26);
+                var _sw = (irandom(2) == 0);
+                array_push(active_particles, {
+                    x: _scx, y: _scy,
+                    vx: cos(_sa) * _sp, vy: sin(_sa) * _sp,
+                    life: _sl, max_life: _sl,
+                    size: random_range(1.5, 3.5) * _ssz,
+                    r:  _sw ? 255 : min(255, _scr + 65),
+                    g:  _sw ? 255 : min(255, _scg + 50),
+                    b:  _sw ? 220 : min(255, _scb + 25),
+                    r2: _sw ? 60  : floor(_scr * 0.25),
+                    g2: _sw ? 50  : floor(_scg * 0.20),
+                    b2: _sw ? 0   : floor(_scb * 0.30),
+                    gravity: 0.10, shape: "line", additive: true,
+                });
+            }
+        }
+    }
+
+    if (_ex.frames_elapsed >= _ex.frames_total) array_delete(active_explosions, _exi, 1);
+}
+
 // --- Particle panel drag: track mouse position and detect drop ---
 if (dragging_particle_effect != "") {
     drag_particle_x = _mx;
@@ -60,8 +102,8 @@ if (dragging_particle_effect != "") {
             var _pblk_i = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
             array_insert(script_blocks, _pblk_i, {
                 type: "particle", effect: dragging_particle_effect,
-                x: _pblk_x, y: _pblk_y, angle: (dragging_particle_effect == "flame" ? 270 : 315), size: 1.0, duration: 1.0, density: 2, speed: 1.0, spread: 65,
-                color: (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : (dragging_particle_effect == "debris" ? "wood" : (dragging_particle_effect == "flame" ? "orange" : "red")))),
+                x: _pblk_x, y: _pblk_y, angle: (dragging_particle_effect == "flame" ? 270 : 315), size: 1.0, duration: (dragging_particle_effect == "explosion" ? 1.5 : 1.0), density: 2, speed: 1.0, spread: 65,
+                color: (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : (dragging_particle_effect == "debris" ? "wood" : (dragging_particle_effect == "flame" || dragging_particle_effect == "explosion" ? "orange" : "red")))),
                 color_r: 200, color_g: 0, color_b: 0,
                 area_w: 0, area_h: 0,
                 height: 85,
@@ -111,7 +153,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
             var _ecb    = variable_struct_exists(_peb, "color_b") ? _peb.color_b : 0;
             var _eaw    = variable_struct_exists(_peb, "area_w")  ? _peb.area_w  : 0;
             var _eah    = variable_struct_exists(_peb, "area_h")  ? _peb.area_h  : 0;
-            if (_peb.effect == "laser") {} else
+            if (_peb.effect == "laser" || _peb.effect == "explosion") {} else
             repeat (max(1, _eden)) {
                 var _ea = _eang + random_range(-_esprd, _esprd);
                 var _ergb = get_particle_rgb_ex(_ecolor, _ecr, _ecg, _ecb);
@@ -1176,7 +1218,7 @@ if (mouse_check_button_pressed(mb_left)) {
         return;
     }
 
-    if (_mx > btn_play_x && _mx < btn_play_x + btn_play_w && _my > btn_play_y && _my < btn_play_y + btn_play_h) {
+    if (!script_expanded && _mx > btn_play_x && _mx < btn_play_x + btn_play_w && _my > btn_play_y && _my < btn_play_y + btn_play_h) {
         focused_block = -1; block_last_click_idx = -1;
         selection_start = 0; selection_end = 0;
         if (playing_block_index != -1) {
@@ -1243,9 +1285,9 @@ if (mouse_check_button_pressed(mb_left)) {
         var _ped_tip_x  = _ped_dot_sx + cos(degtorad(_peb2.angle)) * 65;
         var _ped_tip_y  = _ped_dot_sy + sin(degtorad(_peb2.angle)) * 65;
         if (point_distance(_mx, _my, _ped_tip_x, _ped_tip_y) < 14) { particle_drag_dir = true; return; }
-        // Area handles (disabled for laser)
-        var _paw_h = (_peb2.effect != "laser" && variable_struct_exists(_peb2, "area_w")) ? _peb2.area_w : 0;
-        var _pah_h = (_peb2.effect != "laser" && variable_struct_exists(_peb2, "area_h")) ? _peb2.area_h : 0;
+        // Area handles (disabled for laser and explosion)
+        var _paw_h = (_peb2.effect != "laser" && _peb2.effect != "explosion" && variable_struct_exists(_peb2, "area_w")) ? _peb2.area_w : 0;
+        var _pah_h = (_peb2.effect != "laser" && _peb2.effect != "explosion" && variable_struct_exists(_peb2, "area_h")) ? _peb2.area_h : 0;
         var _aw_hx2 = _ped_dot_sx + max(18, _paw_h/2);
         var _ah_hy2 = _ped_dot_sy - max(18, _pah_h/2);
         if (point_distance(_mx, _my, _aw_hx2, _ped_dot_sy) < 10) { particle_drag_area_w = true; return; }
@@ -1271,14 +1313,20 @@ if (mouse_check_button_pressed(mb_left)) {
         if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r2y2 && _my <= _r2y2+_pbsz2) { _peb2.duration = max(0.25, _pdur - 0.25); return; }
         if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r2y2 && _my <= _r2y2+_pbsz2) { _peb2.duration = min(5.0,  _pdur + 0.25); return; }
         // DENSITY [-] [+]
-        if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r3y2 && _my <= _r3y2+_pbsz2) { _peb2.density  = max(1,    _pden - 1);    return; }
-        if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r3y2 && _my <= _r3y2+_pbsz2) { _peb2.density  = min(10,   _pden + 1);    return; }
+        if (_peb2.effect != "laser") {
+            if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r3y2 && _my <= _r3y2+_pbsz2) { _peb2.density  = max(1,    _pden - 1);    return; }
+            if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r3y2 && _my <= _r3y2+_pbsz2) { _peb2.density  = min(10,   _pden + 1);    return; }
+        }
         // SPEED [-] [+]
-        if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed    = max(0.25, _pspd - 0.25); return; }
-        if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed    = min(5.0,  _pspd + 0.25); return; }
+        if (_peb2.effect != "laser") {
+            if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed    = max(0.25, _pspd - 0.25); return; }
+            if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed    = min(5.0,  _pspd + 0.25); return; }
+        }
         // SPREAD [-] [+]
-        if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r5y2 && _my <= _r5y2+_pbsz2) { _peb2.spread   = max(0,    _pspr - 5);    return; }
-        if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r5y2 && _my <= _r5y2+_pbsz2) { _peb2.spread   = min(180,  _pspr + 5);    return; }
+        if (_peb2.effect != "laser") {
+            if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r5y2 && _my <= _r5y2+_pbsz2) { _peb2.spread   = max(0,    _pspr - 5);    return; }
+            if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r5y2 && _my <= _r5y2+_pbsz2) { _peb2.spread   = min(180,  _pspr + 5);    return; }
+        }
         // COLOR swatches — 3 rows of 4 (24px each, 4px gap), positions must match Draw exactly
         var _pcolors2 = ["red",     "darkred",   "crimson",   "maroon",
                          "orange",  "yellow",    "brown",     "darkbrown",
@@ -2171,7 +2219,7 @@ if (!_overlay_active) {
         if (particle_panel_mode) {
             // Particle tile drag start — positions must match Draw exactly
             var _tile_w3 = 155; var _tile_h3 = 82;
-            var _pe_ids = ["splatter", "shatter", "electrify", "laser", "debris", "flame"];
+            var _pe_ids = ["splatter", "shatter", "electrify", "laser", "debris", "flame", "explosion"];
             for (var _pei3 = 0; _pei3 < array_length(_pe_ids); _pei3++) {
                 var _tx3 = char_sel_x + 10 + (_pei3 % 2) * 168;
                 var _ty3 = char_sel_y + 40 + floor(_pei3 / 2) * 95;

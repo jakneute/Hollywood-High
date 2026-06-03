@@ -73,6 +73,7 @@ rgb_hold_timer         = 0;       // frames held (drives repeat acceleration)
 active_particles       = [];      // live particle instances
 active_emitters        = [];      // continuous particle streams (effect, x, y, angle, size, frames_remaining)
 active_beams           = [];      // laser beam instances
+active_explosions      = [];      // cartoon explosion animations
 
 fx_picker_open          = false;
 fx_picker_scroll        = 0;      // top item index currently visible
@@ -452,6 +453,7 @@ action_modal_sfx_search_scroll_y = 0;
 action_modal_sfx_last_click_idx = -1;
 action_modal_sfx_last_click_time = -1;
 action_modal_sfx_bksp_held = 0;
+action_modal_sfx_show_actors = false;
 test_sfx_sound = -1;
 test_sfx_buffer = -1;
 sfx_base_path = datafiles_path + "sounds/";

@@ -399,6 +399,14 @@ if (theater_mode) {
         gpu_set_scissor(0, 0, 1280, 960);
     }
 
+    // --- Theater Explosions ---
+    if (array_length(active_explosions) > 0) {
+        gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
+        var _p_sx2 = _stage_w / scene_win_w; var _p_sy2 = _stage_h / scene_win_h;
+        draw_active_explosions(_stage_x, _stage_y, _p_sx2, _p_sy2);
+        gpu_set_scissor(0, 0, 1280, 960);
+    }
+
     // Draw foreground mask AFTER beams and particles so they appear behind the foreground layer
     if (_mask_sprite != -1) {
         gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
@@ -1135,6 +1143,13 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
 
+	// --- Active Explosions (editor) ---
+	if (array_length(active_explosions) > 0) {
+		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		draw_active_explosions(scene_win_x, scene_win_y, 1.0, 1.0);
+		gpu_set_scissor(0, 0, 1280, 960);
+	}
+
 	// Draw foreground mask AFTER beams and particles so they appear behind the foreground layer
 	if (_mask_sprite != -1) {
 		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
@@ -1234,9 +1249,9 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
     draw_set_color(c_white); draw_circle(_dot_sx, _dot_sy, 9, true);
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_dot_sx, _dot_sy - 5, "+"); draw_set_halign(fa_left);
 
-    // Area ellipse (not shown for laser — beam fires along its direction, area doesn't apply)
-    var _paw = (_pb.effect != "laser" && variable_struct_exists(_pb, "area_w")) ? _pb.area_w : 0;
-    var _pah = (_pb.effect != "laser" && variable_struct_exists(_pb, "area_h")) ? _pb.area_h : 0;
+    // Area ellipse (not shown for laser or explosion — not applicable to those effects)
+    var _paw = (_pb.effect != "laser" && _pb.effect != "explosion" && variable_struct_exists(_pb, "area_w")) ? _pb.area_w : 0;
+    var _pah = (_pb.effect != "laser" && _pb.effect != "explosion" && variable_struct_exists(_pb, "area_h")) ? _pb.area_h : 0;
     if (_paw > 0 || _pah > 0) {
         draw_set_color(make_color_rgb(200, 60, 60)); draw_set_alpha(0.15);
         draw_ellipse(_dot_sx - _paw/2, _dot_sy - _pah/2, _dot_sx + _paw/2, _dot_sy + _pah/2, false);
@@ -1343,36 +1358,55 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
 
     // DENSITY row
     var _r3y = _pctrl_y + 60;
-    var _dem_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
-    var _dep_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
-    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r3y + 5, "DENSITY");
-    draw_set_color(_dem_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r3y, _ctrl_lx+_pbsz, _r3y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r3y+5, "-"); draw_set_halign(fa_left);
-    draw_set_color(_dep_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r3y, _ctrl_rx+_pbsz, _r3y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r3y+5, "+"); draw_set_halign(fa_left);
-    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r3y+5, string(_pden), 1.1, 1.1, 0); draw_set_halign(fa_left);
+    var _is_laser = (_pb.effect == "laser");
+    if (!_is_laser) {
+        var _dem_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
+        var _dep_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
+        draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r3y + 5, "DENSITY");
+        draw_set_color(_dem_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r3y, _ctrl_lx+_pbsz, _r3y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r3y+5, "-"); draw_set_halign(fa_left);
+        draw_set_color(_dep_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r3y, _ctrl_rx+_pbsz, _r3y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r3y+5, "+"); draw_set_halign(fa_left);
+        draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r3y+5, string(_pden), 1.1, 1.1, 0); draw_set_halign(fa_left);
+    } else {
+        draw_set_alpha(0.28); draw_set_color(make_color_rgb(120,120,120));
+        draw_text(_pbase_x + 7, _r3y + 5, "DENSITY"); draw_set_halign(fa_center);
+        draw_text(_ctrl_vc, _r3y + 5, "—"); draw_set_halign(fa_left); draw_set_alpha(1.0);
+    }
 
     // SPEED row
     var _r4y = _pctrl_y + 88;
-    var _spm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r4y && _my <= _r4y+_pbsz);
-    var _spp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r4y && _my <= _r4y+_pbsz);
-    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r4y + 5, "SPEED");
-    draw_set_color(_spm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r4y, _ctrl_lx+_pbsz, _r4y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r4y+5, "-"); draw_set_halign(fa_left);
-    draw_set_color(_spp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r4y, _ctrl_rx+_pbsz, _r4y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r4y+5, "+"); draw_set_halign(fa_left);
-    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r4y+5, string(_pspd) + "x", 1.1, 1.1, 0); draw_set_halign(fa_left);
+    if (!_is_laser) {
+        var _spm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r4y && _my <= _r4y+_pbsz);
+        var _spp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r4y && _my <= _r4y+_pbsz);
+        draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r4y + 5, "SPEED");
+        draw_set_color(_spm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r4y, _ctrl_lx+_pbsz, _r4y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r4y+5, "-"); draw_set_halign(fa_left);
+        draw_set_color(_spp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r4y, _ctrl_rx+_pbsz, _r4y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r4y+5, "+"); draw_set_halign(fa_left);
+        draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r4y+5, string(_pspd) + "x", 1.1, 1.1, 0); draw_set_halign(fa_left);
+    } else {
+        draw_set_alpha(0.28); draw_set_color(make_color_rgb(120,120,120));
+        draw_text(_pbase_x + 7, _r4y + 5, "SPEED"); draw_set_halign(fa_center);
+        draw_text(_ctrl_vc, _r4y + 5, "—"); draw_set_halign(fa_left); draw_set_alpha(1.0);
+    }
 
     // SPREAD row
     var _r5y = _pctrl_y + 116;
-    var _sprm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
-    var _sprp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
-    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r5y + 5, "SPREAD");
-    draw_set_color(_sprm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r5y, _ctrl_lx+_pbsz, _r5y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r5y+5, "-"); draw_set_halign(fa_left);
-    draw_set_color(_sprp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r5y, _ctrl_rx+_pbsz, _r5y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r5y+5, "+"); draw_set_halign(fa_left);
-    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r5y+5, string(_pspr) + chr(176), 1.1, 1.1, 0); draw_set_halign(fa_left);
+    if (!_is_laser) {
+        var _sprm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
+        var _sprp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
+        draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r5y + 5, "SPREAD");
+        draw_set_color(_sprm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r5y, _ctrl_lx+_pbsz, _r5y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r5y+5, "-"); draw_set_halign(fa_left);
+        draw_set_color(_sprp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r5y, _ctrl_rx+_pbsz, _r5y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r5y+5, "+"); draw_set_halign(fa_left);
+        draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r5y+5, string(_pspr) + chr(176), 1.1, 1.1, 0); draw_set_halign(fa_left);
+    } else {
+        draw_set_alpha(0.28); draw_set_color(make_color_rgb(120,120,120));
+        draw_text(_pbase_x + 7, _r5y + 5, "SPREAD"); draw_set_halign(fa_center);
+        draw_text(_ctrl_vc, _r5y + 5, "—"); draw_set_halign(fa_left); draw_set_alpha(1.0);
+    }
 
     // COLOR section — 3 rows of 4 presets (24px, 4px gap) + [CUSTOM RGB] button + conditional sliders
     var _r6y = _pctrl_y + 148;
@@ -1719,6 +1753,7 @@ gpu_set_scissor(0, 0, 1280, 960);
         ["laser",     "LASER",     [35,10,5],   [62,20,8],   [22,6,3],    [195,75,18],  [255,155,38]],
         ["debris",    "DEBRIS",    [38,28,12],  [58,42,16],  [24,18,7],   [105,72,30],  [175,140,68]],
         ["flame",     "FLAME",     [55,18,5],   [85,28,8],   [35,10,3],   [200,70,12],  [255,140,20]],
+        ["explosion", "EXPLOSION", [62,20,5],   [95,32,8],   [38,12,3],   [215,85,18],  [255,175,25]],
     ];
     var _tile_w = 155; var _tile_h = 82;
     for (var _pei = 0; _pei < array_length(_pe_list); _pei++) {
@@ -1767,6 +1802,15 @@ gpu_set_scissor(0, 0, 1280, 960);
             draw_set_color(make_color_rgb(_pe[6][0], _pe[6][1], _pe[6][2])); draw_set_alpha(0.6);
             draw_triangle(_fcx - 13, _ty+38, _fcx - 4, _ty+38, _fcx - 8, _ty+22, false);
             draw_triangle(_fcx + 4,  _ty+38, _fcx + 13, _ty+38, _fcx + 8, _ty+22, false);
+        } else if (_pe[0] == "explosion") {
+            var _ecx = _tx + _tile_w/2; var _ecy = _ty + 28;
+            // Starburst: 8 alternating long/short spikes + center circle
+            for (var _ri = 0; _ri < 8; _ri++) {
+                var _rang = _ri * (pi / 4.0) + 0.22;
+                var _rlen = (_ri mod 2 == 0) ? 17 : 10;
+                draw_line_width(_ecx, _ecy, _ecx + cos(_rang)*_rlen, _ecy + sin(_rang)*_rlen, 2.2);
+            }
+            draw_circle(_ecx, _ecy, 5, false);
         } else {
             draw_circle(_tx + _tile_w/2, _ty + 28, 12, false);
         }
@@ -1864,7 +1908,8 @@ if (dragging_particle_effect != "") {
     var _dpe_r = 185; var _dpe_g = 18; var _dpe_b = 18;
     if (dragging_particle_effect == "shatter")   { _dpe_r = 22;  _dpe_g = 90;  _dpe_b = 175; }
     if (dragging_particle_effect == "electrify") { _dpe_r = 82;  _dpe_g = 62;  _dpe_b = 175; }
-    if (dragging_particle_effect == "flame")     { _dpe_r = 220; _dpe_g = 80;  _dpe_b = 10;  }
+    if (dragging_particle_effect == "flame")      { _dpe_r = 220; _dpe_g = 80;  _dpe_b = 10;  }
+    if (dragging_particle_effect == "explosion")  { _dpe_r = 255; _dpe_g = 160; _dpe_b = 20;  }
     draw_set_color(make_color_rgb(_dpe_r, _dpe_g, _dpe_b)); draw_set_alpha(0.80);
     draw_circle(drag_particle_x, drag_particle_y, 14, false);
     draw_set_color(c_white); draw_set_alpha(1.0);
@@ -2286,29 +2331,47 @@ if (_full_h > box_h - 10) {
     var _at_bottom = !_nav_can_scroll || block_scroll_y <= _nav_max_scroll;
     var _is_playing = (playing_block_index != -1 || theater_mode);
 
-    var _labels = ["^^", " ^", " v", "vv"];
     for (var _bi = 0; _bi < 4; _bi++) {
         var _by = _nb_y + _bi * (_nb_h + _nb_gap);
         var _disabled = _is_playing || ((_bi < 2) ? _at_top : _at_bottom);
         var _hov = (!_disabled && !_overlay_active && _mx >= _nb_x && _mx <= _nb_x + _nb_w && _my >= _by && _my <= _by + _nb_h);
-        var _col = _disabled ? make_color_rgb(55, 55, 65) : (_hov ? make_color_rgb(130, 130, 160) : make_color_rgb(85, 85, 105));
-        draw_set_color(_col);
-        draw_rectangle(_nb_x, _by, _nb_x + _nb_w, _by + _nb_h, false);
-        draw_set_color(_disabled ? make_color_rgb(75, 75, 85) : c_white);
-        draw_set_halign(fa_center); draw_set_valign(fa_middle);
-        draw_text(_nb_x + _nb_w / 2, _by + _nb_h / 2, _labels[_bi]);
-        draw_set_halign(fa_left); draw_set_valign(fa_top);
+        var _col_bg = _disabled ? make_color_rgb(42, 44, 52) : (_hov ? make_color_rgb(72, 88, 128) : make_color_rgb(55, 58, 75));
+        var _col_bd = _disabled ? make_color_rgb(62, 65, 76) : (_hov ? make_color_rgb(130, 158, 210) : make_color_rgb(88, 95, 118));
+        var _col_ar = _disabled ? make_color_rgb(78, 82, 92) : c_white;
+        draw_set_color(_col_bg);
+        draw_roundrect_ext(_nb_x, _by, _nb_x + _nb_w, _by + _nb_h, 4, 4, false);
+        draw_set_color(_col_bd);
+        draw_roundrect_ext(_nb_x, _by, _nb_x + _nb_w, _by + _nb_h, 4, 4, true);
+        var _cx = _nb_x + _nb_w / 2;
+        var _cy = _by + _nb_h / 2;
+        draw_set_color(_col_ar);
+        if (_bi == 0) {
+            // Home: two upward triangles
+            draw_triangle(_cx, _cy-7, _cx-5, _cy-1, _cx+5, _cy-1, false);
+            draw_triangle(_cx, _cy+1, _cx-5, _cy+7, _cx+5, _cy+7, false);
+        } else if (_bi == 1) {
+            // Page up: one upward triangle
+            draw_triangle(_cx, _cy-5, _cx-6, _cy+4, _cx+6, _cy+4, false);
+        } else if (_bi == 2) {
+            // Page down: one downward triangle
+            draw_triangle(_cx, _cy+5, _cx-6, _cy-4, _cx+6, _cy-4, false);
+        } else {
+            // End: two downward triangles
+            draw_triangle(_cx, _cy-1, _cx-5, _cy-7, _cx+5, _cy-7, false);
+            draw_triangle(_cx, _cy+7, _cx-5, _cy+1, _cx+5, _cy+1, false);
+        }
     }
 }
 
 // --- 5b. BOTTOM CONTROLS ---
-var _p_hov = (!_overlay_active && _mx > btn_play_x && _mx < btn_play_x+btn_play_w && _my > btn_play_y && _my < btn_play_y+btn_play_h);
+var _p_dis = script_expanded;
+var _p_hov = (!_p_dis && !_overlay_active && _mx > btn_play_x && _mx < btn_play_x+btn_play_w && _my > btn_play_y && _my < btn_play_y+btn_play_h);
 var _is_playing = (playing_block_index != -1);
-draw_set_color(_is_playing ? (_p_hov ? make_color_rgb(200,60,60) : make_color_rgb(160,38,38)) : (_p_hov ? make_color_rgb(45,175,70) : make_color_rgb(25,140,50)));
+draw_set_color(_p_dis ? make_color_rgb(30,50,32) : (_is_playing ? (_p_hov ? make_color_rgb(200,60,60) : make_color_rgb(160,38,38)) : (_p_hov ? make_color_rgb(45,175,70) : make_color_rgb(25,140,50))));
 draw_roundrect_ext(btn_play_x, btn_play_y, btn_play_x+btn_play_w, btn_play_y+btn_play_h, 5, 5, false);
-draw_set_color(_is_playing ? (_p_hov ? c_white : make_color_rgb(235,100,100)) : (_p_hov ? c_white : make_color_rgb(75,215,105)));
+draw_set_color(_p_dis ? make_color_rgb(55,70,56) : (_is_playing ? (_p_hov ? c_white : make_color_rgb(235,100,100)) : (_p_hov ? c_white : make_color_rgb(75,215,105))));
 draw_roundrect_ext(btn_play_x, btn_play_y, btn_play_x+btn_play_w, btn_play_y+btn_play_h, 5, 5, true);
-draw_set_color(c_white); draw_set_halign(fa_center); draw_text(btn_play_x+btn_play_w/2, btn_play_y+10, _is_playing ? "STOP" : "PLAY"); draw_set_halign(fa_left);
+draw_set_color(_p_dis ? make_color_rgb(70,85,70) : c_white); draw_set_halign(fa_center); draw_text(btn_play_x+btn_play_w/2, btn_play_y+10, _is_playing ? "STOP" : "PLAY"); draw_set_halign(fa_left);
 
 // ENTER THEATER Button
 var _thov = (!_overlay_active && playing_block_index == -1 && _mx > btn_theater_x && _mx < btn_theater_x+btn_theater_w && _my > btn_theater_y && _my < btn_theater_y+btn_theater_h);
@@ -2774,7 +2837,23 @@ if (action_modal_open) {
                 draw_text(_srx + _srw - 18, _sry + 4, "X");
             }
 
-            var _boxy = _wy + 90; var _boxh = 195;
+            // ACTOR FOLDERS CHECKBOX
+            var _chk_x = _fx + 10; var _chk_y = _wy + 60;
+            var _chk_hov = (_mx > _chk_x && _mx < _chk_x + 200 && _my > _chk_y && _my < _chk_y + 18);
+            draw_set_color(_chk_hov ? make_color_rgb(38, 55, 22) : make_color_rgb(18, 30, 10));
+            draw_rectangle(_chk_x, _chk_y + 2, _chk_x + 13, _chk_y + 15, false);
+            draw_set_color(action_modal_sfx_show_actors ? make_color_rgb(148, 162, 35) : make_color_rgb(70, 85, 30));
+            draw_rectangle(_chk_x, _chk_y + 2, _chk_x + 13, _chk_y + 15, true);
+            if (action_modal_sfx_show_actors) {
+                draw_set_color(c_yellow);
+                draw_set_halign(fa_center);
+                draw_text(_chk_x + 7, _chk_y + 2, "X");
+                draw_set_halign(fa_left);
+            }
+            draw_set_color(_chk_hov ? c_white : make_color_rgb(160, 175, 100));
+            draw_text(_chk_x + 18, _chk_y + 1, "SHOW ACTOR FOLDERS");
+
+            var _boxy = _wy + 100; var _boxh = 185;
             var _boxy2 = _boxy + _boxh;
 
             if (action_modal_sfx_search != "") {

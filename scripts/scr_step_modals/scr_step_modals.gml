@@ -436,8 +436,8 @@ function step_modal_action() {
 
         if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
             var _wx = _mxo + 300; var _wy = _myo + 130;
-            var _fx = _mxo + 280; var _fy = _wy + 90; var _fh = 195;
-            var _lx = _mxo + 550; var _ly = _wy + 90; var _lh = 195;
+            var _fx = _mxo + 280; var _fy = _wy + 100; var _fh = 185;
+            var _lx = _mxo + 550; var _ly = _wy + 100; var _lh = 185;
             var _srx = _fx + 10; var _sry = _wy + 30; var _srw = 560; var _srh = 24;
 
             // Search box: clear button (×) or focus
@@ -455,6 +455,17 @@ function step_modal_action() {
                 }
             } else {
                 action_modal_sfx_search_focused = false;
+
+                // Actor folders checkbox
+                var _chk_x2 = _fx + 10; var _chk_y2 = _wy + 58;
+                if (_mx > _chk_x2 && _mx < _chk_x2 + 200 && _my > _chk_y2 && _my < _chk_y2 + 18) {
+                    action_modal_sfx_show_actors = !action_modal_sfx_show_actors;
+                    refresh_sfx_folders();
+                    action_modal_sfx_folder_idx = -1;
+                    action_modal_sfx_files = [];
+                    action_modal_sfx_scroll_y = 0;
+                    return;
+                }
 
                 if (action_modal_sfx_search != "") {
                     // Search results list click

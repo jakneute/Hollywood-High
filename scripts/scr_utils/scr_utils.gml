@@ -373,6 +373,28 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
         });
         return;
     }
+    if (_effect == "explosion") {
+        var _frames = max(2, round(_duration_sec * 60));
+        var _eang_base = 2.0 * pi / 7.0;
+        var _eoffsets  = [0.0, 0.18, -0.12, 0.22, -0.08, 0.15, -0.20];
+        var _angles = array_create(7);
+        var _ang_offset = degtorad(_angle_deg);
+        for (var _ai = 0; _ai < 7; _ai++) _angles[_ai] = _ai * _eang_base + _eoffsets[_ai] + _ang_offset;
+        var _ergb = get_particle_rgb_ex(_color, _color_r, _color_g, _color_b);
+        array_push(active_explosions, {
+            x: _ox, y: _oy,
+            size: _size,
+            speed: _speed,
+            spread: _spread,
+            density: _density,
+            color_r: _ergb.r, color_g: _ergb.g, color_b: _ergb.b,
+            frames_total: _frames,
+            frames_elapsed: 0,
+            angles: _angles,
+            sparks_done: false,
+        });
+        return;
+    }
     array_push(active_emitters, {
         effect:           _effect,
         x:                _ox,
@@ -462,6 +484,117 @@ function spawn_emitter_particle(_effect, _epx, _epy, _ea, _esz, _espd_mul, _ergb
                 r2: floor(_ergb.r * 0.3),            g2: floor(_ergb.g * 0.2),           b2: floor(_ergb.b * 0.2) };
     }
     array_push(active_particles, _ep);
+}
+
+// Draw all active explosions. Called from both theater and editor sections.
+// _bx/_by: screen-space base (scene_win_x/y or _stage_x/y)
+// _sx/_sy: scale factors (1.0/1.0 for editor, _p_sx/_p_sy for theater)
+function draw_active_explosions(_bx, _by, _sx, _sy) {
+    if (array_length(active_explosions) == 0) return;
+    for (var _exi = 0; _exi < array_length(active_explosions); _exi++) {
+        var _ex = active_explosions[_exi];
+        var _t  = clamp(_ex.frames_elapsed / max(1, _ex.frames_total), 0.0, 1.0);
+        var _cx = _bx + _ex.x * _sx;
+        var _cy = _by + _ex.y * _sy;
+        var _sz  = _ex.size * _sy;
+        var _mr  = 65.0 * _sz;
+        var _ecr  = variable_struct_exists(_ex, "color_r") ? _ex.color_r : 165;
+        var _ecg  = variable_struct_exists(_ex, "color_g") ? _ex.color_g : 12;
+        var _ecb  = variable_struct_exists(_ex, "color_b") ? _ex.color_b : 8;
+        var _espd = variable_struct_exists(_ex, "speed")   ? clamp(_ex.speed, 0.25, 3.0) : 1.0;
+        var _espr = variable_struct_exists(_ex, "spread")  ? clamp(_ex.spread / 65.0, 0.15, 2.5) : 1.0;
+
+        if (_t < 0.12) {
+            // ---- WIND-UP: tiny compressed spark ----
+            var _wp = _t / 0.12;
+            var _wr = _sz * 7.0 * _wp * _wp;
+            draw_set_alpha(0.95 * _wp);
+            draw_set_color(make_color_rgb(12, 8, 8));
+            draw_circle(_cx, _cy, _wr + _sz * 2.0, false);
+            draw_set_color(make_color_rgb(
+                min(255, floor(_ecr * 0.6 + 130)),
+                min(255, floor(_ecg * 0.5 + 130)),
+                min(255, floor(_ecb * 0.35 + 50))
+            ));
+            draw_circle(_cx, _cy, _wr, false);
+            draw_set_color(c_white);
+            draw_circle(_cx, _cy, _wr * 0.45, false);
+
+        } else if (_t < 0.26) {
+            // ---- FLASH: blinding white burst ----
+            var _fp = (_t - 0.12) / 0.14;
+            var _fr = _sz * lerp(9.0, _mr * 1.18, _fp * _fp);
+            draw_set_alpha(1.0 - _fp * 0.32);
+            draw_set_color(c_white);
+            draw_circle(_cx, _cy, _fr, false);
+            draw_set_alpha((1.0 - _fp * 0.32) * 0.80);
+            draw_set_color(make_color_rgb(255, 252, 140));
+            draw_circle(_cx, _cy, _fr * 0.68, false);
+
+        } else {
+            // ---- FIRE CLOUD + SMOKE ----
+            var _ft = (_t - 0.26) / 0.74;
+
+            // Radius: exponential ease-out growth, then smoke ring expands further
+            var _grow = min(1.0, _ft / 0.40);
+            var _r    = _mr * (1.0 - exp(-_grow * (3.8 * _espd)));
+            var _sp   = max(0.0, (_ft - 0.55) / 0.45); // smoke phase 0→1
+            var _fa   = 1.0 - _sp;                      // fire alive  1→0
+            var _sr   = _r * (1.0 + _sp * 0.52);        // smoke ring expands past fire
+
+            var _n   = 7;
+            var _pad = max(2.0, _sz * 2.8);
+            var _pd  = min(_sr * 1.5, _sr * 0.67 * _espr);
+            var _pr  = _sr * min(0.65, 0.35 + 0.15 * _espr);
+
+            // -- Black cartoon outline --
+            draw_set_alpha(min(1.0, _fa * 0.94 + _sp * 0.52));
+            draw_set_color(make_color_rgb(12, 8, 8));
+            draw_circle(_cx, _cy, _sr + _pad, false);
+            for (var _pi = 0; _pi < _n; _pi++) {
+                var _pa = _ex.angles[_pi];
+                draw_circle(_cx + cos(_pa)*_pd, _cy + sin(_pa)*_pd, _pr + _pad, false);
+            }
+
+            // -- Body (fire color → dark smoke grey) --
+            draw_set_alpha(_fa * 0.92 + _sp * 0.50);
+            draw_set_color(make_color_rgb(
+                floor(lerp(50, _ecr, _fa)),
+                floor(lerp(38, _ecg, _fa)),
+                floor(lerp(32, _ecb, _fa))
+            ));
+            draw_circle(_cx, _cy, _sr, false);
+            for (var _pi = 0; _pi < _n; _pi++) {
+                var _pa = _ex.angles[_pi];
+                draw_circle(_cx + cos(_pa)*_pd, _cy + sin(_pa)*_pd, _pr, false);
+            }
+
+            if (_fa > 0.04) {
+                // -- Bright mid layer (brighter tint of fire color) --
+                draw_set_alpha(_fa * 0.90);
+                draw_set_color(make_color_rgb(
+                    min(255, floor(_ecr * 1.22 + 40)),
+                    min(255, floor(_ecg * 1.15 + 50)),
+                    min(255, floor(_ecb + 8))
+                ));
+                draw_circle(_cx, _cy, _sr * 0.78, false);
+
+                // -- Yellow-hot inner --
+                draw_set_alpha(_fa * max(0.0, 1.0 - _sp * 1.4) * 0.92);
+                draw_set_color(make_color_rgb(255, 232, 38));
+                draw_circle(_cx, _cy, _sr * 0.52, false);
+
+                // -- White core (fades earliest) --
+                var _ca = _fa * max(0.0, 1.0 - _ft * 1.6) * 0.95;
+                if (_ca > 0.02) {
+                    draw_set_alpha(_ca);
+                    draw_set_color(c_white);
+                    draw_circle(_cx, _cy, _sr * 0.25, false);
+                }
+            }
+        }
+        draw_set_alpha(1.0);
+    }
 }
 
 function fire_particle_effect(_effect, _ox, _oy, _angle_deg, _size = 1.0, _duration = 1.0, _density = 2, _color = "red", _color_r = 200, _color_g = 0, _color_b = 0, _area_w = 0, _area_h = 0) {
