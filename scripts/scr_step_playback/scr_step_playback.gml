@@ -112,7 +112,27 @@ function step_tts_playback() {
             if (_act_idx != -1) {
                 var _act = preview_actors[_act_idx];
 
-                if (_anim.type == "melt") {
+                if (_anim.type == "jitter") {
+                    _anim.frames_remaining--;
+                    var _ji = _anim.intensity; var _jd = _anim.direction;
+                    var _should_stop = (_anim.frames_remaining <= 0);
+                    if (variable_struct_exists(_anim, "tied_to_move") && _anim.tied_to_move) {
+                        var _move_still_on = false;
+                        for (var _mi2 = 0; _mi2 < array_length(active_animations); _mi2++) {
+                            if (_mi2 == _ai) continue;
+                            var _ma = active_animations[_mi2];
+                            if (real(_ma.char_index) == real(_anim.char_index) && (_ma.type == "move" || _ma.type == "enter" || _ma.type == "exit")) { _move_still_on = true; break; }
+                        }
+                        _should_stop = !_move_still_on;
+                    }
+                    if (!_should_stop) {
+                        _act.jitter_x = (_jd != "vertical")   ? random_range(-_ji, _ji) : 0;
+                        _act.jitter_y = (_jd != "horizontal") ? random_range(-_ji, _ji) : 0;
+                    } else {
+                        _act.jitter_x = 0; _act.jitter_y = 0;
+                        array_delete(active_animations, _ai, 1);
+                    }
+                } else if (_anim.type == "melt") {
                     _anim.progress = min(1.0, _anim.progress + 1.0 / max(1, _anim.duration));
                     _act.melt_progress = _anim.progress;
                     // Emit occasional green drip particles
@@ -504,6 +524,38 @@ function step_tts_playback() {
                             if (_pn >= 1 && _pn <= 4) preview_actors[_act_idx].pose = _pn;
                             speaking_pause_timer = max(speaking_pause_timer, 6);
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
+                    } else if (variable_struct_exists(_b, "quake_intensity")) {
+                        var _qi2   = variable_struct_exists(_b, "quake_intensity") ? _b.quake_intensity : 3;
+                        var _qdir2 = variable_struct_exists(_b, "quake_direction") ? _b.quake_direction : "omni";
+                        var _qfr2  = max(1, round((variable_struct_exists(_b, "quake_duration") ? _b.quake_duration : 1.0) * 60));
+                        var _q_in_chain = (array_length(_blocks_to_start) > 1);
+                        quake_intensity      = _qi2;
+                        quake_direction      = _qdir2;
+                        quake_frames         = _q_in_chain ? 999999 : _qfr2;
+                        quake_tied_to_chain  = _q_in_chain;
+                        speaking_pause_timer = max(speaking_pause_timer, _qfr2);
+                    } else if (string_pos("jitters", _aname) > 0) {
+                        if (_act_idx != -1) {
+                            var _ji  = variable_struct_exists(_b, "jitter_intensity") ? _b.jitter_intensity : 3;
+                            var _jd  = variable_struct_exists(_b, "jitter_direction") ? _b.jitter_direction : "omni";
+                            var _jfr = max(1, round((variable_struct_exists(_b, "jitter_duration") ? _b.jitter_duration : 1.0) * 60));
+                            // If linked with same-char move, jitter lasts until move finishes
+                            var _tied = false;
+                            for (var _ti = 0; _ti < array_length(_blocks_to_start); _ti++) {
+                                var _tb = _blocks_to_start[_ti];
+                                if (variable_struct_exists(_tb, "char_index") && real(_tb.char_index) == real(_b.char_index) && get_link_type(_tb) == "move") { _tied = true; break; }
+                            }
+                            action_animating = true;
+                            array_push(active_animations, {
+                                char_index:       _b.char_index,
+                                type:             "jitter",
+                                intensity:        _ji,
+                                direction:        _jd,
+                                frames_remaining: _tied ? 999999 : _jfr,
+                                tied_to_move:     _tied,
+                            });
+                        }
+                        speaking_pause_timer = max(speaking_pause_timer, 5);
                     } else if (string_pos("disappears", _aname) > 0) {
                         var _dstyle = variable_struct_exists(_b, "disappear_style") ? _b.disappear_style : "pop";
                         var _dspeed_idx = variable_struct_exists(_b, "disappear_speed") ? _b.disappear_speed : 2;
@@ -580,7 +632,7 @@ function step_tts_playback() {
                                 var _kbw = (_kly[0].spr != -1) ? sprite_get_width(_kly[0].spr)  * _ksc : 80;
                                 var _knx = _ka.x;
                                 var _kny = _ka.y - _kbh * 0.25;
-                                start_particle_emitter("splatter", _knx, _ka.y - _kbh * 0.85, 270, 1.5, 0.55, 7, 1.8, 100, "darkred", 0,0,0, 18, 8);
+                                start_particle_emitter("splatter", _knx, _ka.y - _kbh * 0.90, 270, 1.5, 0.55, 7, 1.8, 100, "darkred", 0,0,0, 18, 8);
                                 var _kface = variable_struct_exists(_ka, "facing") ? _ka.facing : 1;
                                 var _kface = variable_struct_exists(_ka, "facing") ? _ka.facing : 1;
                                 var _hvx = random_range(-3.0, 3.0);
@@ -645,7 +697,12 @@ function step_tts_playback() {
                     var _paw    = variable_struct_exists(_b, "area_w")  ? _b.area_w  : 0;
                     var _pah    = variable_struct_exists(_b, "area_h")  ? _b.area_h  : 0;
                     start_particle_emitter(_b.effect, _b.x, _b.y, _b.angle, _psize, _pdur, _pden, _pspd, _pspr, _pcol, _pcr, _pcg, _pcb, _paw, _pah);
-                    speaking_pause_timer = max(speaking_pause_timer, round(_pdur * 60));
+                    if (_b.effect == "shot") {
+                        speaking_pause_timer = max(speaking_pause_timer, 4);
+                        waiting_for_shots    = true;
+                    } else {
+                        speaking_pause_timer = max(speaking_pause_timer, round(_pdur * 60));
+                    }
                 } else {
                     var _is_empty = true;
                     for (var _e_idx = 1; _e_idx <= string_length(_b.text); _e_idx++) {

@@ -85,6 +85,8 @@ function get_link_type(_block) {
         if (string_pos("play sfx",     _aname) > 0) return "sfx";
         if (string_pos("display title",_aname) > 0) return "title";
         if (string_pos("disappears",   _aname) > 0) return "charaction";
+        if (string_pos("jitters",      _aname) > 0) return "jitter";
+        if (variable_struct_exists(_block, "quake_intensity") || string_pos("quake", _aname) > 0) return "quake";
         if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
         if (variable_struct_exists(_block, "kill_style") || string_pos("resurrects", _aname) > 0) return "kill";
     } else if (variable_struct_exists(_block, "type") && _block.type == "particle") {
@@ -335,22 +337,18 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
             var _body_w   = sprite_get_width(_body_spr);
             var _body_h   = sprite_get_height(_body_spr);
 
-            // Compute composite bounding box in sprite-canvas units (same logic as draw_composite_character_ext)
-            var _bb_x1 = 0; var _bb_x2 = _body_w;
+            // Y: use composite top so head/face layers are covered; X: use body sprite's actual pixel bbox to avoid empty canvas edges
             var _bb_y1 = 0;
             for (var _li2 = 1; _li2 < array_length(_layers); _li2++) {
                 var _ll = _layers[_li2];
                 if (_ll.spr == -1) continue;
-                _bb_x1 = min(_bb_x1, _ll.dx);
-                _bb_x2 = max(_bb_x2, _ll.dx + sprite_get_width(_ll.spr));
                 _bb_y1 = min(_bb_y1, _ll.dy);
             }
 
-            // Convert to scene coordinates (draw_x = act.x - body_w * scale / 2)
             var _draw_x0 = _la.x - _body_w * _char_scale * 0.5;
             var _draw_y0 = _la.y - _body_h * _char_scale;
-            var _sc_x1 = _draw_x0 + _bb_x1 * _char_scale;
-            var _sc_x2 = _draw_x0 + _bb_x2 * _char_scale;
+            var _sc_x1 = _draw_x0 + sprite_get_bbox_left(_body_spr)  * _char_scale;
+            var _sc_x2 = _draw_x0 + sprite_get_bbox_right(_body_spr) * _char_scale;
             var _sc_y1 = max(_draw_y0 + _bb_y1 * _char_scale, -scene_win_h * 0.1);
             var _sc_y2 = _la.y + 5;
 
@@ -393,6 +391,26 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
             frames_elapsed: 0,
             angles: _angles,
             sparks_done: false,
+        });
+        return;
+    }
+    if (_effect == "shot") {
+        var _ang2 = degtorad(_angle_deg);
+        var _sw2  = _area_w > 0 ? _area_w : _size;
+        var _sh2  = _area_h > 0 ? _area_h : _size;
+        var _ergb2 = get_particle_rgb_ex(_color, _color_r, _color_g, _color_b);
+        array_push(active_shots, {
+            x:        _ox + cos(_ang2) * _sw2 * 0.5,
+            y:        _oy + sin(_ang2) * _sw2 * 0.5,
+            vx:       cos(_ang2) * _speed,
+            vy:       sin(_ang2) * _speed,
+            w:        _sw2,
+            h:        _sh2,
+            angle:    _angle_deg,
+            r:        _ergb2.r, g: _ergb2.g, b: _ergb2.b,
+            alpha:    1.0,
+            life:     0,
+            max_life: max(30, round((scene_win_w + scene_win_h) / max(0.1, _speed) * 2)),
         });
         return;
     }

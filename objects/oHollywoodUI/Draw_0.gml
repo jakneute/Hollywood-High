@@ -94,7 +94,8 @@ if (theater_mode) {
         _stage_x = (1280 - _stage_w) / 2;
         _stage_y = (_max_theater_h - _stage_h) / 2;
         
-        draw_sprite_ext(current_scene_sprite, 0, _stage_x, _stage_y, _bg_sc, _bg_sc, 0, c_white, 1);
+        var _q_th_x = quake_x * (_stage_w / scene_win_w); var _q_th_y = quake_y * (_stage_h / scene_win_h);
+        draw_sprite_ext(current_scene_sprite, 0, _stage_x + _q_th_x, _stage_y + _q_th_y, _bg_sc, _bg_sc, 0, c_white, 1);
     }
     
     // Actor Clipping (Clips exactly to the background area, clear of subtitles)
@@ -126,10 +127,13 @@ if (theater_mode) {
 				var _ax = (_act.x / scene_win_w) * _stg_w;
 				var _ay = (_act.y / scene_win_h) * _stg_h;
 
-				var _y_off = variable_struct_exists(_act, "y_offset") ? (_act.y_offset / scene_win_h) * _stg_h : 0;
+				var _y_off  = variable_struct_exists(_act, "y_offset") ? (_act.y_offset / scene_win_h) * _stg_h : 0;
+				var _jit_x  = variable_struct_exists(_act, "jitter_x") ? _act.jitter_x * (_stg_w / scene_win_w) : 0;
+				var _jit_y  = variable_struct_exists(_act, "jitter_y") ? _act.jitter_y * (_stg_h / scene_win_h) : 0;
 
-				var _draw_x = (target_surface == -1) ? (_stg_x + _ax - (_csw * _asc / 2)) : (_ax - (_csw * _asc / 2));
-				var _draw_y = (target_surface == -1) ? (_stg_y + _ay - (_csh * _asc) + _y_off) : (_ay - (_csh * _asc) + _y_off);
+				var _qx_th = quake_x * (_stg_w / scene_win_w); var _qy_th = quake_y * (_stg_h / scene_win_h);
+				var _draw_x = (target_surface == -1) ? (_stg_x + _ax - (_csw * _asc / 2) + _jit_x + _qx_th) : (_ax - (_csw * _asc / 2) + _jit_x);
+				var _draw_y = (target_surface == -1) ? (_stg_y + _ay - (_csh * _asc) + _y_off + _jit_y + _qy_th) : (_ay - (_csh * _asc) + _y_off + _jit_y);
 
 				var _char_is_speaking = false;
 				if (playing_block_index != -1 && is_speaking) {
@@ -326,7 +330,8 @@ if (theater_mode) {
 		gpu_set_blendmode(bm_normal);
 		surface_reset_target();
 
-		draw_surface(o_char_surface, _stage_x, _stage_y);
+		var _qs_th_x = quake_x * (_stage_w / scene_win_w); var _qs_th_y = quake_y * (_stage_h / scene_win_h);
+		draw_surface(o_char_surface, _stage_x + _qs_th_x, _stage_y + _qs_th_y);
 		// Foreground mask drawn after particles — see below
 
 	} else {
@@ -466,10 +471,35 @@ if (theater_mode) {
         gpu_set_scissor(0, 0, 1280, 960);
     }
 
+    // --- Theater Shots ---
+    if (array_length(active_shots) > 0) {
+        gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
+        var _sth_sx = _stage_w / scene_win_w; var _sth_sy = _stage_h / scene_win_h;
+        gpu_set_blendmode(bm_add);
+        for (var _sthi = 0; _sthi < array_length(active_shots); _sthi++) {
+            var _st = active_shots[_sthi];
+            var _stx = _stage_x + _st.x * _sth_sx; var _sty = _stage_y + _st.y * _sth_sy;
+            var _stco = cos(degtorad(_st.angle)); var _stsi = sin(degtorad(_st.angle));
+            var _sthw = _st.w * _sth_sx * 0.5; var _sthh = _st.h * _sth_sy * 0.5;
+            var _stx1 = _stx - _stco * _sthw; var _sty1 = _sty - _stsi * _sthw;
+            var _stx2 = _stx + _stco * _sthw; var _sty2 = _sty + _stsi * _sthw;
+            draw_set_color(make_color_rgb(_st.r, _st.g, _st.b));
+            draw_set_alpha(_st.alpha * 0.12); draw_line_width(_stx1, _sty1, _stx2, _sty2, max(2, _sthh * 2 * 5));
+            draw_set_alpha(_st.alpha * 0.35); draw_line_width(_stx1, _sty1, _stx2, _sty2, max(1.5, _sthh * 2 * 2.5));
+            draw_set_alpha(_st.alpha * 0.80); draw_line_width(_stx1, _sty1, _stx2, _sty2, max(1, _sthh * 2));
+            draw_set_color(make_color_rgb(min(255, _st.r + 110), min(255, _st.g + 110), min(255, _st.b + 110)));
+            draw_set_alpha(_st.alpha); draw_line_width(_stx1, _sty1, _stx2, _sty2, max(0.5, _sthh * 0.7));
+        }
+        gpu_set_blendmode(bm_normal);
+        draw_set_alpha(1.0);
+        gpu_set_scissor(0, 0, 1280, 960);
+    }
+
     // Draw foreground mask AFTER beams and particles so they appear behind the foreground layer
     if (_mask_sprite != -1) {
         gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
-        draw_sprite_ext(_mask_sprite, 0, _stage_x, _stage_y, _bg_sc, _bg_sc, 0, c_white, 1);
+        var _mq_x = quake_x * (_stage_w / scene_win_w); var _mq_y = quake_y * (_stage_h / scene_win_h);
+        draw_sprite_ext(_mask_sprite, 0, _stage_x + _mq_x, _stage_y + _mq_y, _bg_sc, _bg_sc, 0, c_white, 1);
         gpu_set_scissor(0, 0, 1280, 960);
     }
 
@@ -788,7 +818,7 @@ if (scene_edit_mode) {
 if (current_scene_sprite != -1) {
     var _sw = sprite_get_width(current_scene_sprite);
     var _sh = sprite_get_height(current_scene_sprite);
-    draw_sprite_ext(current_scene_sprite, 0, scene_win_x, scene_win_y, scene_win_w / _sw, scene_win_h / _sh, 0, c_white, 1);
+    draw_sprite_ext(current_scene_sprite, 0, scene_win_x + quake_x, scene_win_y + quake_y, scene_win_w / _sw, scene_win_h / _sh, 0, c_white, 1);
 }
 
 // Actor Clipping (Clips exactly to the background area)
@@ -825,9 +855,11 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				if (_spr != -1) {
 					var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
 					var _sc = (scene_win_h * 1.5) / 450;
-					var _y_off = variable_struct_exists(_act, "y_offset") ? _act.y_offset : 0;
-					var _draw_x = (target_surface == -1) ? (scene_win_x + _act.x - (_csw * _sc)/2) : (_act.x - (_csw * _sc)/2);
-					var _draw_y = (target_surface == -1) ? (scene_win_y + _act.y - (_csh * _sc) + _y_off) : (_act.y - (_csh * _sc) + _y_off);
+					var _y_off  = variable_struct_exists(_act, "y_offset")  ? _act.y_offset  : 0;
+					var _jit_x  = variable_struct_exists(_act, "jitter_x")  ? _act.jitter_x  : 0;
+					var _jit_y  = variable_struct_exists(_act, "jitter_y")  ? _act.jitter_y  : 0;
+					var _draw_x = (target_surface == -1) ? (scene_win_x + _act.x - (_csw * _sc)/2 + _jit_x + quake_x) : (_act.x - (_csw * _sc)/2 + _jit_x);
+					var _draw_y = (target_surface == -1) ? (scene_win_y + _act.y - (_csh * _sc) + _y_off + _jit_y + quake_y) : (_act.y - (_csh * _sc) + _y_off + _jit_y);
 
 					var _char_is_speaking = false;
 					if (playing_block_index != -1 && is_speaking) {
@@ -1057,7 +1089,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		gpu_set_blendmode(bm_normal);
 		surface_reset_target();
 
-		draw_surface(o_char_surface, scene_win_x, scene_win_y);
+		draw_surface(o_char_surface, scene_win_x + quake_x, scene_win_y + quake_y);
 		// Foreground mask drawn after particles — see below
 
 	} else {
@@ -1276,12 +1308,35 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
 
+	// --- Active shots (editor) ---
+	if (array_length(active_shots) > 0) {
+		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		gpu_set_blendmode(bm_add);
+		for (var _stei = 0; _stei < array_length(active_shots); _stei++) {
+			var _ste = active_shots[_stei];
+			var _stex = scene_win_x + _ste.x; var _stey = scene_win_y + _ste.y;
+			var _steco = cos(degtorad(_ste.angle)); var _stesi = sin(degtorad(_ste.angle));
+			var _stewh = _ste.w * 0.5; var _stehh = _ste.h * 0.5;
+			var _stex1 = _stex - _steco * _stewh; var _stey1 = _stey - _stesi * _stewh;
+			var _stex2 = _stex + _steco * _stewh; var _stey2 = _stey + _stesi * _stewh;
+			draw_set_color(make_color_rgb(_ste.r, _ste.g, _ste.b));
+			draw_set_alpha(_ste.alpha * 0.12); draw_line_width(_stex1, _stey1, _stex2, _stey2, max(2, _stehh * 2 * 5));
+			draw_set_alpha(_ste.alpha * 0.35); draw_line_width(_stex1, _stey1, _stex2, _stey2, max(1.5, _stehh * 2 * 2.5));
+			draw_set_alpha(_ste.alpha * 0.80); draw_line_width(_stex1, _stey1, _stex2, _stey2, max(1, _stehh * 2));
+			draw_set_color(make_color_rgb(min(255, _ste.r + 110), min(255, _ste.g + 110), min(255, _ste.b + 110)));
+			draw_set_alpha(_ste.alpha); draw_line_width(_stex1, _stey1, _stex2, _stey2, max(0.5, _stehh * 0.7));
+		}
+		gpu_set_blendmode(bm_normal);
+		draw_set_alpha(1.0);
+		gpu_set_scissor(0, 0, 1280, 960);
+	}
+
 	// Draw foreground mask AFTER beams and particles so they appear behind the foreground layer
 	if (_mask_sprite != -1) {
 		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
 		var _fg_scale_x = scene_win_w / sprite_get_width(_mask_sprite);
 		var _fg_scale_y = scene_win_h / sprite_get_height(_mask_sprite);
-		draw_sprite_ext(_mask_sprite, 0, scene_win_x, scene_win_y, _fg_scale_x, _fg_scale_y, 0, c_white, 1);
+		draw_sprite_ext(_mask_sprite, 0, scene_win_x + quake_x, scene_win_y + quake_y, _fg_scale_x, _fg_scale_y, 0, c_white, 1);
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
 
@@ -1445,6 +1500,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_pep_x + 43, _pep_y + 6, "PREVIEW"); draw_set_halign(fa_left);
 
     // Particle controls (5-row layout: Size, Duration, Density, Speed, Spread)
+    var _is_laser = (_pb.effect == "laser"); var _is_shot = (_pb.effect == "shot");
     var _psz  = variable_struct_exists(_pb, "size")     ? _pb.size     : 1.0;
     var _pdur = variable_struct_exists(_pb, "duration") ? _pb.duration : 1.0;
     var _pden = variable_struct_exists(_pb, "density")  ? _pb.density  : 2;
@@ -1462,30 +1518,41 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
 
     // SIZE row
     var _r1y = _pctrl_y + 4;
-    var _sm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r1y && _my <= _r1y+_pbsz);
-    var _sp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r1y && _my <= _r1y+_pbsz);
-    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r1y + 5, "SIZE");
-    draw_set_color(_sm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r1y, _ctrl_lx+_pbsz, _r1y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r1y+5, "-"); draw_set_halign(fa_left);
-    draw_set_color(_sp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r1y, _ctrl_rx+_pbsz, _r1y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r1y+5, "+"); draw_set_halign(fa_left);
-    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r1y+5, string(_psz), 1.1, 1.1, 0); draw_set_halign(fa_left);
+    if (!_is_shot) {
+        var _sm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r1y && _my <= _r1y+_pbsz);
+        var _sp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r1y && _my <= _r1y+_pbsz);
+        draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r1y + 5, "SIZE");
+        draw_set_color(_sm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r1y, _ctrl_lx+_pbsz, _r1y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r1y+5, "-"); draw_set_halign(fa_left);
+        draw_set_color(_sp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r1y, _ctrl_rx+_pbsz, _r1y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r1y+5, "+"); draw_set_halign(fa_left);
+        draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r1y+5, string(_psz), 1.1, 1.1, 0); draw_set_halign(fa_left);
+    } else {
+        draw_set_alpha(0.28); draw_set_color(make_color_rgb(120,120,120));
+        draw_text(_pbase_x + 7, _r1y + 5, "SIZE"); draw_set_halign(fa_center);
+        draw_text(_ctrl_vc, _r1y + 5, "—"); draw_set_halign(fa_left); draw_set_alpha(1.0);
+    }
 
     // DUR row
     var _r2y = _pctrl_y + 32;
-    var _dm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r2y && _my <= _r2y+_pbsz);
-    var _dp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r2y && _my <= _r2y+_pbsz);
-    draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r2y + 5, "DUR (s)");
-    draw_set_color(_dm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r2y, _ctrl_lx+_pbsz, _r2y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r2y+5, "-"); draw_set_halign(fa_left);
-    draw_set_color(_dp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r2y, _ctrl_rx+_pbsz, _r2y+_pbsz, 3,3, false);
-    draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r2y+5, "+"); draw_set_halign(fa_left);
-    draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r2y+5, string(_pdur) + "s", 1.1, 1.1, 0); draw_set_halign(fa_left);
+    if (!_is_shot) {
+        var _dm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r2y && _my <= _r2y+_pbsz);
+        var _dp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r2y && _my <= _r2y+_pbsz);
+        draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r2y + 5, "DUR (s)");
+        draw_set_color(_dm_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_lx, _r2y, _ctrl_lx+_pbsz, _r2y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r2y+5, "-"); draw_set_halign(fa_left);
+        draw_set_color(_dp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r2y, _ctrl_rx+_pbsz, _r2y+_pbsz, 3,3, false);
+        draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r2y+5, "+"); draw_set_halign(fa_left);
+        draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r2y+5, string(_pdur) + "s", 1.1, 1.1, 0); draw_set_halign(fa_left);
+    } else {
+        draw_set_alpha(0.28); draw_set_color(make_color_rgb(120,120,120));
+        draw_text(_pbase_x + 7, _r2y + 5, "DUR (s)"); draw_set_halign(fa_center);
+        draw_text(_ctrl_vc, _r2y + 5, "AUTO"); draw_set_halign(fa_left); draw_set_alpha(1.0);
+    }
 
     // DENSITY row
     var _r3y = _pctrl_y + 60;
-    var _is_laser = (_pb.effect == "laser");
-    if (!_is_laser) {
+    if (!_is_laser && !_is_shot) {
         var _dem_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
         var _dep_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r3y && _my <= _r3y+_pbsz);
         draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r3y + 5, "DENSITY");
@@ -1510,7 +1577,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12, _r4y+5, "-"); draw_set_halign(fa_left);
         draw_set_color(_spp_hov ? c_white : make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx, _r4y, _ctrl_rx+_pbsz, _r4y+_pbsz, 3,3, false);
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12, _r4y+5, "+"); draw_set_halign(fa_left);
-        draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r4y+5, string(_pspd) + "x", 1.1, 1.1, 0); draw_set_halign(fa_left);
+        draw_set_color(c_yellow); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc, _r4y+5, (_is_shot ? string(round(_pspd / 4)) : string(_pspd)) + "x", 1.1, 1.1, 0); draw_set_halign(fa_left);
     } else {
         draw_set_alpha(0.28); draw_set_color(make_color_rgb(120,120,120));
         draw_text(_pbase_x + 7, _r4y + 5, "SPEED"); draw_set_halign(fa_center);
@@ -1519,7 +1586,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
 
     // SPREAD row
     var _r5y = _pctrl_y + 116;
-    if (!_is_laser) {
+    if (!_is_laser && !_is_shot) {
         var _sprm_hov = (_mx >= _ctrl_lx && _mx <= _ctrl_lx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
         var _sprp_hov = (_mx >= _ctrl_rx && _mx <= _ctrl_rx+_pbsz && _my >= _r5y && _my <= _r5y+_pbsz);
         draw_set_color(make_color_rgb(200, 200, 200)); draw_text(_pbase_x + 7, _r5y + 5, "SPREAD");
@@ -1894,6 +1961,7 @@ gpu_set_scissor(0, 0, 1280, 960);
         ["debris",    "DEBRIS",    [38,28,12],  [58,42,16],  [24,18,7],   [105,72,30],  [175,140,68]],
         ["flame",     "FLAME",     [55,18,5],   [85,28,8],   [35,10,3],   [200,70,12],  [255,140,20]],
         ["explosion", "EXPLOSION", [62,20,5],   [95,32,8],   [38,12,3],   [215,85,18],  [255,175,25]],
+        ["shot",      "SHOT",      [12,38,55],  [18,62,92],  [8,24,42],   [28,110,185], [200,230,255]],
     ];
     var _tile_w = 155; var _tile_h = 82;
     for (var _pei = 0; _pei < array_length(_pe_list); _pei++) {
@@ -1951,6 +2019,14 @@ gpu_set_scissor(0, 0, 1280, 960);
                 draw_line_width(_ecx, _ecy, _ecx + cos(_rang)*_rlen, _ecy + sin(_rang)*_rlen, 2.2);
             }
             draw_circle(_ecx, _ecy, 5, false);
+        } else if (_pe[0] == "shot") {
+            var _scx = _tx + _tile_w/2;
+            draw_set_alpha(0.18); draw_line_width(_scx - 22, _ty+28, _scx + 22, _ty+28, 12);
+            draw_set_alpha(0.50); draw_line_width(_scx - 22, _ty+28, _scx + 22, _ty+28, 5);
+            draw_set_alpha(1.0);  draw_line_width(_scx - 22, _ty+28, _scx + 22, _ty+28, 2);
+            draw_set_color(make_color_rgb(255,255,255)); draw_set_alpha(0.95);
+            draw_line_width(_scx - 22, _ty+28, _scx + 22, _ty+28, 0.8);
+            draw_set_color(make_color_rgb(_pe[6][0], _pe[6][1], _pe[6][2]));
         } else {
             draw_circle(_tx + _tile_w/2, _ty + 28, 12, false);
         }
@@ -2050,11 +2126,65 @@ if (dragging_particle_effect != "") {
     if (dragging_particle_effect == "electrify") { _dpe_r = 82;  _dpe_g = 62;  _dpe_b = 175; }
     if (dragging_particle_effect == "flame")      { _dpe_r = 220; _dpe_g = 80;  _dpe_b = 10;  }
     if (dragging_particle_effect == "explosion")  { _dpe_r = 255; _dpe_g = 160; _dpe_b = 20;  }
-    draw_set_color(make_color_rgb(_dpe_r, _dpe_g, _dpe_b)); draw_set_alpha(0.80);
-    draw_circle(drag_particle_x, drag_particle_y, 14, false);
-    draw_set_color(c_white); draw_set_alpha(1.0);
-    draw_set_halign(fa_center);
-    draw_text(drag_particle_x, drag_particle_y - 26, string_upper(dragging_particle_effect));
+    if (dragging_particle_effect == "shot")       { _dpe_r = 100; _dpe_g = 190; _dpe_b = 255; }
+    var _dpx = drag_particle_x; var _dpy = drag_particle_y;
+    var _in_scene_dp = (_dpx > scene_win_x && _dpx < scene_win_x + scene_win_w
+                     && _dpy > scene_win_y && _dpy < scene_win_y + scene_win_h);
+    // Full-width/height crosshair lines across the scene when hovering over it
+    if (_in_scene_dp) {
+        gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+        draw_set_color(make_color_rgb(_dpe_r, _dpe_g, _dpe_b)); draw_set_alpha(0.22);
+        draw_line(scene_win_x, _dpy, scene_win_x + scene_win_w, _dpy);
+        draw_line(_dpx, scene_win_y, _dpx, scene_win_y + scene_win_h);
+        draw_set_alpha(1.0);
+        gpu_set_scissor(0, 0, 1280, 960);
+    }
+    // Outer glow
+    draw_set_color(make_color_rgb(_dpe_r, _dpe_g, _dpe_b)); draw_set_alpha(0.18);
+    draw_circle(_dpx, _dpy, 30, false);
+    // Main circle
+    draw_set_alpha(0.78); draw_circle(_dpx, _dpy, 20, false);
+    // Border
+    draw_set_color(make_color_rgb(min(255,_dpe_r+80), min(255,_dpe_g+80), min(255,_dpe_b+80))); draw_set_alpha(1.0);
+    draw_circle(_dpx, _dpy, 20, true);
+    // Mini effect icon inside circle
+    draw_set_color(make_color_rgb(min(255,_dpe_r+110), min(255,_dpe_g+110), min(255,_dpe_b+110)));
+    if (dragging_particle_effect == "laser" || dragging_particle_effect == "shot") {
+        draw_set_alpha(0.18); draw_line_width(_dpx-14, _dpy, _dpx+14, _dpy, 8);
+        draw_set_alpha(0.55); draw_line_width(_dpx-14, _dpy, _dpx+14, _dpy, 3.5);
+        draw_set_alpha(1.0);  draw_line_width(_dpx-14, _dpy, _dpx+14, _dpy, 1.2);
+    } else if (dragging_particle_effect == "explosion") {
+        draw_set_alpha(0.9);
+        for (var _dri = 0; _dri < 6; _dri++) {
+            var _dra = _dri * (pi / 3.0) + 0.3;
+            draw_line_width(_dpx, _dpy, _dpx + cos(_dra)*13, _dpy + sin(_dra)*13, 1.8);
+        }
+        draw_circle(_dpx, _dpy, 4, false);
+    } else if (dragging_particle_effect == "electrify") {
+        draw_set_alpha(0.9);
+        draw_line_width(_dpx+5, _dpy-10, _dpx-2, _dpy, 2);
+        draw_line_width(_dpx-2, _dpy, _dpx+5, _dpy+1, 2);
+        draw_line_width(_dpx+5, _dpy+1, _dpx-5, _dpy+10, 2);
+    } else if (dragging_particle_effect == "flame") {
+        draw_set_alpha(0.9);
+        draw_triangle(_dpx-7, _dpy+10, _dpx+7, _dpy+10, _dpx, _dpy-9, false);
+        draw_set_color(make_color_rgb(255,230,80)); draw_set_alpha(0.8);
+        draw_triangle(_dpx-3, _dpy+8, _dpx+3, _dpy+8, _dpx, _dpy-3, false);
+    } else {
+        draw_set_alpha(0.9); draw_circle(_dpx, _dpy, 5, false);
+        draw_set_alpha(0.45); draw_circle(_dpx, _dpy, 11, true);
+    }
+    draw_set_alpha(1.0);
+    // Label badge
+    draw_set_color(make_color_rgb(_dpe_r, _dpe_g, _dpe_b));
+    var _dlbl = string_upper(dragging_particle_effect);
+    var _dlw = string_width(_dlbl) + 16;
+    draw_set_color(make_color_rgb(16, 16, 26)); draw_set_alpha(0.90);
+    draw_roundrect_ext(_dpx - _dlw/2, _dpy - 46, _dpx + _dlw/2, _dpy - 30, 4, 4, false);
+    draw_set_color(make_color_rgb(_dpe_r, _dpe_g, _dpe_b)); draw_set_alpha(1.0);
+    draw_roundrect_ext(_dpx - _dlw/2, _dpy - 46, _dpx + _dlw/2, _dpy - 30, 4, 4, true);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text(_dpx, _dpy - 45, _dlbl);
     draw_set_halign(fa_left);
 }
 
@@ -2172,7 +2302,8 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
         }
         var _act_str = "ACTION: ";
-        if (_is_wait || _is_sfx || _is_title) {
+        var _is_quake_blk = variable_struct_exists(_block, "quake_intensity");
+        if (_is_wait || _is_sfx || _is_title || _is_quake_blk) {
             _act_str += _aname_up;
         } else {
             var _aname_lo_blk = string_lower(_block.action_name);
@@ -2350,23 +2481,31 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         var _diff_char = (variable_struct_exists(_b1, "char_index") && variable_struct_exists(_b2, "char_index") && real(_b1.char_index) != real(_b2.char_index));
 
         var _base_valid = false;
-        if ((_b1_type == "move" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "move")) _base_valid = true;
-        else if ((_b1_type == "move" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "move")) _base_valid = true;
-        else if ((_b1_type == "voice" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "voice")) _base_valid = true;
-        else if ((_b1_type == "title" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "title")) _base_valid = true;
+        if (_b1_type == "other" || _b2_type == "other") { /* scene/unknown blocks never link */ }
+        else if ((_b1_type == "move" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "move")) _base_valid = true;
+        else if ((_b1_type == "move" && (_b2_type == "sfx" || _b2_type == "quake")) || ((_b1_type == "sfx" || _b1_type == "quake") && _b2_type == "move")) _base_valid = true;
+        else if ((_b1_type == "voice" && (_b2_type == "sfx" || _b2_type == "quake")) || ((_b1_type == "sfx" || _b1_type == "quake") && _b2_type == "voice")) _base_valid = true;
+        else if ((_b1_type == "title" && (_b2_type == "sfx" || _b2_type == "quake")) || ((_b1_type == "sfx" || _b1_type == "quake") && _b2_type == "title")) _base_valid = true;
         else if ((_b1_type == "title" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "title")) _base_valid = true;
         else if (_b1_type == "move" && _b2_type == "move" && _diff_char) _base_valid = true;
         else if (_b1_type == "voice" && _b2_type == "voice" && _diff_char) _base_valid = true;
+        else if ((_b1_type == "sfx" && _b2_type == "quake") || (_b1_type == "quake" && _b2_type == "sfx")) _base_valid = true;
         else if ((_b1_type == "particle" || _b2_type == "particle") && _b1_type != "other" && _b2_type != "other") _base_valid = true;
         else if (_b1_type == "charaction" || _b2_type == "charaction") {
             var _other_t = (_b1_type == "charaction") ? _b2_type : _b1_type;
-            if (_other_t == "voice" || _other_t == "sfx" || _other_t == "particle" || _other_t == "title") _base_valid = true;
+            if (_other_t == "voice" || _other_t == "sfx" || _other_t == "quake" || _other_t == "particle" || _other_t == "title") _base_valid = true;
             else if ((_other_t == "move" || _other_t == "charaction") && _diff_char) _base_valid = true;
         }
         else if (_b1_type == "kill" || _b2_type == "kill") {
             var _other_kt = (_b1_type == "kill") ? _b2_type : _b1_type;
-            if (_other_kt == "sfx" || _other_kt == "particle") _base_valid = true;
+            if (_other_kt == "sfx" || _other_kt == "quake" || _other_kt == "particle") _base_valid = true;
             else if (_diff_char) _base_valid = true;
+        }
+        else if (_b1_type == "jitter" || _b2_type == "jitter") {
+            var _other_jt = (_b1_type == "jitter") ? _b2_type : _b1_type;
+            if (_other_jt == "sfx" || _other_jt == "particle" || _other_jt == "title") _base_valid = true;
+            else if (_other_jt == "voice" || _other_jt == "move") _base_valid = true;
+            else if (_other_jt != "quake" && _diff_char) _base_valid = true;
         }
 
         var _chain_valid = true;
@@ -2381,6 +2520,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             var _title_in_chain = 0;
             var _move_in_chain = false;
             var _particle_in_chain = 0;
+            var _quake_in_chain = 0;
             for (var k = _start_idx; k <= _end_idx; k++) {
                 var _bk = script_blocks[k];
                 var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
@@ -2389,18 +2529,22 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 if (_bk_type == "title")    _title_in_chain++;
                 if (_bk_type == "move")     _move_in_chain = true;
                 if (_bk_type == "particle") _particle_in_chain++;
+                if (_bk_type == "quake")    _quake_in_chain++;
 
-                if (_bk_type == "kill" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
+                if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
                     for (var j = k + 1; j <= _end_idx; j++) {
                         var _bj = script_blocks[j];
                         if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
                             var _bj_type = get_link_type(_bj);
-                            if (_bk_type == "kill" && _bj_type != "sfx" && _bj_type != "particle" && _bj_type != "other") { _chain_valid = false; break; }
-                            if (_bj_type == "kill" && _bk_type != "sfx" && _bk_type != "particle" && _bk_type != "other") { _chain_valid = false; break; }
-                            if (_bk_type == "voice" && _bj_type == "voice") { _chain_valid = false; break; }
-                            if (_bk_type == "move"  && _bj_type == "move")  { _chain_valid = false; break; }
+                            if (_bk_type == "kill"   && _bj_type != "sfx" && _bj_type != "particle" && _bj_type != "other") { _chain_valid = false; break; }
+                            if (_bj_type == "kill"   && _bk_type != "sfx" && _bk_type != "particle" && _bk_type != "other") { _chain_valid = false; break; }
+                            if (_bk_type == "jitter" && _bj_type == "jitter")     { _chain_valid = false; break; }
+                            if (_bk_type == "jitter" && _bj_type == "charaction") { _chain_valid = false; break; }
+                            if (_bk_type == "charaction" && _bj_type == "jitter") { _chain_valid = false; break; }
+                            if (_bk_type == "voice"  && _bj_type == "voice")      { _chain_valid = false; break; }
+                            if (_bk_type == "move"   && _bj_type == "move")       { _chain_valid = false; break; }
                             if (_bk_type == "charaction" && (_bj_type == "charaction" || _bj_type == "move")) { _chain_valid = false; break; }
-                            if (_bk_type == "move" && _bj_type == "charaction") { _chain_valid = false; break; }
+                            if (_bk_type == "move"   && _bj_type == "charaction") { _chain_valid = false; break; }
                         }
                     }
                 }
@@ -2412,8 +2556,9 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 if (_sfx_in_chain > 1) _chain_valid = false;
             }
             if (_particle_in_chain > 10) _chain_valid = false;
+            if (_quake_in_chain > 1) _chain_valid = false;
         }
-        
+
         if ((_base_valid && _chain_valid) || _is_linked) {
             var _link_x = box_x + 90;
             var _link_hov = (!_overlay_active && _mx > _link_x - 15 && _mx < _link_x + 60 && _my > _gap_y && _my < _gap_y + 20);
@@ -2905,6 +3050,10 @@ if (action_modal_open) {
         if ((action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) && action_modal_sfx_search_sel == -1) _can_proceed = false;
     } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "display title") {
         if (action_modal_title_text == "") _can_proceed = false;
+    } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "quake") {
+        // always valid — general action
+    } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "jitter") {
+        if (selected_character_index == 0 || !action_modal_char_onstage) _can_proceed = false;
     } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "disappear") {
         if (selected_character_index == 0 || !action_modal_char_onstage) _can_proceed = false;
     } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "kill") {
@@ -3178,6 +3327,86 @@ if (action_modal_open) {
             if (action_modal_dropdown_open == "size") draw_dropdown(_wx + 290, _wy + 230, "Size:", action_modal_title_size, action_modal_title_size_opts, true);
             if (action_modal_dropdown_open == "font") draw_dropdown(_wx, _wy + 280, "Font:", action_modal_title_font, action_modal_title_font_opts, true);
             if (action_modal_dropdown_open == "color") draw_dropdown(_wx + 290, _wy + 280, "Color:", action_modal_title_color, action_modal_title_color_opts, true);
+        } else if (all_actions[action_modal_selected_idx].name == "jitter") {
+            var _jx = _mxo+290; var _jsw = 360;
+            // Direction
+            draw_set_color(make_color_rgb(196,213,20)); draw_text(_jx, _myo+120, "DIRECTION");
+            draw_set_color(make_color_rgb(100,120,40)); draw_line(_jx, _myo+138, _jx+_jsw, _myo+138);
+            var _jdirs = ["horizontal","vertical","omni"]; var _jdlbls = ["HORIZONTAL","VERTICAL","OMNI"];
+            for (var _jdi = 0; _jdi < 3; _jdi++) {
+                var _jdx = _jx + _jdi * 124; var _jdsel = (action_modal_jitter_direction == _jdirs[_jdi]);
+                var _jdhov = (_mx > _jdx && _mx < _jdx+118 && _my > _myo+146 && _my < _myo+184);
+                draw_set_color(_jdsel ? make_color_rgb(16,55,148) : (_jdhov ? make_color_rgb(18,65,24) : make_color_rgb(10,40,15)));
+                draw_roundrect_ext(_jdx, _myo+146, _jdx+118, _myo+184, 5,5,false);
+                if (_jdsel) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_jdx, _myo+146, _jdx+118, _myo+184, 5,5,true); }
+                draw_set_color(_jdsel ? c_white : make_color_rgb(178,210,182));
+                draw_set_halign(fa_center); draw_text(_jdx+59, _myo+157, _jdlbls[_jdi]); draw_set_halign(fa_left);
+            }
+            // Intensity slider
+            draw_set_color(make_color_rgb(196,213,20)); draw_text(_jx, _myo+202, "INTENSITY");
+            draw_set_color(make_color_rgb(100,120,40)); draw_line(_jx, _myo+220, _jx+_jsw, _myo+220);
+            draw_set_color(c_white); draw_text(_jx, _myo+234, "SUBTLE"); draw_text(_jx+_jsw-40, _myo+234, "VIOLENT");
+            var _jity = _myo+260;
+            draw_set_color(make_color_rgb(15,55,20)); draw_rectangle(_jx, _jity+4, _jx+_jsw, _jity+9, false);
+            var _jipct = (action_modal_jitter_intensity-1)/6.0;
+            var _jihx = _jx + _jipct*_jsw;
+            draw_set_color(make_color_rgb(196,213,20)); draw_rectangle(_jx, _jity+4, _jihx, _jity+9, false);
+            draw_circle(_jihx, _jity+6, 8, false);
+            draw_set_color(c_white); draw_text(_jx, _myo+278, "Intensity: " + string(action_modal_jitter_intensity));
+            // Duration slider
+            draw_set_color(make_color_rgb(196,213,20)); draw_text(_jx, _myo+305, "DURATION");
+            draw_set_color(make_color_rgb(100,120,40)); draw_line(_jx, _myo+323, _jx+_jsw, _myo+323);
+            draw_set_color(c_white); draw_text(_jx, _myo+337, "0.2s"); draw_text(_jx+_jsw-16, _myo+337, "5s");
+            var _jdry = _myo+363;
+            draw_set_color(make_color_rgb(15,55,20)); draw_rectangle(_jx, _jdry+4, _jx+_jsw, _jdry+9, false);
+            var _jdrpct = (action_modal_jitter_duration-0.2)/4.8;
+            var _jdrhx = _jx + _jdrpct*_jsw;
+            draw_set_color(make_color_rgb(196,213,20)); draw_rectangle(_jx, _jdry+4, _jdrhx, _jdry+9, false);
+            draw_circle(_jdrhx, _jdry+6, 8, false);
+            draw_set_color(c_white); draw_text(_jx, _myo+381, "Duration: " + string(round(action_modal_jitter_duration*10)/10) + " seconds");
+            // Notices
+            if (selected_character_index == 0) {
+                draw_set_color(make_color_rgb(255,120,120)); draw_text(_jx, _myo+415, "Narrator cannot use character actions.");
+            } else if (!action_modal_char_onstage) {
+                draw_set_color(make_color_rgb(255,200,80)); draw_text(_jx, _myo+415, "Character is not currently on stage.");
+            }
+        } else if (all_actions[action_modal_selected_idx].name == "quake") {
+            var _qx2 = _mxo+290; var _qsw = 360;
+            // Direction
+            draw_set_color(make_color_rgb(196,213,20)); draw_text(_qx2, _myo+120, "DIRECTION");
+            draw_set_color(make_color_rgb(100,120,40)); draw_line(_qx2, _myo+138, _qx2+_qsw, _myo+138);
+            var _qdirs = ["horizontal","vertical","omni"]; var _qdlbls = ["HORIZONTAL","VERTICAL","OMNI"];
+            for (var _qdi = 0; _qdi < 3; _qdi++) {
+                var _qdx = _qx2 + _qdi * 124; var _qdsel = (action_modal_quake_direction == _qdirs[_qdi]);
+                var _qdhov = (_mx > _qdx && _mx < _qdx+118 && _my > _myo+146 && _my < _myo+184);
+                draw_set_color(_qdsel ? make_color_rgb(16,55,148) : (_qdhov ? make_color_rgb(18,65,24) : make_color_rgb(10,40,15)));
+                draw_roundrect_ext(_qdx, _myo+146, _qdx+118, _myo+184, 5,5,false);
+                if (_qdsel) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_qdx, _myo+146, _qdx+118, _myo+184, 5,5,true); }
+                draw_set_color(_qdsel ? c_white : make_color_rgb(178,210,182));
+                draw_set_halign(fa_center); draw_text(_qdx+59, _myo+157, _qdlbls[_qdi]); draw_set_halign(fa_left);
+            }
+            // Intensity slider
+            draw_set_color(make_color_rgb(196,213,20)); draw_text(_qx2, _myo+202, "INTENSITY");
+            draw_set_color(make_color_rgb(100,120,40)); draw_line(_qx2, _myo+220, _qx2+_qsw, _myo+220);
+            draw_set_color(c_white); draw_text(_qx2, _myo+234, "SUBTLE"); draw_text(_qx2+_qsw-40, _myo+234, "VIOLENT");
+            var _qity = _myo+260;
+            draw_set_color(make_color_rgb(15,55,20)); draw_rectangle(_qx2, _qity+4, _qx2+_qsw, _qity+9, false);
+            var _qipct = (action_modal_quake_intensity-1)/6.0;
+            var _qihx = _qx2 + _qipct*_qsw;
+            draw_set_color(make_color_rgb(196,213,20)); draw_rectangle(_qx2, _qity+4, _qihx, _qity+9, false);
+            draw_circle(_qihx, _qity+6, 8, false);
+            draw_set_color(c_white); draw_text(_qx2, _myo+278, "Intensity: " + string(action_modal_quake_intensity));
+            // Duration slider
+            draw_set_color(make_color_rgb(196,213,20)); draw_text(_qx2, _myo+305, "DURATION");
+            draw_set_color(make_color_rgb(100,120,40)); draw_line(_qx2, _myo+323, _qx2+_qsw, _myo+323);
+            draw_set_color(c_white); draw_text(_qx2, _myo+337, "0.2s"); draw_text(_qx2+_qsw-16, _myo+337, "5s");
+            var _qdry2 = _myo+363;
+            draw_set_color(make_color_rgb(15,55,20)); draw_rectangle(_qx2, _qdry2+4, _qx2+_qsw, _qdry2+9, false);
+            var _qdrpct = (action_modal_quake_duration-0.2)/4.8;
+            var _qdrhx = _qx2 + _qdrpct*_qsw;
+            draw_set_color(make_color_rgb(196,213,20)); draw_rectangle(_qx2, _qdry2+4, _qdrhx, _qdry2+9, false);
+            draw_circle(_qdrhx, _qdry2+6, 8, false);
+            draw_set_color(c_white); draw_text(_qx2, _myo+381, "Duration: " + string(round(action_modal_quake_duration*10)/10) + " seconds");
         } else if (all_actions[action_modal_selected_idx].name == "disappear") {
             var _disp_styles = ["pop", "eat dirt", "home planet", "disintegrate", "melt"];
             var _disp_labels = ["POP", "EAT DIRT", "HOME PLANET", "DISINTEGRATE", "MELT"];

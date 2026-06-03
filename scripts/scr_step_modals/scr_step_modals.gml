@@ -404,8 +404,48 @@ function step_modal_action() {
                 if (all_actions[i].name == "play sfx") { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; action_modal_sfx_search = ""; action_modal_sfx_search_results = []; action_modal_sfx_search_sel = -1; action_modal_sfx_search_focused = false; action_modal_sfx_search_scroll_y = 0; keyboard_string = ""; }
                 else if (all_actions[i].name == "display title") { action_modal_title_text = ""; action_modal_title_caret = 0; action_modal_title_sel_start = 0; action_modal_title_sel_end = 0; action_modal_wait_duration = 2.0; action_modal_dropdown_open = ""; keyboard_string = ""; }
                 else if (all_actions[i].name == "disappear") { action_modal_disappear_style = "pop"; action_modal_disappear_speed = 2; }
+                else if (all_actions[i].name == "jitter")    { action_modal_jitter_intensity = 3; action_modal_jitter_duration = 1.0; action_modal_jitter_direction = "omni"; }
+                else if (all_actions[i].name == "quake")     { action_modal_quake_intensity = 3; action_modal_quake_duration = 1.0; action_modal_quake_direction = "omni"; }
                 else if (all_actions[i].name == "kill")      { action_modal_kill_style = "sudden"; }
                 return;
+            }
+        }
+        // Jitter sub-options
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "jitter") {
+            var _jx = _mxo+290; var _jsw = 360;
+            var _jdirs = ["horizontal","vertical","omni"];
+            for (var _jdi = 0; _jdi < 3; _jdi++) {
+                var _jdx = _jx + _jdi * 124;
+                if (_mx > _jdx && _mx < _jdx+118 && _my > _myo+146 && _my < _myo+184) {
+                    action_modal_jitter_direction = _jdirs[_jdi]; return;
+                }
+            }
+            var _jity = _myo+260;
+            if (_mx > _jx && _mx < _jx+_jsw && _my > _jity-12 && _my < _jity+20) {
+                action_modal_jitter_drag = 1; return;
+            }
+            var _jdry = _myo+363;
+            if (_mx > _jx && _mx < _jx+_jsw && _my > _jdry-12 && _my < _jdry+20) {
+                action_modal_jitter_drag = 2; return;
+            }
+        }
+        // Quake sub-options
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "quake") {
+            var _qx2 = _mxo+290; var _qsw = 360;
+            var _qdirs2 = ["horizontal","vertical","omni"];
+            for (var _qdi2 = 0; _qdi2 < 3; _qdi2++) {
+                var _qdx2 = _qx2 + _qdi2 * 124;
+                if (_mx > _qdx2 && _mx < _qdx2+118 && _my > _myo+146 && _my < _myo+184) {
+                    action_modal_quake_direction = _qdirs2[_qdi2]; return;
+                }
+            }
+            var _qity2 = _myo+260;
+            if (_mx > _qx2 && _mx < _qx2+_qsw && _my > _qity2-12 && _my < _qity2+20) {
+                action_modal_quake_drag = 1; return;
+            }
+            var _qdry3 = _myo+363;
+            if (_mx > _qx2 && _mx < _qx2+_qsw && _my > _qdry3-12 && _my < _qdry3+20) {
+                action_modal_quake_drag = 2; return;
             }
         }
         // Disappear sub-options (style + speed)
@@ -640,11 +680,22 @@ function step_modal_action() {
             } else if (_act_name == "play sfx") {
                 if ((action_modal_sfx_folder_idx == -1 || action_modal_sfx_file_idx == -1) && action_modal_sfx_search_sel == -1) _can_proceed = false;
                 else {
-                    var _folder = action_modal_sfx_folders[action_modal_sfx_folder_idx];
-                    var _sfx_file = action_modal_sfx_files[action_modal_sfx_file_idx];
-                    _sfx_path = "sounds/" + _folder + "/" + _sfx_file;
+                    var _sfx_folder2 = ""; var _sfx_file = "";
+                    if (action_modal_sfx_search_sel != -1 && action_modal_sfx_search_sel < array_length(action_modal_sfx_search_results)) {
+                        var _sr = action_modal_sfx_search_results[action_modal_sfx_search_sel];
+                        _sfx_folder2 = _sr.folder; _sfx_file = _sr.file;
+                    } else {
+                        _sfx_folder2 = action_modal_sfx_folders[action_modal_sfx_folder_idx];
+                        _sfx_file    = action_modal_sfx_files[action_modal_sfx_file_idx];
+                    }
+                    _sfx_path = "sounds/" + _sfx_folder2 + "/" + _sfx_file;
                     _act_name = "Play SFX: " + string_replace(string_upper(_sfx_file), ".WAV", "");
                 }
+            } else if (_act_name == "quake") {
+                _act_name = "quake";
+            } else if (_act_name == "jitter") {
+                if (selected_character_index == 0 || !action_modal_char_onstage) _can_proceed = false;
+                else _act_name = "jitters";
             } else if (_act_name == "disappear") {
                 if (selected_character_index == 0 || !action_modal_char_onstage) _can_proceed = false;
                 else _act_name = "disappears (" + action_modal_disappear_style + ")";
@@ -671,7 +722,16 @@ function step_modal_action() {
                         _b.title_align = action_modal_title_align; _b.title_font = action_modal_title_font;
                         _b.title_size = action_modal_title_size; _b.title_color = action_modal_title_color;
                     } else if (all_actions[action_modal_selected_idx].name == "play sfx") { _b.sfx_path = _sfx_path; }
-                    else if (all_actions[action_modal_selected_idx].name == "disappear") {
+                    else if (all_actions[action_modal_selected_idx].name == "quake") {
+                        _b.quake_intensity = action_modal_quake_intensity;
+                        _b.quake_duration  = action_modal_quake_duration;
+                        _b.quake_direction = action_modal_quake_direction;
+                        _b.char_index      = 0;
+                    } else if (all_actions[action_modal_selected_idx].name == "jitter") {
+                        _b.jitter_intensity = action_modal_jitter_intensity;
+                        _b.jitter_duration  = action_modal_jitter_duration;
+                        _b.jitter_direction = action_modal_jitter_direction;
+                    } else if (all_actions[action_modal_selected_idx].name == "disappear") {
                         _b.disappear_style = action_modal_disappear_style;
                         _b.disappear_speed = action_modal_disappear_speed;
                     } else if (all_actions[action_modal_selected_idx].name == "kill") {
@@ -696,7 +756,16 @@ function step_modal_action() {
                         _new_a.title_size = action_modal_title_size; _new_a.title_color = action_modal_title_color;
                         _new_a.char_index = 0;
                     } else if (all_actions[action_modal_selected_idx].name == "play sfx") { _new_a.sfx_path = _sfx_path; _new_a.char_index = 0; }
-                    else if (all_actions[action_modal_selected_idx].name == "disappear") {
+                    else if (all_actions[action_modal_selected_idx].name == "quake") {
+                        _new_a.quake_intensity = action_modal_quake_intensity;
+                        _new_a.quake_duration  = action_modal_quake_duration;
+                        _new_a.quake_direction = action_modal_quake_direction;
+                        _new_a.char_index      = 0;
+                    } else if (all_actions[action_modal_selected_idx].name == "jitter") {
+                        _new_a.jitter_intensity = action_modal_jitter_intensity;
+                        _new_a.jitter_duration  = action_modal_jitter_duration;
+                        _new_a.jitter_direction = action_modal_jitter_direction;
+                    } else if (all_actions[action_modal_selected_idx].name == "disappear") {
                         _new_a.disappear_style = action_modal_disappear_style;
                         _new_a.disappear_speed = action_modal_disappear_speed;
                     } else if (all_actions[action_modal_selected_idx].name == "kill") {
@@ -822,6 +891,24 @@ function step_modal_action() {
             var _perc = clamp((_mx - _track_start) / _sw, 0.0, 1.0);
             action_modal_wait_duration = round(clamp(0.1 + (_perc * 9.9), 0.1, 10.0) * 10.0) / 10.0;
         } else { action_modal_slider_dragging = false; }
+    }
+
+    if (action_modal_jitter_drag != 0) {
+        if (mouse_check_button(mb_left)) {
+            var _jsw = 360.0; var _jx = _mxo + 290.0;
+            var _jp = clamp((_mx - _jx) / _jsw, 0.0, 1.0);
+            if (action_modal_jitter_drag == 1) action_modal_jitter_intensity = round(clamp(1 + _jp * 6, 1, 7));
+            else action_modal_jitter_duration = round(clamp(0.2 + _jp * 4.8, 0.2, 5.0) * 10) / 10;
+        } else { action_modal_jitter_drag = 0; }
+    }
+
+    if (action_modal_quake_drag != 0) {
+        if (mouse_check_button(mb_left)) {
+            var _qsw2 = 360.0; var _qx3 = _mxo + 290.0;
+            var _qp = clamp((_mx - _qx3) / _qsw2, 0.0, 1.0);
+            if (action_modal_quake_drag == 1) action_modal_quake_intensity = round(clamp(1 + _qp * 6, 1, 7));
+            else action_modal_quake_duration = round(clamp(0.2 + _qp * 4.8, 0.2, 5.0) * 10) / 10;
+        } else { action_modal_quake_drag = 0; }
     }
 
     if (action_modal_title_dragging) {

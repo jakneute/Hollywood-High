@@ -90,6 +90,72 @@ for (var _exi = array_length(active_explosions) - 1; _exi >= 0; _exi--) {
     if (_ex.frames_elapsed >= _ex.frames_total) array_delete(active_explosions, _exi, 1);
 }
 
+// --- Quake ---
+if (quake_frames > 0) {
+    if (quake_tied_to_chain) {
+        if (!is_speaking && !action_animating && speaking_pause_timer <= 0) { quake_frames = 0; quake_tied_to_chain = false; }
+    } else { quake_frames--; }
+    if (quake_frames > 0) {
+        quake_x = (quake_direction != "vertical")   ? random_range(-quake_intensity, quake_intensity) : 0;
+        quake_y = (quake_direction != "horizontal") ? random_range(-quake_intensity, quake_intensity) : 0;
+    } else { quake_x = 0; quake_y = 0; }
+} else { quake_x = 0; quake_y = 0; }
+
+// --- Active shots ---
+for (var _shi = array_length(active_shots) - 1; _shi >= 0; _shi--) {
+    var _sh = active_shots[_shi];
+    var _prev_x = _sh.x; var _prev_y = _sh.y;
+    _sh.x   += _sh.vx;
+    _sh.y   += _sh.vy;
+    _sh.life++;
+    var _sh_fade = _sh.max_life * 0.7;
+    if (_sh.life > _sh_fade) _sh.alpha = max(0, 1.0 - (_sh.life - _sh_fade) / max(1, _sh.max_life * 0.3));
+    // Segment-vs-character hit test (same composite bbox as laser, same ray_aabb function)
+    var _sh_hit = false;
+    var _sh_speed = point_distance(0, 0, _sh.vx, _sh.vy);
+    if (_sh_speed > 0.001) {
+        var _sh_dx = _sh.vx / _sh_speed; var _sh_dy = _sh.vy / _sh_speed;
+        var _sc_sh = (scene_win_h * 1.5) / 450;
+        for (var _chi = 0; _chi < array_length(preview_actors) && !_sh_hit; _chi++) {
+            var _ca = preview_actors[_chi];
+            var _cl = get_composite_character_sprite(_ca.char_index,
+                variable_struct_exists(_ca, "pose")       ? _ca.pose       : 1,
+                variable_struct_exists(_ca, "expression") ? _ca.expression : 21,
+                variable_struct_exists(_ca, "facing")     ? _ca.facing     : 1);
+            if (array_length(_cl) == 0 || _cl[0].spr == -1) continue;
+            var _bspr = _cl[0].spr;
+            var _bw = sprite_get_width(_bspr); var _bh = sprite_get_height(_bspr);
+            // Y: composite top for head coverage; X: body sprite pixel bbox to avoid empty canvas edges
+            var _bb_y1 = 0;
+            for (var _li = 1; _li < array_length(_cl); _li++) {
+                var _ll = _cl[_li]; if (_ll.spr == -1) continue;
+                _bb_y1 = min(_bb_y1, _ll.dy);
+            }
+            var _cdx0 = _ca.x - _bw * _sc_sh * 0.5; var _cdy0 = _ca.y - _bh * _sc_sh;
+            var _sc_x1 = _cdx0 + sprite_get_bbox_left(_bspr)  * _sc_sh;
+            var _sc_x2 = _cdx0 + sprite_get_bbox_right(_bspr) * _sc_sh;
+            var _sc_y1 = max(_cdy0 + _bb_y1 * _sc_sh, -scene_win_h * 0.1); var _sc_y2 = _ca.y + 5;
+            // Cast from the leading edge so the shot disappears when its tip — not center — reaches the character
+            var _lead_x = _prev_x + _sh_dx * (_sh.w * 0.5);
+            var _lead_y = _prev_y + _sh_dy * (_sh.w * 0.5);
+            if (_lead_x >= _sc_x1 - 4 && _lead_x <= _sc_x2 + 4 && _lead_y >= _sc_y1 && _lead_y <= _sc_y2) continue;
+            var _lt = ray_aabb(_lead_x, _lead_y, _sh_dx, _sh_dy, _sc_x1, _sc_y1, _sc_x2, _sc_y2);
+            if (_lt > 0 && _lt <= _sh_speed + 4) _sh_hit = true;
+        }
+    }
+    var _sh_exited = (_sh.x < -50 || _sh.x > scene_win_w + 50 || _sh.y < -50 || _sh.y > scene_win_h + 50);
+    if (_sh_hit || _sh_exited || _sh.life >= _sh.max_life || _sh.alpha <= 0) array_delete(active_shots, _shi, 1);
+}
+// While shots are in flight keep the pause timer alive; release it the moment the last shot is gone
+if (waiting_for_shots) {
+    if (array_length(active_shots) > 0) {
+        speaking_pause_timer = max(speaking_pause_timer, 2);
+    } else {
+        waiting_for_shots    = false;
+        speaking_pause_timer = min(speaking_pause_timer, 1);
+    }
+}
+
 // --- Decap head ---
 for (var _dhi = array_length(active_decap_heads) - 1; _dhi >= 0; _dhi--) {
     var _dh = active_decap_heads[_dhi];
@@ -121,7 +187,7 @@ if (playing_block_index != -1) {
             var _blly = get_composite_character_sprite(_bla.char_index, _bla.pose, _bla.expression, _bla.facing);
             var _blbh = (_blly[0].spr != -1) ? sprite_get_height(_blly[0].spr) * _asc_bl : 200;
             var _bnx = _bla.x + random_range(-6, 6);
-            var _bny = _bla.y - _blbh * 0.88;
+            var _bny = _bla.y - _blbh * 0.92;
             repeat (irandom_range(2, 4)) {
                 var _bba = degtorad(random_range(240, 300));
                 var _bsp = random_range(1.2, 3.5);
@@ -149,17 +215,24 @@ if (dragging_particle_effect != "") {
             var _pblk_x = _mx - scene_win_x;
             var _pblk_y = _my - scene_win_y;
             var _pblk_i = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
+            var _is_shot_drop = (dragging_particle_effect == "shot");
             array_insert(script_blocks, _pblk_i, {
                 type: "particle", effect: dragging_particle_effect,
-                x: _pblk_x, y: _pblk_y, angle: (dragging_particle_effect == "flame" ? 270 : 315), size: 1.0, duration: (dragging_particle_effect == "explosion" ? 1.5 : 1.0), density: 2, speed: 1.0, spread: 65,
-                color: (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : (dragging_particle_effect == "debris" ? "wood" : (dragging_particle_effect == "flame" || dragging_particle_effect == "explosion" ? "orange" : "red")))),
+                x: _pblk_x, y: _pblk_y,
+                angle:    (_is_shot_drop ? 0 : (dragging_particle_effect == "flame" ? 270 : 315)),
+                size:     1.0,
+                duration: (_is_shot_drop ? 2.0 : (dragging_particle_effect == "explosion" ? 1.5 : 1.0)),
+                density:  2, speed: (_is_shot_drop ? 8.0 : 1.0), spread: 65,
+                color:    (_is_shot_drop ? "white" : (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : (dragging_particle_effect == "debris" ? "wood" : (dragging_particle_effect == "flame" || dragging_particle_effect == "explosion" ? "orange" : "red"))))),
                 color_r: 200, color_g: 0, color_b: 0,
-                area_w: 0, area_h: 0,
+                area_w: (_is_shot_drop ? 30 : 0), area_h: (_is_shot_drop ? 4 : 0),
                 height: 85,
             });
             update_all_block_heights();
-            focused_block = _pblk_i;
-            insertion_idx = -1;
+            focused_block           = _pblk_i;
+            insertion_idx           = -1;
+            particle_edit_mode      = true;
+            particle_edit_block_idx = _pblk_i;
         }
         dragging_particle_effect = "";
     }
@@ -179,10 +252,10 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
         _peb.y = clamp(_my - scene_win_y, 0, scene_win_h);
     }
     if (particle_drag_area_w) {
-        _peb.area_w = max(0, (_mx - (scene_win_x + _peb.x)) * 2);
+        _peb.area_w = clamp((_mx - (scene_win_x + _peb.x)) * 2, 0, 255);
     }
     if (particle_drag_area_h) {
-        _peb.area_h = max(0, ((scene_win_y + _peb.y) - _my) * 2);
+        _peb.area_h = clamp(((scene_win_y + _peb.y) - _my) * 2, 0, 255);
     }
     if (particle_drag_dir) {
         var _ddx = _mx - (scene_win_x + _peb.x);
@@ -202,7 +275,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
             var _ecb    = variable_struct_exists(_peb, "color_b") ? _peb.color_b : 0;
             var _eaw    = variable_struct_exists(_peb, "area_w")  ? _peb.area_w  : 0;
             var _eah    = variable_struct_exists(_peb, "area_h")  ? _peb.area_h  : 0;
-            if (_peb.effect == "laser" || _peb.effect == "explosion") {} else
+            if (_peb.effect == "laser" || _peb.effect == "explosion" || _peb.effect == "shot") {} else
             repeat (max(1, _eden)) {
                 var _ea = _eang + random_range(-_esprd, _esprd);
                 var _ergb = get_particle_rgb_ex(_ecolor, _ecr, _ecg, _ecb);
@@ -695,9 +768,14 @@ if (file_menu_open) {
                             } else if (string_pos("DISPLAY TITLE", _aname_u) > 0) {
                                 var _ttl = variable_struct_exists(_bl, "title_text") ? _bl.title_text : "";
                                 if (_ttl != "") file_text_write_string(_sf, "                    TITLE CARD: \"" + _ttl + "\"\n\n");
+                            } else if (string_pos("RESURRECTS", _aname_u) > 0) {
+                                // Resurrection — omit from screenplay prose
                             } else {
                                 // Character action — build a readable sentence
-                                var _sent = _cn + " " + _aname;
+                                var _display_aname = _aname;
+                                if (string_pos("FELL FORWARDS", _aname_u) > 0)  _display_aname = "falls forwards";
+                                else if (string_pos("FELL BACKWARDS", _aname_u) > 0) _display_aname = "falls backwards";
+                                var _sent = _cn + " " + _display_aname;
                                 _sent = string_upper(string_char_at(_sent, 1)) + string_copy(_sent, 2, string_length(_sent) - 1);
                                 var _lc = string_char_at(_sent, string_length(_sent));
                                 if (_lc != "." && _lc != "!" && _lc != "?") _sent += ".";
@@ -1270,6 +1348,7 @@ if (mouse_check_button_pressed(mb_left)) {
         if (playing_block_index != -1) {
             playing_block_index = -1; is_speaking = false; audio_stop_all(); tts_stop();
             theater_mode = false; theater_paused = false; theater_subtitles = "";
+            waiting_for_shots = false;
         } else if (array_length(script_blocks) > 0) {
             play_from_index(0);
         }
@@ -1353,18 +1432,25 @@ if (mouse_check_button_pressed(mb_left)) {
         var _r3y2 = scene_win_y + 70;  var _r4y2 = scene_win_y + 98;  var _r5y2 = scene_win_y + 126;
         var _pbsz2 = 24; var _clx2 = _pbase_x2 + 70; var _crx2 = _pbase_x2 + 143;
         // SIZE [-] [+]
-        if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r1y2 && _my <= _r1y2+_pbsz2) { _peb2.size     = max(0.25, _psz  - 0.25); return; }
-        if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r1y2 && _my <= _r1y2+_pbsz2) { _peb2.size     = min(5.0,  _psz  + 0.25); return; }
+        if (_peb2.effect != "shot") {
+            if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r1y2 && _my <= _r1y2+_pbsz2) { _peb2.size     = max(0.25, _psz  - 0.25); return; }
+            if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r1y2 && _my <= _r1y2+_pbsz2) { _peb2.size     = min(5.0,  _psz  + 0.25); return; }
+        }
         // DUR [-] [+]
-        if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r2y2 && _my <= _r2y2+_pbsz2) { _peb2.duration = max(0.25, _pdur - 0.25); return; }
-        if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r2y2 && _my <= _r2y2+_pbsz2) { _peb2.duration = min(5.0,  _pdur + 0.25); return; }
+        if (_peb2.effect != "shot") {
+            if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r2y2 && _my <= _r2y2+_pbsz2) { _peb2.duration = max(0.25, _pdur - 0.25); return; }
+            if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r2y2 && _my <= _r2y2+_pbsz2) { _peb2.duration = min(5.0,  _pdur + 0.25); return; }
+        }
         // DENSITY [-] [+]
         if (_peb2.effect != "laser") {
             if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r3y2 && _my <= _r3y2+_pbsz2) { _peb2.density  = max(1,    _pden - 1);    return; }
             if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r3y2 && _my <= _r3y2+_pbsz2) { _peb2.density  = min(10,   _pden + 1);    return; }
         }
         // SPEED [-] [+]
-        if (_peb2.effect != "laser") {
+        if (_peb2.effect == "shot") {
+            if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed = max(4.0,  _pspd - 4.0);  return; }
+            if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed = min(20.0, _pspd + 4.0);  return; }
+        } else if (_peb2.effect != "laser") {
             if (_mx >= _clx2 && _mx <= _clx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed    = max(0.25, _pspd - 0.25); return; }
             if (_mx >= _crx2 && _mx <= _crx2+_pbsz2 && _my >= _r4y2 && _my <= _r4y2+_pbsz2) { _peb2.speed    = min(5.0,  _pspd + 0.25); return; }
         }
@@ -1720,6 +1806,8 @@ if (mouse_check_button_pressed(mb_left)) {
                     var _is_wait       = string_pos("WAIT",          string_upper(_block.action_name)) > 0;
                     var _is_title      = string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0;
                     var _is_disappear  = string_pos("DISAPPEARS",    string_upper(_block.action_name)) > 0;
+                    var _is_jitter     = string_pos("JITTERS",       string_upper(_block.action_name)) > 0;
+                    var _is_quake      = variable_struct_exists(_block, "quake_intensity");
                     var _is_kill       = variable_struct_exists(_block, "kill_style");
                     var _is_resurrect  = string_pos("RESURRECTS",    string_upper(_block.action_name)) > 0;
                     if (_is_wait || _is_title) action_modal_wait_duration = variable_struct_exists(_block, "duration") ? _block.duration : 1.0;
@@ -1741,13 +1829,26 @@ if (mouse_check_button_pressed(mb_left)) {
                         if ((_is_wait && all_actions[j].name == "wait")
                          || (_is_title && all_actions[j].name == "display title")
                          || (_is_disappear && all_actions[j].name == "disappear")
+                         || (_is_jitter && all_actions[j].name == "jitter")
+                         || (_is_quake && all_actions[j].name == "quake")
                          || (_is_kill && all_actions[j].name == "kill")
                          || (_is_resurrect && all_actions[j].name == "resurrect")
-                         || (!_is_wait && !_is_title && !_is_disappear && !_is_kill && !_is_resurrect && all_actions[j].name == "play sfx")) {
+                         || (!_is_wait && !_is_title && !_is_disappear && !_is_jitter && !_is_quake && !_is_kill && !_is_resurrect && all_actions[j].name == "play sfx")) {
                             action_modal_selected_idx = j;
                             action_modal_locked = true;
                             break;
                         }
+                    }
+                    if (_is_quake) {
+                        action_modal_quake_intensity = variable_struct_exists(_block, "quake_intensity") ? _block.quake_intensity : 3;
+                        action_modal_quake_duration  = variable_struct_exists(_block, "quake_duration")  ? _block.quake_duration  : 1.0;
+                        action_modal_quake_direction = variable_struct_exists(_block, "quake_direction") ? _block.quake_direction : "omni";
+                    }
+                    if (_is_jitter) {
+                        action_modal_jitter_intensity = variable_struct_exists(_block, "jitter_intensity") ? _block.jitter_intensity : 3;
+                        action_modal_jitter_duration  = variable_struct_exists(_block, "jitter_duration")  ? _block.jitter_duration  : 1.0;
+                        action_modal_jitter_direction = variable_struct_exists(_block, "jitter_direction") ? _block.jitter_direction : "omni";
+                        action_modal_char_onstage = true;
                     }
                     if (_is_disappear) {
                         action_modal_disappear_style = variable_struct_exists(_block, "disappear_style") ? _block.disappear_style : "pop";
@@ -1962,9 +2063,11 @@ if (mouse_check_button_pressed(mb_left)) {
                                                     || (string_pos("pose ", _dbl_aname_lo) > 0 && string_pos("poses ", _dbl_aname_lo) == 0 && !_dbl_has_looks));
                             var _dbl_is_kill      = variable_struct_exists(_block, "kill_style");
                             var _dbl_is_resurrect = (string_pos("RESURRECTS", _dbl_aname_u) > 0);
+                            var _dbl_is_jitter    = (string_pos("JITTERS",    _dbl_aname_u) > 0);
+                            var _dbl_is_quake     = variable_struct_exists(_block, "quake_intensity");
                             var _dbl_is_gen = (string_pos("WAIT", _dbl_aname_u) > 0 || string_pos("PLAY SFX", _dbl_aname_u) > 0
                                            || string_pos("DISPLAY TITLE", _dbl_aname_u) > 0 || string_pos("DISAPPEARS", _dbl_aname_u) > 0
-                                           || _dbl_is_kill || _dbl_is_resurrect);
+                                           || _dbl_is_kill || _dbl_is_resurrect || _dbl_is_jitter || _dbl_is_quake);
 
                             if (_dbl_is_move) {
                                 move_modal_open = true; move_modal_target_index = i; move_modal_edit_mode = true;
@@ -1990,6 +2093,15 @@ if (mouse_check_button_pressed(mb_left)) {
                                     action_modal_title_size  = variable_struct_exists(_block, "title_size")  ? _block.title_size  : 1;
                                     action_modal_title_color = variable_struct_exists(_block, "title_color") ? _block.title_color : 0;
                                     action_modal_dropdown_open = ""; keyboard_string = "";
+                                } else if (_dbl_is_quake) {
+                                    action_modal_quake_intensity = variable_struct_exists(_block, "quake_intensity") ? _block.quake_intensity : 3;
+                                    action_modal_quake_duration  = variable_struct_exists(_block, "quake_duration")  ? _block.quake_duration  : 1.0;
+                                    action_modal_quake_direction = variable_struct_exists(_block, "quake_direction") ? _block.quake_direction : "omni";
+                                } else if (_dbl_is_jitter) {
+                                    action_modal_jitter_intensity = variable_struct_exists(_block, "jitter_intensity") ? _block.jitter_intensity : 3;
+                                    action_modal_jitter_duration  = variable_struct_exists(_block, "jitter_duration")  ? _block.jitter_duration  : 1.0;
+                                    action_modal_jitter_direction = variable_struct_exists(_block, "jitter_direction") ? _block.jitter_direction : "omni";
+                                    action_modal_char_onstage = true;
                                 } else if (_ad2) {
                                     action_modal_disappear_style = variable_struct_exists(_block, "disappear_style") ? _block.disappear_style : "pop";
                                     action_modal_disappear_speed = variable_struct_exists(_block, "disappear_speed") ? _block.disappear_speed : 2;
@@ -2006,9 +2118,11 @@ if (mouse_check_button_pressed(mb_left)) {
                                 for (var _dj = 0; _dj < array_length(all_actions); _dj++) {
                                     if ((_aw2 && all_actions[_dj].name == "wait") || (_at2 && all_actions[_dj].name == "display title")
                                      || (_ad2 && all_actions[_dj].name == "disappear")
+                                     || (_dbl_is_jitter && all_actions[_dj].name == "jitter")
+                                     || (_dbl_is_quake && all_actions[_dj].name == "quake")
                                      || (_dbl_is_kill && all_actions[_dj].name == "kill")
                                      || (_dbl_is_resurrect && all_actions[_dj].name == "resurrect")
-                                     || (!_aw2 && !_at2 && !_ad2 && !_dbl_is_kill && !_dbl_is_resurrect && all_actions[_dj].name == "play sfx")) {
+                                     || (!_aw2 && !_at2 && !_ad2 && !_dbl_is_jitter && !_dbl_is_quake && !_dbl_is_kill && !_dbl_is_resurrect && all_actions[_dj].name == "play sfx")) {
                                         action_modal_selected_idx = _dj; action_modal_locked = true; break;
                                     }
                                 }
@@ -2108,23 +2222,31 @@ if (mouse_check_button_pressed(mb_left)) {
                 var _diff_char = (variable_struct_exists(_b1, "char_index") && variable_struct_exists(_b2, "char_index") && real(_b1.char_index) != real(_b2.char_index));
 
                 var _base_valid = false;
-                if ((_b1_type == "move" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "move")) _base_valid = true;
-                else if ((_b1_type == "move" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "move")) _base_valid = true;
-                else if ((_b1_type == "voice" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "voice")) _base_valid = true;
-                else if ((_b1_type == "title" && _b2_type == "sfx") || (_b1_type == "sfx" && _b2_type == "title")) _base_valid = true;
+                if (_b1_type == "other" || _b2_type == "other") { /* scene/unknown blocks never link */ }
+                else if ((_b1_type == "move" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "move")) _base_valid = true;
+                else if ((_b1_type == "move" && (_b2_type == "sfx" || _b2_type == "quake")) || ((_b1_type == "sfx" || _b1_type == "quake") && _b2_type == "move")) _base_valid = true;
+                else if ((_b1_type == "voice" && (_b2_type == "sfx" || _b2_type == "quake")) || ((_b1_type == "sfx" || _b1_type == "quake") && _b2_type == "voice")) _base_valid = true;
+                else if ((_b1_type == "title" && (_b2_type == "sfx" || _b2_type == "quake")) || ((_b1_type == "sfx" || _b1_type == "quake") && _b2_type == "title")) _base_valid = true;
                 else if ((_b1_type == "title" && _b2_type == "voice") || (_b1_type == "voice" && _b2_type == "title")) _base_valid = true;
                 else if (_b1_type == "move" && _b2_type == "move" && _diff_char) _base_valid = true;
                 else if (_b1_type == "voice" && _b2_type == "voice" && _diff_char) _base_valid = true;
+                else if ((_b1_type == "sfx" && _b2_type == "quake") || (_b1_type == "quake" && _b2_type == "sfx")) _base_valid = true;
                 else if ((_b1_type == "particle" || _b2_type == "particle") && _b1_type != "other" && _b2_type != "other") _base_valid = true;
                 else if (_b1_type == "charaction" || _b2_type == "charaction") {
                     var _other_t = (_b1_type == "charaction") ? _b2_type : _b1_type;
-                    if (_other_t == "voice" || _other_t == "sfx" || _other_t == "particle" || _other_t == "title") _base_valid = true;
+                    if (_other_t == "voice" || _other_t == "sfx" || _other_t == "quake" || _other_t == "particle" || _other_t == "title") _base_valid = true;
                     else if ((_other_t == "move" || _other_t == "charaction") && _diff_char) _base_valid = true;
                 }
                 else if (_b1_type == "kill" || _b2_type == "kill") {
                     var _other_kt = (_b1_type == "kill") ? _b2_type : _b1_type;
-                    if (_other_kt == "sfx" || _other_kt == "particle") _base_valid = true;
+                    if (_other_kt == "sfx" || _other_kt == "quake" || _other_kt == "particle") _base_valid = true;
                     else if (_diff_char) _base_valid = true;
+                }
+                else if (_b1_type == "jitter" || _b2_type == "jitter") {
+                    var _other_jt = (_b1_type == "jitter") ? _b2_type : _b1_type;
+                    if (_other_jt == "sfx" || _other_jt == "particle" || _other_jt == "title") _base_valid = true;
+                    else if (_other_jt == "voice" || _other_jt == "move") _base_valid = true;
+                    else if (_other_jt != "quake" && _diff_char) _base_valid = true;
                 }
 
                 var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
@@ -2140,6 +2262,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     var _title_in_chain = 0;
                     var _move_in_chain = false;
                     var _particle_in_chain = 0;
+                    var _quake_in_chain = 0;
                     for (var k = _start_idx; k <= _end_idx; k++) {
                         var _bk = script_blocks[k];
                         var _c_idx = real(variable_struct_exists(_bk, "char_index") ? _bk.char_index : 0);
@@ -2148,19 +2271,22 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_bk_type == "title")    _title_in_chain++;
                         if (_bk_type == "move")     _move_in_chain = true;
                         if (_bk_type == "particle") _particle_in_chain++;
+                        if (_bk_type == "quake")    _quake_in_chain++;
 
-                        if (_bk_type == "kill" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
+                        if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
                             for (var j = k + 1; j <= _end_idx; j++) {
                                 var _bj = script_blocks[j];
                                 if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
                                     var _bj_type = get_link_type(_bj);
-                                    // kill/resurrect is the only action allowed per character in a chain
-                                    if (_bk_type == "kill" && _bj_type != "sfx" && _bj_type != "particle" && _bj_type != "other") { _chain_valid = false; break; }
-                                    if (_bj_type == "kill" && _bk_type != "sfx" && _bk_type != "particle" && _bk_type != "other") { _chain_valid = false; break; }
-                                    if (_bk_type == "voice" && _bj_type == "voice") { _chain_valid = false; break; }
-                                    if (_bk_type == "move"  && _bj_type == "move")  { _chain_valid = false; break; }
+                                    if (_bk_type == "kill"   && _bj_type != "sfx" && _bj_type != "particle" && _bj_type != "other") { _chain_valid = false; break; }
+                                    if (_bj_type == "kill"   && _bk_type != "sfx" && _bk_type != "particle" && _bk_type != "other") { _chain_valid = false; break; }
+                                    if (_bk_type == "jitter" && _bj_type == "jitter")    { _chain_valid = false; break; }
+                                    if (_bk_type == "jitter" && _bj_type == "charaction") { _chain_valid = false; break; }
+                                    if (_bk_type == "charaction" && _bj_type == "jitter") { _chain_valid = false; break; }
+                                    if (_bk_type == "voice"  && _bj_type == "voice")     { _chain_valid = false; break; }
+                                    if (_bk_type == "move"   && _bj_type == "move")      { _chain_valid = false; break; }
                                     if (_bk_type == "charaction" && (_bj_type == "charaction" || _bj_type == "move")) { _chain_valid = false; break; }
-                                    if (_bk_type == "move" && _bj_type == "charaction") { _chain_valid = false; break; }
+                                    if (_bk_type == "move"   && _bj_type == "charaction") { _chain_valid = false; break; }
                                 }
                             }
                         }
@@ -2172,6 +2298,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_sfx_in_chain > 1) _chain_valid = false;
                     }
                     if (_particle_in_chain > 10) _chain_valid = false;
+                    if (_quake_in_chain > 1) _chain_valid = false;
                 }
                 
                 if ((_base_valid && _chain_valid) || _is_linked) {
@@ -2323,12 +2450,13 @@ if (!_overlay_active) {
         if (particle_panel_mode) {
             // Particle tile drag start — positions must match Draw exactly
             var _tile_w3 = 155; var _tile_h3 = 82;
-            var _pe_ids = ["splatter", "shatter", "electrify", "laser", "debris", "flame", "explosion"];
+            var _pe_ids = ["splatter", "shatter", "electrify", "laser", "debris", "flame", "explosion", "shot"];
             for (var _pei3 = 0; _pei3 < array_length(_pe_ids); _pei3++) {
                 var _tx3 = char_sel_x + 10 + (_pei3 % 2) * 168;
                 var _ty3 = char_sel_y + 40 + floor(_pei3 / 2) * 95;
                 if (_mx > _tx3 && _mx < _tx3 + _tile_w3 && _my > _ty3 && _my < _ty3 + _tile_h3
-                        && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h) {
+                        && _my > char_sel_y + 30 && _my < char_sel_y + char_sel_h
+                        && current_scene_sprite != -1) {
                     dragging_particle_effect = _pe_ids[_pei3];
                     drag_particle_x = _mx; drag_particle_y = _my; break;
                 }
