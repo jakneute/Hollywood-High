@@ -53,6 +53,17 @@ function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style) {
     }
 }
 
+function tts_cleanup_req(_req) {
+    var _done_file = working_directory + "talkit\\talkit_done_" + string(_req) + ".tmp";
+    var _txt_file  = game_save_id       + "talkit_text_"        + string(_req) + ".txt";
+    var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req) + ".tmp";
+    var _dur_file  = working_directory + "talkit\\talkit_dur_"  + string(_req) + ".tmp";
+    if (file_exists(_done_file)) file_delete(_done_file);
+    if (file_exists(_txt_file))  file_delete(_txt_file);
+    if (file_exists(_prog_file)) file_delete(_prog_file);
+    if (file_exists(_dur_file))  file_delete(_dur_file);
+}
+
 function tts_stop() {
     var _exe_path = working_directory + "balcon\\balcon.exe";
     if (!file_exists(_exe_path)) _exe_path = working_directory + "balcon.exe";

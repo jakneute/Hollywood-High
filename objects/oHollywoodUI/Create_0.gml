@@ -62,15 +62,22 @@ drag_particle_x        = 0;
 drag_particle_y        = 0;
 particle_edit_mode     = false;
 particle_edit_block_idx = -1;
-particle_drag_pos      = false;   // dragging the emitter position handle
-particle_drag_dir      = false;   // dragging the direction arrow tip
-particle_drag_area_w   = false;   // dragging the area width handle
-particle_drag_area_h   = false;   // dragging the area height handle
+particle_drag_pos      = false;
+particle_drag_dir      = false;
+particle_drag_area_w   = false;
+particle_drag_area_h   = false;
+rgb_edit_channel       = -1;      // -1=none, 0=R, 1=G, 2=B — which channel is being typed
+rgb_edit_str           = "";      // digits accumulated during typing
+rgb_hold_btn           = "";      // "r-","r+","g-","g+","b-","b+" — held button
+rgb_hold_timer         = 0;       // frames held (drives repeat acceleration)
 active_particles       = [];      // live particle instances
 active_emitters        = [];      // continuous particle streams (effect, x, y, angle, size, frames_remaining)
 active_beams           = [];      // laser beam instances
 
-fx_picker_open = false;
+fx_picker_open          = false;
+fx_picker_scroll        = 0;      // top item index currently visible
+fx_picker_sb_dragging   = false;
+fx_picker_sb_drag_offset = 0;
 heat_surface = -1;
 btn_theater_x = 880; btn_theater_y = 15; btn_theater_w = 140; btn_theater_h = 35;
 
@@ -573,7 +580,24 @@ click_timer        = 0;
 repeat_timer       = 0;  // Keyboard repeat speed
 repeat_key         = vk_nokey;
 
-// --- 8. WARM UP TTS ENGINE ---
+// --- 8. STARTUP CLEANUP ---
+// Sweep leftover talkit_text_*.txt from game_save_id (written each TTS call, deleted on done-poll).
+// Leftovers accumulate if the previous session crashed before cleanup could fire.
+var _sf = file_find_first(game_save_id + "talkit_text_*.txt", 0);
+while (_sf != "") {
+    file_delete(game_save_id + _sf);
+    _sf = file_find_next();
+}
+file_find_close();
+// Sweep leftover talkit_*.tmp from the talkit working dir (done/prog/dur/vis files).
+var _tf = file_find_first(working_directory + "talkit\\talkit_*.tmp", 0);
+while (_tf != "") {
+    file_delete(working_directory + "talkit\\" + _tf);
+    _tf = file_find_next();
+}
+file_find_close();
+
+// --- 9. WARM UP TTS ENGINE ---
 // PowerShell and the .NET host have a noticeable delay on their first run.
 // We trigger a silent dummy request here (".") so the OS caches the executable
 // and JIT-compiles the libraries, preventing a pause on the first actual playback.

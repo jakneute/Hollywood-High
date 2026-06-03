@@ -37,61 +37,7 @@ for (var _ei = array_length(active_emitters) - 1; _ei >= 0; _ei--) {
             var _ergb = get_particle_rgb_ex(_ecolor, _ecr, _ecg, _ecb);
             var _epx = _esx0 + random_range(-_eaw/2, _eaw/2);
             var _epy = _esy0 + random_range(-_eah/2, _eah/2);
-            var _ep;
-            if (_em.effect == "electrify") {
-                var _espd = random_range(3.5, 11.0) * _em.size * _espd_mul;
-                var _elife = irandom_range(6, 16);
-                _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
-                        life: _elife, max_life: _elife, size: random_range(1.5, 3.5)*_em.size,
-                        r: _ergb.r, g: _ergb.g, b: _ergb.b, gravity: 0, shape: "line" };
-            } else if (_em.effect == "shatter") {
-                var _espd = random_range(2.0, 9.0) * _em.size * _espd_mul;
-                var _elife = irandom_range(22, 38);
-                _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
-                        life: _elife, max_life: _elife, size: random_range(2.0, 5.5)*_em.size,
-                        r: _ergb.r, g: _ergb.g, b: _ergb.b, shape: "shard" };
-            } else if (_em.effect == "debris") {
-                var _dtype = irandom(5);
-                if (_dtype <= 1) {
-                    // Spinning chunk — slow, heavy, lots of gravity
-                    var _espd = random_range(1.2, 5.5) * _em.size * _espd_mul;
-                    var _elife = irandom_range(30, 50);
-                    _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
-                            life: _elife, max_life: _elife,
-                            size: random_range(5, 11) * _em.size,
-                            r: _ergb.r, g: _ergb.g, b: _ergb.b,
-                            shape: "chunk",
-                            cw: random_range(0.45, 1.7), ch: random_range(0.2, 0.75),
-                            rot: random_range(0, 2*pi),
-                            spin: random_range(-0.28, 0.28),
-                            gravity: random_range(0.25, 0.45) };
-                } else if (_dtype <= 3) {
-                    // Splinter — long, thin, fast
-                    var _espd = random_range(4.0, 13.0) * _em.size * _espd_mul;
-                    var _elife = irandom_range(16, 30);
-                    _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
-                            life: _elife, max_life: _elife,
-                            size: random_range(6, 15) * _em.size,
-                            r: _ergb.r, g: _ergb.g, b: _ergb.b,
-                            shape: "shard", gravity: 0.18 };
-                } else {
-                    // Dust — tiny, scatters in all directions
-                    var _dust_a = random_range(0, 2*pi);
-                    var _espd = random_range(0.6, 3.5) * _em.size * _espd_mul;
-                    var _elife = irandom_range(22, 38);
-                    _ep = { x: _epx, y: _epy, vx: cos(_dust_a)*_espd, vy: sin(_dust_a)*_espd,
-                            life: _elife, max_life: _elife,
-                            size: random_range(1.2, 3.2) * _em.size,
-                            r: _ergb.r, g: _ergb.g, b: _ergb.b, gravity: 0.08 };
-                }
-            } else {
-                var _espd = random_range(1.5, 7.0) * _em.size * _espd_mul;
-                var _elife = irandom_range(26, 42);
-                _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
-                        life: _elife, max_life: _elife, size: random_range(2.5, 6.5)*_em.size,
-                        r: _ergb.r, g: _ergb.g, b: _ergb.b };
-            }
-            array_push(active_particles, _ep);
+            spawn_emitter_particle(_em.effect, _epx, _epy, _ea, _em.size, _espd_mul, _ergb);
         }
     }
 }
@@ -114,8 +60,8 @@ if (dragging_particle_effect != "") {
             var _pblk_i = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
             array_insert(script_blocks, _pblk_i, {
                 type: "particle", effect: dragging_particle_effect,
-                x: _pblk_x, y: _pblk_y, angle: 315, size: 1.0, duration: 1.0, density: 2, speed: 1.0, spread: 65,
-                color: (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : (dragging_particle_effect == "debris" ? "wood" : "red"))),
+                x: _pblk_x, y: _pblk_y, angle: (dragging_particle_effect == "flame" ? 270 : 315), size: 1.0, duration: 1.0, density: 2, speed: 1.0, spread: 65,
+                color: (dragging_particle_effect == "shatter" ? "glass" : (dragging_particle_effect == "electrify" ? "electric" : (dragging_particle_effect == "debris" ? "wood" : (dragging_particle_effect == "flame" ? "orange" : "red")))),
                 color_r: 200, color_g: 0, color_b: 0,
                 area_w: 0, area_h: 0,
                 height: 85,
@@ -168,59 +114,63 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
             if (_peb.effect == "laser") {} else
             repeat (max(1, _eden)) {
                 var _ea = _eang + random_range(-_esprd, _esprd);
-                var _ergb2 = get_particle_rgb_ex(_ecolor, _ecr, _ecg, _ecb);
-                var _epx2 = _esx0 + random_range(-_eaw/2, _eaw/2);
-                var _epy2 = _esy0 + random_range(-_eah/2, _eah/2);
-                var _ep2;
-                if (_peb.effect == "electrify") {
-                    var _espd2 = random_range(3.5, 11.0) * _esz * _espd_m;
-                    var _elife2 = irandom_range(6, 16);
-                    _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
-                             life: _elife2, max_life: _elife2, size: random_range(1.5, 3.5)*_esz,
-                             r: _ergb2.r, g: _ergb2.g, b: _ergb2.b, gravity: 0, shape: "line" };
-                } else if (_peb.effect == "shatter") {
-                    var _espd2 = random_range(2.0, 9.0) * _esz * _espd_m;
-                    var _elife2 = irandom_range(22, 38);
-                    _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
-                             life: _elife2, max_life: _elife2, size: random_range(2.0, 5.5)*_esz,
-                             r: _ergb2.r, g: _ergb2.g, b: _ergb2.b, shape: "shard" };
-                } else if (_peb.effect == "debris") {
-                    var _dtype2 = irandom(5);
-                    if (_dtype2 <= 1) {
-                        var _espd2 = random_range(1.2, 5.5) * _esz * _espd_m;
-                        var _elife2 = irandom_range(30, 50);
-                        _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
-                                 life: _elife2, max_life: _elife2, size: random_range(5, 11)*_esz,
-                                 r: _ergb2.r, g: _ergb2.g, b: _ergb2.b,
-                                 shape: "chunk", cw: random_range(0.45, 1.7), ch: random_range(0.2, 0.75),
-                                 rot: random_range(0, 2*pi), spin: random_range(-0.28, 0.28), gravity: random_range(0.25, 0.45) };
-                    } else if (_dtype2 <= 3) {
-                        var _espd2 = random_range(4.0, 13.0) * _esz * _espd_m;
-                        var _elife2 = irandom_range(16, 30);
-                        _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
-                                 life: _elife2, max_life: _elife2, size: random_range(6, 15)*_esz,
-                                 r: _ergb2.r, g: _ergb2.g, b: _ergb2.b, shape: "shard", gravity: 0.18 };
-                    } else {
-                        var _dust_a2 = random_range(0, 2*pi);
-                        var _espd2 = random_range(0.6, 3.5) * _esz * _espd_m;
-                        var _elife2 = irandom_range(22, 38);
-                        _ep2 = { x: _epx2, y: _epy2, vx: cos(_dust_a2)*_espd2, vy: sin(_dust_a2)*_espd2,
-                                 life: _elife2, max_life: _elife2, size: random_range(1.2, 3.2)*_esz,
-                                 r: _ergb2.r, g: _ergb2.g, b: _ergb2.b, gravity: 0.08 };
-                    }
-                } else {
-                    var _espd2 = random_range(1.5, 7.0) * _esz * _espd_m;
-                    var _elife2 = irandom_range(26, 42);
-                    _ep2 = { x: _epx2, y: _epy2, vx: cos(_ea)*_espd2, vy: sin(_ea)*_espd2,
-                             life: _elife2, max_life: _elife2, size: random_range(2.5, 6.5)*_esz,
-                             r: _ergb2.r, g: _ergb2.g, b: _ergb2.b };
-                }
-                array_push(active_particles, _ep2);
+                var _ergb = get_particle_rgb_ex(_ecolor, _ecr, _ecg, _ecb);
+                var _epx = _esx0 + random_range(-_eaw/2, _eaw/2);
+                var _epy = _esy0 + random_range(-_eah/2, _eah/2);
+                spawn_emitter_particle(_peb.effect, _epx, _epy, _ea, _esz, _espd_m, _ergb);
             }
         }
     }
 } else if (particle_edit_mode) {
     particle_edit_mode = false; particle_drag_pos = false; particle_drag_dir = false; particle_drag_area_w = false; particle_drag_area_h = false;
+}
+
+// --- RGB custom color: keyboard typing + hold-repeat (runs every step) ---
+if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_idx < array_length(script_blocks)) {
+    var _peb_c = script_blocks[particle_edit_block_idx];
+    var _is_cust_c = variable_struct_exists(_peb_c, "color") && _peb_c.color == "custom";
+
+    if (rgb_edit_channel != -1 && _is_cust_c) {
+        // Accept digit characters
+        if (string_length(keyboard_string) > 0) {
+            for (var _ki = 1; _ki <= string_length(keyboard_string); _ki++) {
+                var _kc = string_char_at(keyboard_string, _ki);
+                if (_kc >= "0" && _kc <= "9" && string_length(rgb_edit_str) < 3)
+                    rgb_edit_str += _kc;
+            }
+            keyboard_string = "";
+        }
+        if (keyboard_check_pressed(vk_backspace) && string_length(rgb_edit_str) > 0)
+            rgb_edit_str = string_delete(rgb_edit_str, string_length(rgb_edit_str), 1);
+        // Commit on Enter
+        if (keyboard_check_pressed(vk_return)) {
+            var _typed_val = clamp(string_length(rgb_edit_str) > 0 ? real(rgb_edit_str) : 0, 0, 255);
+            if      (rgb_edit_channel == 0) _peb_c.color_r = _typed_val;
+            else if (rgb_edit_channel == 1) _peb_c.color_g = _typed_val;
+            else                            _peb_c.color_b = _typed_val;
+            rgb_edit_channel = -1; rgb_edit_str = "";
+        }
+        if (keyboard_check_pressed(vk_escape)) { rgb_edit_channel = -1; rgb_edit_str = ""; }
+    }
+
+    // Hold-repeat for [-]/[+] buttons
+    if (rgb_hold_btn != "") {
+        if (!mouse_check_button(mb_left)) {
+            rgb_hold_btn = ""; rgb_hold_timer = 0;
+        } else if (_is_cust_c) {
+            rgb_hold_timer++;
+            // start slow after 20 frames, speed up after 50
+            if (rgb_hold_timer > 50 && rgb_hold_timer mod 2 == 0
+             || rgb_hold_timer > 20 && rgb_hold_timer mod 4 == 0) {
+                if (rgb_hold_btn == "r-") _peb_c.color_r = max(0,   _peb_c.color_r - 5);
+                if (rgb_hold_btn == "r+") _peb_c.color_r = min(255, _peb_c.color_r + 5);
+                if (rgb_hold_btn == "g-") _peb_c.color_g = max(0,   _peb_c.color_g - 5);
+                if (rgb_hold_btn == "g+") _peb_c.color_g = min(255, _peb_c.color_g + 5);
+                if (rgb_hold_btn == "b-") _peb_c.color_b = max(0,   _peb_c.color_b - 5);
+                if (rgb_hold_btn == "b+") _peb_c.color_b = min(255, _peb_c.color_b + 5);
+            }
+        }
+    }
 }
 
 // Flush pending JSON save from save_expr_config() — file_text_write must run here,
@@ -718,6 +668,24 @@ if (theater_mode) {
         theater_ui_timer--;
     }
     theater_ui_last_mx = _tmx; theater_ui_last_my = _tmy;
+
+    // Spacebar: play/pause shortcut
+    if (keyboard_check_pressed(vk_space)) {
+        if (playing_block_index == -1) {
+            play_from_index(0);
+            theater_paused = false;
+            theater_ui_timer = 0;
+        } else {
+            theater_paused = !theater_paused;
+            if (theater_paused) {
+                theater_was_mid_speech = is_speaking;
+                audio_stop_all(); tts_stop(); is_speaking = false;
+            } else {
+                speaking_pause_timer = theater_was_mid_speech ? -1 : 0;
+                theater_ui_timer = 0;
+            }
+        }
+    }
 }
 
 // --- 2c. SCRIPT EDITOR KEYBOARD NAVIGATION (PgUp/PgDown/Home/End) ---
@@ -844,9 +812,9 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
 }
 
 // --- 2e. IN-SCENE DRAGGING & DROPPING ---
-if (playing_block_index == -1 && scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     _scene = script_blocks[active_scene_block_idx];
-    
+
     // Start dragging actor already in scene / or just Click to open menu
     if (mouse_check_button_pressed(mb_left)) {
         if (_mx > scene_win_x && _mx < scene_win_x + scene_win_w && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
@@ -983,7 +951,7 @@ if (!script_expanded && playing_block_index == -1 && current_scene_sprite != -1 
 }
 
 // --- 2f. LIVE MOVE DRAGGING (When NOT in edit mode) ---
-if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !is_speaking && playing_block_index == -1 && active_scene_block_idx != -1) {
+if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_open && !is_speaking && playing_block_index == -1 && active_scene_block_idx != -1) {
     if (mouse_check_button_pressed(mb_left)) {
         if (_mx > scene_win_x && _mx < scene_win_x + scene_win_w && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
             for (var a = array_length(preview_actors) - 1; a >= 0; a--) {
@@ -1117,18 +1085,24 @@ if (insertion_idx != -1 && mouse_check_button_pressed(mb_left)) {
 }
 if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
     // Keep sorted alphabetically by label (OFF always first). Add future effects in order.
-    var _fx_ids    = ["none","brighten","candlelight","crt","darken","drunk","embers","fog","goldenhour","heat","infrared","nightvision","rain","sepia","snow","static","stoned","underwater"];
+    var _fx_ids    = ["none","blackwhite","brighten","candlelight","crt","darken","dream","drunk","embers","fog","frigid","goldenhour","heat","infrared","nightvision","rain","sepia","snow","static","stoned","underwater"];
     var _fx_btn_x  = _ind_x + 120; var _fx_btn_w = 130;
-    var _pick_item_h = 22; var _pick_count = 18;
+    var _pick_item_h = 22; var _pick_count = array_length(_fx_ids);
 
     // --- FX picker item click (must be checked before anything else) ---
     if (fx_picker_open) {
-        var _pick_y = scene_win_y - 10;
-        var _in_picker = (_mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w
-                       && _my > _pick_y && _my < _pick_y + _pick_count * _pick_item_h);
+        var _pick_y   = scene_win_y - 10;
+        var _fp_max   = min(13, _pick_count);
+        var _pick_vis_h = _fp_max * _pick_item_h;
+        var _fp_sb_x2   = _fx_btn_x + _fx_btn_w - 8; // scrollbar x — matches Draw geometry
+        var _on_sb      = (_mx >= _fp_sb_x2 && _mx <= _fx_btn_x + _fx_btn_w);
+        var _in_picker  = (!_on_sb && _mx > _fx_btn_x && _mx < _fp_sb_x2
+                        && _my > _pick_y && _my < _pick_y + _pick_vis_h);
+        if (!_on_sb && fx_picker_sb_dragging) { fx_picker_sb_dragging = false; }
         if (_in_picker && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
-            var _picked = floor((_my - _pick_y) / _pick_item_h);
-            script_blocks[active_scene_block_idx].fx = _fx_ids[_picked];
+            var _picked = fx_picker_scroll + floor((_my - _pick_y) / _pick_item_h);
+            if (_picked >= 0 && _picked < _pick_count)
+                script_blocks[active_scene_block_idx].fx = _fx_ids[_picked];
         }
         fx_picker_open = false;
         return;
@@ -1143,12 +1117,55 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
     // --- FX button click → open picker ---
     if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
         if (_mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
-            fx_picker_open = true;
+            fx_picker_open   = true;
+            fx_picker_scroll = 0;
             return;
         }
     }
 }
-if (!scene_edit_mode) fx_picker_open = false;
+if (!scene_edit_mode) { fx_picker_open = false; fx_picker_scroll = 0; }
+
+// --- FX picker scroll wheel + scrollbar drag (runs every step) ---
+if (fx_picker_open) {
+    var _fp_total  = 21; // must match picker list length
+    var _fp_max_sb = 13;
+    if (mouse_wheel_up())   fx_picker_scroll = max(0, fx_picker_scroll - 1);
+    if (mouse_wheel_down()) fx_picker_scroll = min(_fp_total - _fp_max_sb, fx_picker_scroll + 1);
+
+    // Scrollbar geometry (mirrors Draw)
+    var _ind_x_sb  = max(scene_win_x, 110);
+    var _fp_btn_x_sb = _ind_x_sb + 120; var _fp_btn_w_sb = 130;
+    var _fp_pick_y_sb = scene_win_y - 10;
+    var _fp_h_sb   = _fp_max_sb * 22;
+    var _fp_sb_w   = 6;
+    var _fp_sb_x   = _fp_btn_x_sb + _fp_btn_w_sb - _fp_sb_w - 2;
+    var _fp_bar_h  = max(16, (_fp_max_sb / _fp_total) * _fp_h_sb);
+    var _fp_sb_max = _fp_pick_y_sb + _fp_h_sb - _fp_bar_h;
+    var _fp_bar_y  = _fp_pick_y_sb + (fx_picker_scroll / max(1, _fp_total - _fp_max_sb)) * (_fp_h_sb - _fp_bar_h);
+
+    if (mouse_check_button_pressed(mb_left)
+        && _mx >= _fp_sb_x && _mx <= _fp_sb_x + _fp_sb_w
+        && _my >= _fp_pick_y_sb && _my <= _fp_pick_y_sb + _fp_h_sb) {
+        if (_my >= _fp_bar_y && _my <= _fp_bar_y + _fp_bar_h) {
+            fx_picker_sb_dragging    = true;
+            fx_picker_sb_drag_offset = _my - _fp_bar_y;
+        } else {
+            // Click on track — jump
+            var _frac = clamp((_my - _fp_pick_y_sb) / _fp_h_sb, 0.0, 1.0);
+            fx_picker_scroll = round(_frac * (_fp_total - _fp_max_sb));
+        }
+    }
+
+    if (fx_picker_sb_dragging) {
+        if (mouse_check_button(mb_left)) {
+            var _new_bar_y   = clamp(_my - fx_picker_sb_drag_offset, _fp_pick_y_sb, _fp_sb_max);
+            var _new_frac    = (_new_bar_y - _fp_pick_y_sb) / max(1, _fp_h_sb - _fp_bar_h);
+            fx_picker_scroll = round(clamp(_new_frac * (_fp_total - _fp_max_sb), 0, _fp_total - _fp_max_sb));
+        } else {
+            fx_picker_sb_dragging = false;
+        }
+    }
+}
 
 if (mouse_check_button_pressed(mb_left)) {
     // PLAY Button
@@ -1266,7 +1283,7 @@ if (mouse_check_button_pressed(mb_left)) {
         var _pcolors2 = ["red",     "darkred",   "crimson",   "maroon",
                          "orange",  "yellow",    "brown",     "darkbrown",
                          "glass",   "white",     "electric",  "black"];
-        var _csxo2 = _pbase_x2 + 46; var _cr_ys2 = [scene_win_y + 174, scene_win_y + 202, scene_win_y + 230];
+        var _csxo2 = _pbase_x2 + 46; var _cr_ys2 = [scene_win_y + 180, scene_win_y + 208, scene_win_y + 236];
         for (var _ci2 = 0; _ci2 < array_length(_pcolors2); _ci2++) {
             var _csx2 = _csxo2 + (_ci2 mod 4) * 28;
             var _csy2 = _cr_ys2[floor(_ci2 / 4)];
@@ -1275,7 +1292,7 @@ if (mouse_check_button_pressed(mb_left)) {
             }
         }
         // [CUSTOM RGB] button
-        if (_mx >= _csxo2 && _mx <= _csxo2+108 && _my >= scene_win_y + 258 && _my <= scene_win_y + 280) {
+        if (_mx >= _csxo2 && _mx <= _csxo2+108 && _my >= scene_win_y + 268 && _my <= scene_win_y + 290) {
             _peb2.color = "custom"; return;
         }
         // Custom RGB sliders (only when custom selected)
@@ -1283,17 +1300,32 @@ if (mouse_check_button_pressed(mb_left)) {
             var _pcr3 = variable_struct_exists(_peb2, "color_r") ? _peb2.color_r : 200;
             var _pcg3 = variable_struct_exists(_peb2, "color_g") ? _peb2.color_g : 0;
             var _pcb3 = variable_struct_exists(_peb2, "color_b") ? _peb2.color_b : 0;
-            var _r7y2 = scene_win_y + 288; var _r8y2 = scene_win_y + 316; var _r9y2 = scene_win_y + 344;
-            if (_mx>=_clx2&&_mx<=_clx2+_pbsz2&&_my>=_r7y2&&_my<=_r7y2+_pbsz2) { _peb2.color_r=max(0,  _pcr3-5); return; }
-            if (_mx>=_crx2&&_mx<=_crx2+_pbsz2&&_my>=_r7y2&&_my<=_r7y2+_pbsz2) { _peb2.color_r=min(255,_pcr3+5); return; }
-            if (_mx>=_clx2&&_mx<=_clx2+_pbsz2&&_my>=_r8y2&&_my<=_r8y2+_pbsz2) { _peb2.color_g=max(0,  _pcg3-5); return; }
-            if (_mx>=_crx2&&_mx<=_crx2+_pbsz2&&_my>=_r8y2&&_my<=_r8y2+_pbsz2) { _peb2.color_g=min(255,_pcg3+5); return; }
-            if (_mx>=_clx2&&_mx<=_clx2+_pbsz2&&_my>=_r9y2&&_my<=_r9y2+_pbsz2) { _peb2.color_b=max(0,  _pcb3-5); return; }
-            if (_mx>=_crx2&&_mx<=_crx2+_pbsz2&&_my>=_r9y2&&_my<=_r9y2+_pbsz2) { _peb2.color_b=min(255,_pcb3+5); return; }
+            var _r7y2 = scene_win_y + 298; var _r8y2 = scene_win_y + 326; var _r9y2 = scene_win_y + 354;
+            // Commit any in-progress typed value before handling this click
+            if (rgb_edit_channel != -1) {
+                var _cv = clamp(string_length(rgb_edit_str) > 0 ? real(rgb_edit_str) : 0, 0, 255);
+                if      (rgb_edit_channel == 0) _peb2.color_r = _cv;
+                else if (rgb_edit_channel == 1) _peb2.color_g = _cv;
+                else                            _peb2.color_b = _cv;
+                rgb_edit_channel = -1; rgb_edit_str = "";
+                _pcr3 = _peb2.color_r; _pcg3 = _peb2.color_g; _pcb3 = _peb2.color_b;
+            }
+            // [-] [+] buttons — fire once on press, hold-repeat handled in step
+            if (_mx>=_clx2&&_mx<=_clx2+_pbsz2&&_my>=_r7y2&&_my<=_r7y2+_pbsz2) { _peb2.color_r=max(0,  _pcr3-5); rgb_hold_btn="r-"; rgb_hold_timer=0; return; }
+            if (_mx>=_crx2&&_mx<=_crx2+_pbsz2&&_my>=_r7y2&&_my<=_r7y2+_pbsz2) { _peb2.color_r=min(255,_pcr3+5); rgb_hold_btn="r+"; rgb_hold_timer=0; return; }
+            if (_mx>=_clx2&&_mx<=_clx2+_pbsz2&&_my>=_r8y2&&_my<=_r8y2+_pbsz2) { _peb2.color_g=max(0,  _pcg3-5); rgb_hold_btn="g-"; rgb_hold_timer=0; return; }
+            if (_mx>=_crx2&&_mx<=_crx2+_pbsz2&&_my>=_r8y2&&_my<=_r8y2+_pbsz2) { _peb2.color_g=min(255,_pcg3+5); rgb_hold_btn="g+"; rgb_hold_timer=0; return; }
+            if (_mx>=_clx2&&_mx<=_clx2+_pbsz2&&_my>=_r9y2&&_my<=_r9y2+_pbsz2) { _peb2.color_b=max(0,  _pcb3-5); rgb_hold_btn="b-"; rgb_hold_timer=0; return; }
+            if (_mx>=_crx2&&_mx<=_crx2+_pbsz2&&_my>=_r9y2&&_my<=_r9y2+_pbsz2) { _peb2.color_b=min(255,_pcb3+5); rgb_hold_btn="b+"; rgb_hold_timer=0; return; }
+            // Click on value display → enter type mode for that channel
+            var _val_x1 = _clx2 + _pbsz2; var _val_x2 = _crx2;
+            if (_mx>=_val_x1&&_mx<=_val_x2&&_my>=_r7y2&&_my<=_r7y2+_pbsz2) { rgb_edit_channel=0; rgb_edit_str=string(_pcr3); keyboard_string=""; return; }
+            if (_mx>=_val_x1&&_mx<=_val_x2&&_my>=_r8y2&&_my<=_r8y2+_pbsz2) { rgb_edit_channel=1; rgb_edit_str=string(_pcg3); keyboard_string=""; return; }
+            if (_mx>=_val_x1&&_mx<=_val_x2&&_my>=_r9y2&&_my<=_r9y2+_pbsz2) { rgb_edit_channel=2; rgb_edit_str=string(_pcb3); keyboard_string=""; return; }
         }
         // Guard: don't teleport if click is in the control strip area
         var _is_cust2 = variable_struct_exists(_peb2, "color") && _peb2.color == "custom";
-        if (_my >= scene_win_y + 10 && _my <= (_is_cust2 ? scene_win_y + 374 : scene_win_y + 286)) return;
+        if (_my >= scene_win_y + 10 && _my <= (_is_cust2 ? scene_win_y + 382 : scene_win_y + 294)) return;
 
         // click elsewhere on scene to teleport emitter (skip if clicking on a character)
         if (_mx > scene_win_x && _mx < scene_win_x + scene_win_w && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
@@ -2139,7 +2171,7 @@ if (!_overlay_active) {
         if (particle_panel_mode) {
             // Particle tile drag start — positions must match Draw exactly
             var _tile_w3 = 155; var _tile_h3 = 82;
-            var _pe_ids = ["splatter", "shatter", "electrify", "laser", "debris"];
+            var _pe_ids = ["splatter", "shatter", "electrify", "laser", "debris", "flame"];
             for (var _pei3 = 0; _pei3 < array_length(_pe_ids); _pei3++) {
                 var _tx3 = char_sel_x + 10 + (_pei3 % 2) * 168;
                 var _ty3 = char_sel_y + 40 + floor(_pei3 / 2) * 95;

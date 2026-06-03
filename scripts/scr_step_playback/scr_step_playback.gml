@@ -227,14 +227,8 @@ function step_tts_playback() {
             var _req = active_requests[_r];
             var _done_file = working_directory + "talkit\\talkit_done_" + string(_req) + ".tmp";
             if (file_exists(_done_file)) {
-                file_delete(_done_file);
+                tts_cleanup_req(_req);
                 array_delete(active_requests, _r, 1);
-                var _txt_file  = game_save_id + "talkit_text_" + string(_req) + ".tmp";
-                var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req) + ".tmp";
-                var _dur_file  = working_directory + "talkit\\talkit_dur_"  + string(_req) + ".tmp";
-                if (file_exists(_txt_file))  file_delete(_txt_file);
-                if (file_exists(_prog_file)) file_delete(_prog_file);
-                if (file_exists(_dur_file))  file_delete(_dur_file);
             } else { _all_done = false; }
         }
         if (_all_done) {
@@ -257,14 +251,8 @@ function step_tts_playback() {
             var _req = warmup_requests[_r];
             var _done_file = working_directory + "talkit\\talkit_done_" + string(_req) + ".tmp";
             if (file_exists(_done_file)) {
-                file_delete(_done_file);
+                tts_cleanup_req(_req);
                 array_delete(warmup_requests, _r, 1);
-                var _txt_file  = game_save_id + "talkit_text_" + string(_req) + ".tmp";
-                var _prog_file = working_directory + "talkit\\talkit_prog_" + string(_req) + ".tmp";
-                var _dur_file  = working_directory + "talkit\\talkit_dur_"  + string(_req) + ".tmp";
-                if (file_exists(_txt_file))  file_delete(_txt_file);
-                if (file_exists(_prog_file)) file_delete(_prog_file);
-                if (file_exists(_dur_file))  file_delete(_dur_file);
             }
         }
     }

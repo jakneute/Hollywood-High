@@ -392,6 +392,78 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
     });
 }
 
+function spawn_emitter_particle(_effect, _epx, _epy, _ea, _esz, _espd_mul, _ergb) {
+    var _ep;
+    if (_effect == "electrify") {
+        // fresh: boosted toward white (bright spark); dying: dim, slightly desaturated
+        var _espd = random_range(3.5, 11.0) * _esz * _espd_mul;
+        var _elife = irandom_range(6, 16);
+        _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
+                life: _elife, max_life: _elife, size: random_range(1.5, 3.5)*_esz,
+                r:  min(255, _ergb.r + 80),  g:  min(255, _ergb.g + 80),  b:  min(255, _ergb.b + 80),
+                r2: floor(_ergb.r * 0.2),    g2: floor(_ergb.g * 0.2),    b2: floor(_ergb.b * 0.3),
+                gravity: 0, shape: "line", additive: true };
+    } else if (_effect == "shatter") {
+        // fresh: catch of light (slightly brighter); dying: darker, heavier
+        var _espd = random_range(2.0, 9.0) * _esz * _espd_mul;
+        var _elife = irandom_range(22, 38);
+        _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
+                life: _elife, max_life: _elife, size: random_range(2.0, 5.5)*_esz,
+                r:  min(255, floor(_ergb.r * 1.2 + 18)), g:  min(255, floor(_ergb.g * 1.2 + 18)), b:  min(255, floor(_ergb.b * 1.1 + 18)),
+                r2: floor(_ergb.r * 0.3),                g2: floor(_ergb.g * 0.4),                b2: floor(_ergb.b * 0.55),
+                shape: "shard" };
+    } else if (_effect == "debris") {
+        var _dtype = irandom(5);
+        if (_dtype <= 1) {
+            var _espd = random_range(1.2, 5.5) * _esz * _espd_mul;
+            var _elife = irandom_range(30, 50);
+            _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
+                    life: _elife, max_life: _elife, size: random_range(5, 11)*_esz,
+                    r: _ergb.r, g: _ergb.g, b: _ergb.b,
+                    r2: floor(_ergb.r * 0.3), g2: floor(_ergb.g * 0.3), b2: floor(_ergb.b * 0.3),
+                    shape: "chunk", cw: random_range(0.45, 1.7), ch: random_range(0.2, 0.75),
+                    rot: random_range(0, 2*pi), spin: random_range(-0.28, 0.28), gravity: random_range(0.25, 0.45) };
+        } else if (_dtype <= 3) {
+            var _espd = random_range(4.0, 13.0) * _esz * _espd_mul;
+            var _elife = irandom_range(16, 30);
+            _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
+                    life: _elife, max_life: _elife, size: random_range(6, 15)*_esz,
+                    r: _ergb.r, g: _ergb.g, b: _ergb.b,
+                    r2: floor(_ergb.r * 0.25), g2: floor(_ergb.g * 0.25), b2: floor(_ergb.b * 0.25),
+                    shape: "shard", gravity: 0.18 };
+        } else {
+            var _dust_a = random_range(0, 2*pi);
+            var _espd = random_range(0.6, 3.5) * _esz * _espd_mul;
+            var _elife = irandom_range(22, 38);
+            _ep = { x: _epx, y: _epy, vx: cos(_dust_a)*_espd, vy: sin(_dust_a)*_espd,
+                    life: _elife, max_life: _elife, size: random_range(1.2, 3.2)*_esz,
+                    r: _ergb.r, g: _ergb.g, b: _ergb.b,
+                    r2: floor(_ergb.r * 0.2), g2: floor(_ergb.g * 0.2), b2: floor(_ergb.b * 0.2),
+                    gravity: 0.08 };
+        }
+    } else if (_effect == "flame") {
+        // fresh: yellow-hot shift of the chosen color; dying: dark ember
+        var _espd = random_range(1.5, 4.0) * _esz * _espd_mul;
+        var _elife = irandom_range(18, 32);
+        _ep = { x: _epx, y: _epy,
+                vx: cos(_ea)*_espd + random_range(-0.5, 0.5)*_esz,
+                vy: sin(_ea)*_espd,
+                life: _elife, max_life: _elife, size: random_range(3.0, 7.5)*_esz,
+                r:  min(255, _ergb.r + 55),  g:  min(255, _ergb.g + 90),  b:  min(60, _ergb.b + 15),
+                r2: floor(_ergb.r * 0.25),   g2: floor(_ergb.g * 0.08),   b2: 0,
+                gravity: -0.06, additive: true };
+    } else {
+        // splatter / generic: bright on impact, darkens as it settles
+        var _espd = random_range(1.5, 7.0) * _esz * _espd_mul;
+        var _elife = irandom_range(26, 42);
+        _ep = { x: _epx, y: _epy, vx: cos(_ea)*_espd, vy: sin(_ea)*_espd,
+                life: _elife, max_life: _elife, size: random_range(2.5, 6.5)*_esz,
+                r:  min(255, floor(_ergb.r * 1.25)), g:  min(255, floor(_ergb.g * 1.1)), b:  min(255, floor(_ergb.b * 1.1)),
+                r2: floor(_ergb.r * 0.3),            g2: floor(_ergb.g * 0.2),           b2: floor(_ergb.b * 0.2) };
+    }
+    array_push(active_particles, _ep);
+}
+
 function fire_particle_effect(_effect, _ox, _oy, _angle_deg, _size = 1.0, _duration = 1.0, _density = 2, _color = "red", _color_r = 200, _color_g = 0, _color_b = 0, _area_w = 0, _area_h = 0) {
     var _sx0    = scene_win_x + _ox;
     var _sy0    = scene_win_y + _oy;

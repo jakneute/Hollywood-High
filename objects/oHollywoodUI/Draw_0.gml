@@ -477,6 +477,12 @@ if (theater_mode) {
         surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
         shader_set(shCRT); shader_set_uniform_f(shader_get_uniform(shCRT, "u_time"), current_time * 0.001);
         draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
+    } else if (_active_fx == "frigid" && shader_is_compiled(shFrigid)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shFrigid); shader_set_uniform_f(shader_get_uniform(shFrigid, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
     } else if (_active_fx == "goldenhour" && shader_is_compiled(shGoldenHour)) {
         var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
         if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
@@ -489,11 +495,23 @@ if (theater_mode) {
         surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
         shader_set(shDarken); shader_set_uniform_f(shader_get_uniform(shDarken, "u_time"), current_time * 0.001);
         draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
+    } else if (_active_fx == "blackwhite" && shader_is_compiled(shBlackWhite)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shBlackWhite); shader_set_uniform_f(shader_get_uniform(shBlackWhite, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
     } else if (_active_fx == "brighten" && shader_is_compiled(shBrighten)) {
         var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
         if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
         surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
         shader_set(shBrighten); shader_set_uniform_f(shader_get_uniform(shBrighten, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
+    } else if (_active_fx == "dream" && shader_is_compiled(shDream)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shDream); shader_set_uniform_f(shader_get_uniform(shDream, "u_time"), current_time * 0.001);
         draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
     } else if (_active_fx == "drunk" && shader_is_compiled(shDrunk)) {
         var _dsw = ceil(_stage_w); var _dsh = ceil(_stage_h);
@@ -1060,14 +1078,27 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	// --- Active Particles ---
 	if (array_length(active_particles) > 0) {
 		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		var _pp_add = false; // track current blend mode
 		for (var _ppi = 0; _ppi < array_length(active_particles); _ppi++) {
 			var _pp = active_particles[_ppi];
-			var _t = _pp.life / _pp.max_life;
-			draw_set_color(make_color_rgb(_pp.r, _pp.g, _pp.b));
-			draw_set_alpha(_t * _t);
-			if (variable_struct_exists(_pp, "shape") && _pp.shape == "line") {
+			var _t  = _pp.life / _pp.max_life;
+			// switch blend mode only when needed
+			var _is_add = variable_struct_exists(_pp, "additive") && _pp.additive;
+			if (_is_add != _pp_add) {
+				gpu_set_blendmode(_is_add ? bm_add : bm_normal);
+				_pp_add = _is_add;
+			}
+			// color over lifetime: lerp from r2/g2/b2 (dying) to r/g/b (fresh)
+			var _cr = variable_struct_exists(_pp, "r2") ? floor(lerp(_pp.r2, _pp.r, _t)) : _pp.r;
+			var _cg = variable_struct_exists(_pp, "g2") ? floor(lerp(_pp.g2, _pp.g, _t)) : _pp.g;
+			var _cb = variable_struct_exists(_pp, "b2") ? floor(lerp(_pp.b2, _pp.b, _t)) : _pp.b;
+			draw_set_color(make_color_rgb(_cr, _cg, _cb));
+			// additive particles use linear fade; normal use quadratic (stays bright longer then drops)
+			draw_set_alpha(_is_add ? _t : _t * _t);
+			var _pshape = variable_struct_exists(_pp, "shape") ? _pp.shape : "";
+			if (_pshape == "line") {
 				draw_line_width(_pp.x, _pp.y, _pp.x - _pp.vx * 2, _pp.y - _pp.vy * 2, max(1, _pp.size * _t * 0.5));
-			} else if (variable_struct_exists(_pp, "shape") && _pp.shape == "shard") {
+			} else if (_pshape == "shard") {
 				var _sang = arctan2(_pp.vy, _pp.vx);
 				var _ssz  = max(0.5, _pp.size * _t);
 				var _slen = _ssz * 2.2; var _swid = max(0.5, _ssz * 0.45);
@@ -1075,7 +1106,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				draw_triangle(_pp.x + cos(_sang)*_slen,  _pp.y + sin(_sang)*_slen,
 				              _pp.x + cos(_sperp)*_swid, _pp.y + sin(_sperp)*_swid,
 				              _pp.x - cos(_sperp)*_swid, _pp.y - sin(_sperp)*_swid, false);
-			} else if (variable_struct_exists(_pp, "shape") && _pp.shape == "chunk") {
+			} else if (_pshape == "chunk") {
 				var _crot = _pp.rot + (_pp.max_life - _pp.life) * _pp.spin;
 				var _hw = max(0.5, _pp.cw * _pp.size * _t);
 				var _hh = max(0.5, _pp.ch * _pp.size * _t);
@@ -1086,10 +1117,20 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				var _qx4 = _pp.x + (-_hw)*_cc - ( _hh)*_cs;  var _qy4 = _pp.y + (-_hw)*_cs + ( _hh)*_cc;
 				draw_triangle(_qx1, _qy1, _qx2, _qy2, _qx3, _qy3, false);
 				draw_triangle(_qx1, _qy1, _qx3, _qy3, _qx4, _qy4, false);
+			} else if (_pshape == "lick") {
+				var _lang = arctan2(_pp.vy, _pp.vx);
+				var _lsz  = max(0.5, _pp.size * _t);
+				var _lperp = _lang + pi/2;
+				draw_triangle(
+				    _pp.x + cos(_lang)  * _lsz * 2.2,  _pp.y + sin(_lang)  * _lsz * 2.2,
+				    _pp.x + cos(_lperp) * _lsz * 0.85, _pp.y + sin(_lperp) * _lsz * 0.85,
+				    _pp.x - cos(_lperp) * _lsz * 0.85, _pp.y - sin(_lperp) * _lsz * 0.85,
+				    false);
 			} else {
 				draw_circle(_pp.x, _pp.y, max(0.5, _pp.size * _t), false);
 			}
 		}
+		if (_pp_add) gpu_set_blendmode(bm_normal);
 		draw_set_alpha(1.0);
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
@@ -1097,7 +1138,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	// Draw foreground mask AFTER beams and particles so they appear behind the foreground layer
 	if (_mask_sprite != -1) {
 		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-		draw_sprite_ext(_mask_sprite, 0, scene_win_x, scene_win_y, _mask_scale_x, _mask_scale_y, 0, c_white, 1);
+		var _fg_scale_x = scene_win_w / sprite_get_width(_mask_sprite);
+		var _fg_scale_y = scene_win_h / sprite_get_height(_mask_sprite);
+		draw_sprite_ext(_mask_sprite, 0, scene_win_x, scene_win_y, _fg_scale_x, _fg_scale_y, 0, c_white, 1);
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
 
@@ -1105,19 +1148,22 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	var _edit_fx = variable_struct_exists(_scene, "fx") ? _scene.fx : "none";
 	if (_edit_fx != "none") {
 		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-		var _is_capture_fx = (_edit_fx == "heat" || _edit_fx == "sepia" || _edit_fx == "drunk" || _edit_fx == "underwater" || _edit_fx == "nightvision" || _edit_fx == "infrared" || _edit_fx == "candlelight" || _edit_fx == "crt" || _edit_fx == "goldenhour" || _edit_fx == "darken" || _edit_fx == "brighten" || _edit_fx == "stoned");
+		var _is_capture_fx = (_edit_fx == "blackwhite" || _edit_fx == "brighten" || _edit_fx == "candlelight" || _edit_fx == "crt" || _edit_fx == "darken" || _edit_fx == "dream" || _edit_fx == "drunk" || _edit_fx == "frigid" || _edit_fx == "goldenhour" || _edit_fx == "heat" || _edit_fx == "infrared" || _edit_fx == "nightvision" || _edit_fx == "sepia" || _edit_fx == "stoned" || _edit_fx == "underwater");
 		var _cap_sh_for_fx = shHeat;
-		if      (_edit_fx == "sepia")       _cap_sh_for_fx = shSepia;
-		else if (_edit_fx == "drunk")       _cap_sh_for_fx = shDrunk;
-		else if (_edit_fx == "underwater")  _cap_sh_for_fx = shUnderwater;
-		else if (_edit_fx == "nightvision") _cap_sh_for_fx = shNightVision;
-		else if (_edit_fx == "infrared")    _cap_sh_for_fx = shInfrared;
+		if      (_edit_fx == "blackwhite")  _cap_sh_for_fx = shBlackWhite;
+		else if (_edit_fx == "brighten")    _cap_sh_for_fx = shBrighten;
 		else if (_edit_fx == "candlelight") _cap_sh_for_fx = shCandlelight;
 		else if (_edit_fx == "crt")         _cap_sh_for_fx = shCRT;
-		else if (_edit_fx == "goldenhour")  _cap_sh_for_fx = shGoldenHour;
 		else if (_edit_fx == "darken")      _cap_sh_for_fx = shDarken;
-		else if (_edit_fx == "brighten")    _cap_sh_for_fx = shBrighten;
+		else if (_edit_fx == "dream")       _cap_sh_for_fx = shDream;
+		else if (_edit_fx == "drunk")       _cap_sh_for_fx = shDrunk;
+		else if (_edit_fx == "frigid")      _cap_sh_for_fx = shFrigid;
+		else if (_edit_fx == "goldenhour")  _cap_sh_for_fx = shGoldenHour;
+		else if (_edit_fx == "infrared")    _cap_sh_for_fx = shInfrared;
+		else if (_edit_fx == "nightvision") _cap_sh_for_fx = shNightVision;
+		else if (_edit_fx == "sepia")       _cap_sh_for_fx = shSepia;
 		else if (_edit_fx == "stoned")      _cap_sh_for_fx = shStoned;
+		else if (_edit_fx == "underwater")  _cap_sh_for_fx = shUnderwater;
 		if (_is_capture_fx && shader_is_compiled(_cap_sh_for_fx)) {
 			var _cap_sh = _cap_sh_for_fx;
 			var _ehsw = ceil(scene_win_w); var _ehsh = ceil(scene_win_h);
@@ -1228,13 +1274,14 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
     }
     gpu_set_scissor(0, 0, 1280, 960);
 
-    // "PARTICLE EDIT" label (mirrors staging mode indicator style)
+    // "PARTICLE EDIT" label — clamped right so it never overlaps the FILE button (~x=90)
+    var _pe_lx = max(scene_win_x, 98);
     draw_set_color(make_color_rgb(180, 28, 28));
-    draw_roundrect_ext(scene_win_x, scene_win_y - 44, scene_win_x + 140, scene_win_y - 10, 5, 5, false);
+    draw_roundrect_ext(_pe_lx, scene_win_y - 44, _pe_lx + 140, scene_win_y - 10, 5, 5, false);
     draw_set_color(make_color_rgb(255, 90, 90));
-    draw_roundrect_ext(scene_win_x, scene_win_y - 44, scene_win_x + 140, scene_win_y - 10, 5, 5, true);
+    draw_roundrect_ext(_pe_lx, scene_win_y - 44, _pe_lx + 140, scene_win_y - 10, 5, 5, true);
     draw_set_color(c_white); draw_set_halign(fa_center);
-    draw_text(scene_win_x + 70, scene_win_y - 36, "PARTICLE EDIT");
+    draw_text(_pe_lx + 70, scene_win_y - 36, "PARTICLE EDIT");
     draw_set_halign(fa_left);
 
     // Panel side: flip to right when emitter is in the left 35% of the scene
@@ -1264,7 +1311,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
     var _pspr = variable_struct_exists(_pb, "spread")   ? _pb.spread   : 65;
     var _pctrl_y = scene_win_y + 10; var _pbsz = 24;
     var _is_custom_color = (variable_struct_exists(_pb, "color") && _pb.color == "custom");
-    var _panel_h = _is_custom_color ? 364 : 276;
+    var _panel_h = _is_custom_color ? 372 : 284;
     draw_set_color(make_color_rgb(28, 28, 40));
     draw_rectangle(_pbase_x, _pctrl_y, _pbase_x + 200, _pctrl_y + _panel_h, false);
     draw_set_color(make_color_rgb(90, 30, 30));
@@ -1340,7 +1387,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
     var _csxo = _pbase_x + 46;
     for (var _ci = 0; _ci < array_length(_pcolors); _ci++) {
         var _csx = _csxo + (_ci mod 4) * 28;
-        var _csy = _r6y + 16 + floor(_ci / 4) * 28;
+        var _csy = _r6y + 22 + floor(_ci / 4) * 28;
         var _crgb = _pcol_rgb[_ci];
         draw_set_color(make_color_rgb(_crgb[0], _crgb[1], _crgb[2]));
         draw_rectangle(_csx, _csy, _csx + 24, _csy + 24, false);
@@ -1349,7 +1396,7 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
         }
     }
     // [CUSTOM RGB] button
-    var _cust_x = _csxo; var _cust_y = _r6y + 100;
+    var _cust_x = _csxo; var _cust_y = _r6y + 110;
     var _cust_sel = (_cur_pcolor == "custom");
     draw_set_color(_cust_sel ? make_color_rgb(80,80,110) : make_color_rgb(38,38,55));
     draw_rectangle(_cust_x, _cust_y, _cust_x + 108, _cust_y + 22, false);
@@ -1364,14 +1411,14 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
         draw_rectangle(_cust_x + 84, _cust_y + 3, _cust_x + 106, _cust_y + 19, false);
     }
     draw_set_color(c_white); draw_set_halign(fa_center);
-    draw_text(_cust_x + 40, _cust_y + 5, "CUSTOM RGB");
+    draw_text(_cust_x + 54, _cust_y + 5, "CUSTOM RGB");
     draw_set_halign(fa_left);
     // RGB sliders (only when custom selected)
     if (_cust_sel) {
         var _pcr = variable_struct_exists(_pb, "color_r") ? _pb.color_r : 200;
         var _pcg = variable_struct_exists(_pb, "color_g") ? _pb.color_g : 0;
         var _pcb = variable_struct_exists(_pb, "color_b") ? _pb.color_b : 0;
-        var _r7y = _r6y + 130; var _r8y = _r6y + 158; var _r9y = _r6y + 186;
+        var _r7y = _r6y + 140; var _r8y = _r6y + 168; var _r9y = _r6y + 196;
         // R
         var _rm_hov = (_mx>=_ctrl_lx&&_mx<=_ctrl_lx+_pbsz&&_my>=_r7y&&_my<=_r7y+_pbsz);
         var _rp_hov = (_mx>=_ctrl_rx&&_mx<=_ctrl_rx+_pbsz&&_my>=_r7y&&_my<=_r7y+_pbsz);
@@ -1380,7 +1427,17 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12,_r7y+5,"-"); draw_set_halign(fa_left);
         draw_set_color(_rp_hov?c_white:make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx,_r7y,_ctrl_rx+_pbsz,_r7y+_pbsz,3,3,false);
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12,_r7y+5,"+"); draw_set_halign(fa_left);
-        draw_set_color(make_color_rgb(220,100,100)); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc,_r7y+5,string(_pcr),1.1,1.1,0); draw_set_halign(fa_left);
+        var _rgb_cursor = (check_timer mod 30 < 15);
+        // R value — editable
+        if (rgb_edit_channel == 0) {
+            draw_set_color(make_color_rgb(60,20,20)); draw_rectangle(_ctrl_lx+_pbsz, _r7y, _ctrl_rx, _r7y+_pbsz, false);
+            draw_set_color(make_color_rgb(255,160,160)); draw_set_halign(fa_center);
+            draw_text_transformed(_ctrl_vc, _r7y+5, rgb_edit_str + (_rgb_cursor ? "|" : ""), 1.1, 1.1, 0);
+        } else {
+            draw_set_color(make_color_rgb(220,100,100)); draw_set_halign(fa_center);
+            draw_text_transformed(_ctrl_vc, _r7y+5, string(_pcr), 1.1, 1.1, 0);
+        }
+        draw_set_halign(fa_left);
         // G
         var _gm_hov = (_mx>=_ctrl_lx&&_mx<=_ctrl_lx+_pbsz&&_my>=_r8y&&_my<=_r8y+_pbsz);
         var _gp_hov = (_mx>=_ctrl_rx&&_mx<=_ctrl_rx+_pbsz&&_my>=_r8y&&_my<=_r8y+_pbsz);
@@ -1389,7 +1446,16 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12,_r8y+5,"-"); draw_set_halign(fa_left);
         draw_set_color(_gp_hov?c_white:make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx,_r8y,_ctrl_rx+_pbsz,_r8y+_pbsz,3,3,false);
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12,_r8y+5,"+"); draw_set_halign(fa_left);
-        draw_set_color(make_color_rgb(100,220,100)); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc,_r8y+5,string(_pcg),1.1,1.1,0); draw_set_halign(fa_left);
+        // G value — editable
+        if (rgb_edit_channel == 1) {
+            draw_set_color(make_color_rgb(20,60,20)); draw_rectangle(_ctrl_lx+_pbsz, _r8y, _ctrl_rx, _r8y+_pbsz, false);
+            draw_set_color(make_color_rgb(160,255,160)); draw_set_halign(fa_center);
+            draw_text_transformed(_ctrl_vc, _r8y+5, rgb_edit_str + (_rgb_cursor ? "|" : ""), 1.1, 1.1, 0);
+        } else {
+            draw_set_color(make_color_rgb(100,220,100)); draw_set_halign(fa_center);
+            draw_text_transformed(_ctrl_vc, _r8y+5, string(_pcg), 1.1, 1.1, 0);
+        }
+        draw_set_halign(fa_left);
         // B
         var _bm_hov = (_mx>=_ctrl_lx&&_mx<=_ctrl_lx+_pbsz&&_my>=_r9y&&_my<=_r9y+_pbsz);
         var _bp_hov = (_mx>=_ctrl_rx&&_mx<=_ctrl_rx+_pbsz&&_my>=_r9y&&_my<=_r9y+_pbsz);
@@ -1398,7 +1464,16 @@ if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_i
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_lx+12,_r9y+5,"-"); draw_set_halign(fa_left);
         draw_set_color(_bp_hov?c_white:make_color_rgb(120,120,140)); draw_roundrect_ext(_ctrl_rx,_r9y,_ctrl_rx+_pbsz,_r9y+_pbsz,3,3,false);
         draw_set_color(c_black); draw_set_halign(fa_center); draw_text(_ctrl_rx+12,_r9y+5,"+"); draw_set_halign(fa_left);
-        draw_set_color(make_color_rgb(100,100,220)); draw_set_halign(fa_center); draw_text_transformed(_ctrl_vc,_r9y+5,string(_pcb),1.1,1.1,0); draw_set_halign(fa_left);
+        // B value — editable
+        if (rgb_edit_channel == 2) {
+            draw_set_color(make_color_rgb(20,20,60)); draw_rectangle(_ctrl_lx+_pbsz, _r9y, _ctrl_rx, _r9y+_pbsz, false);
+            draw_set_color(make_color_rgb(160,160,255)); draw_set_halign(fa_center);
+            draw_text_transformed(_ctrl_vc, _r9y+5, rgb_edit_str + (_rgb_cursor ? "|" : ""), 1.1, 1.1, 0);
+        } else {
+            draw_set_color(make_color_rgb(100,100,220)); draw_set_halign(fa_center);
+            draw_text_transformed(_ctrl_vc, _r9y+5, string(_pcb), 1.1, 1.1, 0);
+        }
+        draw_set_halign(fa_left);
     }
 }
 
@@ -1439,13 +1514,13 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
     var _sfx_scene = script_blocks[active_scene_block_idx];
     var _cur_fx = variable_struct_exists(_sfx_scene, "fx") ? _sfx_scene.fx : "none";
     // Keep sorted alphabetically by label (OFF always first). Add future effects in order.
-    var _fx_ids    = ["none", "brighten",   "candlelight",   "crt", "darken",  "drunk", "embers", "fog", "goldenhour",    "heat",      "infrared",  "nightvision",  "rain", "sepia", "snow", "static",    "stoned",  "underwater"];
-    var _fx_labels = ["OFF",  "BRIGHTEN",   "CANDLELIGHT",   "CRT", "DARKEN",  "DRUNK", "EMBERS", "FOG", "GOLDEN HOUR",   "HEAT HAZE", "INFRARED",  "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED",  "UNDERWATER"];
+    var _fx_ids    = ["none", "blackwhite", "brighten", "candlelight", "crt",   "darken", "dream",  "drunk", "embers", "fog", "frigid",  "goldenhour",  "heat",      "infrared", "nightvision",  "rain", "sepia", "snow", "static",    "stoned", "underwater"];
+    var _fx_labels = ["OFF",  "B&W FILM",  "BRIGHTEN", "CANDLELIGHT", "CRT",   "DARKEN", "DREAM",  "DRUNK", "EMBERS", "FOG", "FRIGID",  "GOLDEN HOUR", "HEAT HAZE", "INFRARED", "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED", "UNDERWATER"];
     var _fx_btn_x = _ind_x + 120; var _fx_btn_w = 130;
     var _fx_hov = (!_overlay_active && !fx_picker_open && _mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w && _my > scene_win_y - 45 && _my < scene_win_y - 10);
     var _fx_on  = (_cur_fx != "none");
     var _cur_label = "OFF";
-    for (var _fi = 0; _fi < 18; _fi++) { if (_fx_ids[_fi] == _cur_fx) { _cur_label = _fx_labels[_fi]; break; } }
+    for (var _fi = 0; _fi < array_length(_fx_ids); _fi++) { if (_fx_ids[_fi] == _cur_fx) { _cur_label = _fx_labels[_fi]; break; } }
     draw_set_color(fx_picker_open ? make_color_rgb(55,55,85) : (_fx_on ? make_color_rgb(22,110,105) : (_fx_hov ? make_color_rgb(42,42,68) : make_color_rgb(28,28,48))));
     draw_roundrect_ext(_fx_btn_x, scene_win_y - 45, _fx_btn_x + _fx_btn_w, scene_win_y - 10, 5, 5, false);
     draw_set_color(fx_picker_open ? make_color_rgb(110,110,160) : (_fx_on ? make_color_rgb(60,200,190) : (_fx_hov ? c_white : make_color_rgb(75,75,110))));
@@ -1456,23 +1531,7 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
     draw_set_halign(fa_center);
     draw_text_transformed(_fx_btn_x + _fx_btn_w / 2, scene_win_y - 37, _fx_lbl_str, _fx_lbl_sc, 1.0, 0);
     draw_set_halign(fa_left);
-    // Picker dropdown
-    if (fx_picker_open) {
-        var _pick_y = scene_win_y - 10; var _pick_item_h = 22;
-        draw_set_color(make_color_rgb(25, 25, 35));
-        draw_rectangle(_fx_btn_x, _pick_y, _fx_btn_x + _fx_btn_w, _pick_y + 18 * _pick_item_h, false);
-        draw_set_color(c_aqua);
-        draw_rectangle(_fx_btn_x, _pick_y, _fx_btn_x + _fx_btn_w, _pick_y + 18 * _pick_item_h, true);
-        for (var _fi = 0; _fi < 18; _fi++) {
-            var _iy = _pick_y + _fi * _pick_item_h;
-            var _is_cur = (_fx_ids[_fi] == _cur_fx);
-            var _is_hov = (_mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w && _my > _iy && _my < _iy + _pick_item_h);
-            if (_is_cur) { draw_set_color(make_color_rgb(70, 210, 180)); draw_rectangle(_fx_btn_x+1, _iy+1, _fx_btn_x+_fx_btn_w-1, _iy+_pick_item_h-1, false); }
-            else if (_is_hov) { draw_set_color(make_color_rgb(50, 50, 75)); draw_rectangle(_fx_btn_x+1, _iy+1, _fx_btn_x+_fx_btn_w-1, _iy+_pick_item_h-1, false); }
-            draw_set_color(_is_cur ? c_black : c_white);
-            draw_text(_fx_btn_x + 8, _iy + 4, _fx_labels[_fi]);
-        }
-    }
+    // Picker dropdown drawn at end of event so it renders above script blocks
 }
 
 if (insertion_idx != -1 && !scene_edit_mode) {
@@ -1659,6 +1718,7 @@ gpu_set_scissor(0, 0, 1280, 960);
         ["electrify", "ELECTRIFY", [22,18,58],  [42,35,98],  [15,12,44],  [82,62,175],  [230,220,55]],
         ["laser",     "LASER",     [35,10,5],   [62,20,8],   [22,6,3],    [195,75,18],  [255,155,38]],
         ["debris",    "DEBRIS",    [38,28,12],  [58,42,16],  [24,18,7],   [105,72,30],  [175,140,68]],
+        ["flame",     "FLAME",     [55,18,5],   [85,28,8],   [35,10,3],   [200,70,12],  [255,140,20]],
     ];
     var _tile_w = 155; var _tile_h = 82;
     for (var _pei = 0; _pei < array_length(_pe_list); _pei++) {
@@ -1696,6 +1756,17 @@ gpu_set_scissor(0, 0, 1280, 960);
             draw_triangle(_dcx+4,  _ty+22, _dcx+14, _ty+25, _dcx+9,  _ty+38, false); // smaller chunk
             draw_line_width(_dcx-6, _ty+38, _dcx+16, _ty+20, 2);                      // splinter
             draw_line_width(_dcx-14, _ty+28, _dcx+2,  _ty+15, 1.5);                  // thin splinter
+        } else if (_pe[0] == "flame") {
+            var _fcx = _tx + _tile_w/2;
+            // Outer flame body
+            draw_triangle(_fcx - 10, _ty+42, _fcx + 10, _ty+42, _fcx, _ty+14, false);
+            // Inner bright core
+            draw_set_color(make_color_rgb(255, 230, 100)); draw_set_alpha(0.9);
+            draw_triangle(_fcx - 5, _ty+40, _fcx + 5, _ty+40, _fcx, _ty+24, false);
+            // Side wisps
+            draw_set_color(make_color_rgb(_pe[6][0], _pe[6][1], _pe[6][2])); draw_set_alpha(0.6);
+            draw_triangle(_fcx - 13, _ty+38, _fcx - 4, _ty+38, _fcx - 8, _ty+22, false);
+            draw_triangle(_fcx + 4,  _ty+38, _fcx + 13, _ty+38, _fcx + 8, _ty+22, false);
         } else {
             draw_circle(_tx + _tile_w/2, _ty + 28, 12, false);
         }
@@ -1793,6 +1864,7 @@ if (dragging_particle_effect != "") {
     var _dpe_r = 185; var _dpe_g = 18; var _dpe_b = 18;
     if (dragging_particle_effect == "shatter")   { _dpe_r = 22;  _dpe_g = 90;  _dpe_b = 175; }
     if (dragging_particle_effect == "electrify") { _dpe_r = 82;  _dpe_g = 62;  _dpe_b = 175; }
+    if (dragging_particle_effect == "flame")     { _dpe_r = 220; _dpe_g = 80;  _dpe_b = 10;  }
     draw_set_color(make_color_rgb(_dpe_r, _dpe_g, _dpe_b)); draw_set_alpha(0.80);
     draw_circle(drag_particle_x, drag_particle_y, 14, false);
     draw_set_color(c_white); draw_set_alpha(1.0);
@@ -4028,3 +4100,58 @@ gpu_set_texfilter(false);
 
 // --- 5c. LIVE TITLE RENDERING ---
 _render_live_titles();
+
+// --- FX PICKER DROPDOWN (drawn last so it's always on top) ---
+if (fx_picker_open && scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+    var _sfx2      = script_blocks[active_scene_block_idx];
+    var _cur_fx2   = variable_struct_exists(_sfx2, "fx") ? _sfx2.fx : "none";
+    var _ind_x2    = max(scene_win_x, 110);
+    var _fp_btn_x  = _ind_x2 + 120; var _fp_btn_w = 130;
+    var _fp_ids    = ["none", "blackwhite", "brighten", "candlelight", "crt",   "darken", "dream",  "drunk", "embers", "fog", "frigid",  "goldenhour",  "heat",      "infrared", "nightvision",  "rain", "sepia", "snow", "static",    "stoned", "underwater"];
+    var _fp_labels = ["OFF",  "B&W FILM",  "BRIGHTEN", "CANDLELIGHT", "CRT",   "DARKEN", "DREAM",  "DRUNK", "EMBERS", "FOG", "FRIGID",  "GOLDEN HOUR", "HEAT HAZE", "INFRARED", "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED", "UNDERWATER"];
+    var _fp_count  = array_length(_fp_ids);
+    var _fp_item_h = 22;
+    var _fp_max    = 13; // max visible rows
+    var _fp_vis    = min(_fp_max, _fp_count);
+    var _fp_pick_y = scene_win_y - 10;
+    var _fp_h      = _fp_vis * _fp_item_h;
+
+    // Background + border
+    draw_set_color(make_color_rgb(25, 25, 35));
+    draw_rectangle(_fp_btn_x, _fp_pick_y, _fp_btn_x + _fp_btn_w, _fp_pick_y + _fp_h, false);
+    draw_set_color(c_aqua);
+    draw_rectangle(_fp_btn_x, _fp_pick_y, _fp_btn_x + _fp_btn_w, _fp_pick_y + _fp_h, true);
+
+    // Scrollbar geometry (computed here for both draw and hover state)
+    var _fp_sb_w  = 6;
+    var _fp_sb_x  = _fp_btn_x + _fp_btn_w - _fp_sb_w - 2;
+    var _fp_bar_h = max(16, (_fp_vis / _fp_count) * _fp_h);
+    var _fp_bar_y = _fp_pick_y + (fx_picker_scroll / max(1, _fp_count - _fp_vis)) * (_fp_h - _fp_bar_h);
+    var _fp_bar_hov = (_mx >= _fp_sb_x && _mx <= _fp_sb_x + _fp_sb_w && _my >= _fp_bar_y && _my <= _fp_bar_y + _fp_bar_h);
+
+    // Rows (hover zone stops before scrollbar)
+    for (var _fi = 0; _fi < _fp_vis; _fi++) {
+        var _idx = fx_picker_scroll + _fi;
+        if (_idx >= _fp_count) break;
+        var _iy     = _fp_pick_y + _fi * _fp_item_h;
+        var _is_cur = (_fp_ids[_idx] == _cur_fx2);
+        var _is_hov = (_mx > _fp_btn_x && _mx < _fp_sb_x && _my > _iy && _my < _iy + _fp_item_h);
+        if (_is_cur)      { draw_set_color(make_color_rgb(70, 210, 180)); draw_rectangle(_fp_btn_x+1, _iy+1, _fp_sb_x-1, _iy+_fp_item_h-1, false); }
+        else if (_is_hov) { draw_set_color(make_color_rgb(50, 50, 75));   draw_rectangle(_fp_btn_x+1, _iy+1, _fp_sb_x-1, _iy+_fp_item_h-1, false); }
+        draw_set_color(_is_cur ? c_black : c_white);
+        draw_text(_fp_btn_x + 8, _iy + 4, _fp_labels[_idx]);
+        // Divider line (stops before scrollbar)
+        if (_fi < _fp_vis - 1) {
+            draw_set_color(make_color_rgb(50, 50, 70));
+            draw_line(_fp_btn_x + 2, _iy + _fp_item_h, _fp_sb_x - 2, _iy + _fp_item_h);
+        }
+    }
+
+    // Scrollbar track + bar
+    draw_set_color(make_color_rgb(15, 15, 25));
+    draw_rectangle(_fp_sb_x, _fp_pick_y, _fp_sb_x + _fp_sb_w, _fp_pick_y + _fp_h, false);
+    draw_set_color(fx_picker_sb_dragging ? make_color_rgb(130, 210, 230) : (_fp_bar_hov ? make_color_rgb(100, 175, 200) : make_color_rgb(65, 110, 140)));
+    draw_rectangle(_fp_sb_x + 1, _fp_bar_y, _fp_sb_x + _fp_sb_w - 1, _fp_bar_y + _fp_bar_h, false);
+
+    draw_set_halign(fa_left);
+}

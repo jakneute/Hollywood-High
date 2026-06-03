@@ -1,6 +1,6 @@
 //
-// Stoned — full psychedelic meltdown: swirling distortion, wide chromatic blowout,
-// slow hue cycling, and pulsing oversaturation.
+// Stoned — gentle psychedelic drift: soft distortion, mild chromatic fringe,
+// slow hue tilt, and light pulsing saturation.
 // Uniform: u_time (seconds)
 //
 varying vec2 v_vTexcoord;
@@ -11,42 +11,42 @@ void main() {
     vec2 uv = v_vTexcoord;
     float t = u_time;
 
-    // Swirl — angular twist from centre that pulses and breathes
+    // Gentle swirl — much smaller twist, slower pulse
     vec2 d = uv - vec2(0.5);
     float dist = length(d);
     float ang = atan(d.y, d.x);
-    float twist = sin(t * 0.38) * 2.8 * exp(-dist * 3.2);
-    float rd = dist + sin(t * 0.55 + dist * 9.0) * 0.028;
+    float twist = sin(t * 0.22) * 0.7 * exp(-dist * 3.5);
+    float rd = dist + sin(t * 0.32 + dist * 7.0) * 0.008;
     vec2 sw = vec2(0.5) + rd * vec2(cos(ang + twist), sin(ang + twist));
 
-    // Layered wave wash on top of the swirl
-    sw.x += sin(t * 0.82 + uv.y * 5.5) * 0.032
-          + sin(uv.x * 7.2 + t * 1.15)  * 0.013;
-    sw.y += cos(t * 0.67 + uv.x * 4.8) * 0.027
-          + cos(uv.y * 6.1 + t * 0.92)  * 0.011;
+    // Soft wave wash
+    sw.x += sin(t * 0.50 + uv.y * 4.0) * 0.010
+          + sin(uv.x * 5.0 + t * 0.70) * 0.005;
+    sw.y += cos(t * 0.40 + uv.x * 3.5) * 0.009
+          + cos(uv.y * 4.5 + t * 0.55) * 0.004;
     sw = clamp(sw, 0.001, 0.999);
 
-    // Wide chromatic aberration — RGB pulled to very different positions
-    float spread = 0.024 + 0.011 * sin(t * 0.72);
+    // Narrow chromatic fringe
+    float spread = 0.007 + 0.003 * sin(t * 0.45);
     vec2 dir = normalize(d + vec2(0.001));
     float r = texture2D(gm_BaseTexture, clamp(sw + dir * spread,        0.001, 0.999)).r;
     float g = texture2D(gm_BaseTexture, sw).g;
     float b = texture2D(gm_BaseTexture, clamp(sw - dir * spread * 0.75, 0.001, 0.999)).b;
     vec4 col = vec4(r, g, b, texture2D(gm_BaseTexture, sw).a);
 
-    // Hue cycling — rotate around the grey axis (Rodrigues, k = (1,1,1)/sqrt(3))
-    float hue = t * 0.20;
+    // Slow, subtle hue drift
+    float hue = t * 0.07;
     float cs = cos(hue), sn = sin(hue);
     const vec3 k = vec3(0.57735);
     col.rgb = col.rgb * cs + cross(k, col.rgb) * sn + k * dot(k, col.rgb) * (1.0 - cs);
 
-    // Pulsing saturation — heavily oversaturated and heaving
+    // Mild saturation pulse — stays close to natural
     float lum = dot(col.rgb, vec3(0.299, 0.587, 0.114));
-    float sat = 1.65 + 0.55 * sin(t * 0.50);
+    float sat = 1.18 + 0.12 * sin(t * 0.35);
     col.rgb = mix(vec3(lum), col.rgb, sat);
 
-    // Per-distance brightness pulse — things throb outward from centre
-    col.rgb *= 0.90 + 0.14 * sin(t * 1.05 + dist * 5.0);
+    // Very faint brightness throb
+    col.rgb *= 0.97 + 0.04 * sin(t * 0.70 + dist * 3.5);
 
     col.rgb = clamp(col.rgb, 0.0, 1.0);
     gl_FragColor = col * v_vColour;
