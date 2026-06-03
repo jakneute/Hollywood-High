@@ -90,6 +90,55 @@ for (var _exi = array_length(active_explosions) - 1; _exi >= 0; _exi--) {
     if (_ex.frames_elapsed >= _ex.frames_total) array_delete(active_explosions, _exi, 1);
 }
 
+// --- Decap head ---
+for (var _dhi = array_length(active_decap_heads) - 1; _dhi >= 0; _dhi--) {
+    var _dh = active_decap_heads[_dhi];
+    _dh.x     += _dh.vx;
+    _dh.y     += _dh.vy;
+    _dh.angle += _dh.spin;
+    _dh.life++;
+    if (_dh.life > _dh.max_life * 0.6) _dh.alpha = max(0, 1.0 - (_dh.life - _dh.max_life * 0.6) / (_dh.max_life * 0.4));
+    var _dh_exited = (_dh.x < scene_win_x || _dh.x > scene_win_x + scene_win_w
+                   || _dh.y < scene_win_y || _dh.y > scene_win_y + scene_win_h);
+    if (_dh_exited || _dh.life >= _dh.max_life) {
+        if (array_length(active_decap_heads) == 1) speaking_pause_timer = 1;
+        array_delete(active_decap_heads, _dhi, 1);
+    }
+}
+
+// --- Idle blood spurt (decapitate) ---
+if (playing_block_index != -1) {
+    var _asc_bl = (scene_win_h * 1.5) / 450;
+    for (var _bli = 0; _bli < array_length(preview_actors); _bli++) {
+        var _bla = preview_actors[_bli];
+        if (!variable_struct_exists(_bla, "dead") || !_bla.dead) continue;
+        if (!variable_struct_exists(_bla, "death_style") || _bla.death_style != "decapitate") continue;
+        if (!variable_struct_exists(_bla, "blood_timer")) _bla.blood_timer = 0;
+        _bla.blood_timer++;
+        var _btrig = 70 + irandom(60);
+        if (_bla.blood_timer >= _btrig) {
+            _bla.blood_timer = 0;
+            var _blly = get_composite_character_sprite(_bla.char_index, _bla.pose, _bla.expression, _bla.facing);
+            var _blbh = (_blly[0].spr != -1) ? sprite_get_height(_blly[0].spr) * _asc_bl : 200;
+            var _bnx = _bla.x + random_range(-6, 6);
+            var _bny = _bla.y - _blbh * 0.88;
+            repeat (irandom_range(2, 4)) {
+                var _bba = degtorad(random_range(240, 300));
+                var _bsp = random_range(1.2, 3.5);
+                array_push(active_particles, {
+                    x: scene_win_x + _bnx, y: scene_win_y + _bny,
+                    vx: cos(_bba) * _bsp, vy: sin(_bba) * _bsp,
+                    life: irandom_range(12, 22), max_life: 20,
+                    size: random_range(2, 4.5),
+                    r: irandom_range(120, 180), g: irandom_range(0, 10), b: irandom_range(0, 8),
+                    r2: 30, g2: 0, b2: 0,
+                    gravity: 0.18,
+                });
+            }
+        }
+    }
+}
+
 // --- Particle panel drag: track mouse position and detect drop ---
 if (dragging_particle_effect != "") {
     drag_particle_x = _mx;
@@ -1007,28 +1056,25 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
                     var _hit_top = _ay - (_sh + max(0, -_tl[1].dy)) * _scale;
+                    var _is_dead_nd = variable_struct_exists(_act, "dead") && _act.dead;
                     if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _hit_top && _my < _ay) {
-                        dragging_preview_idx = a;
-                        drag_preview_char = _act.char_index;
-                        drag_preview_x = _act.x;
-                        drag_preview_y = _act.y;
-                        drag_start_x = _act.x;
-                        drag_start_y = _act.y;
-                        
-                        // Reference point is the shoes (ay), but we calculate offset
-                        drag_off_x = _mx - _ax;
-                        drag_off_y = _my - _ay;
-                        
-                        selected_character_index = _act.char_index; // Sync global selection
+                        selected_character_index = _act.char_index;
                         if (particle_panel_mode) particle_panel_mode = false;
-
-                        // Auto-scroll character pane
                         var _row = floor(selected_character_index / 2);
                         var _iy = _row * 135;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
-
-                        break; // Stop loop so we only select the topmost clicked character
+                        if (!_is_dead_nd) {
+                            dragging_preview_idx = a;
+                            drag_preview_char = _act.char_index;
+                            drag_preview_x = _act.x;
+                            drag_preview_y = _act.y;
+                            drag_start_x = _act.x;
+                            drag_start_y = _act.y;
+                            drag_off_x = _mx - _ax;
+                            drag_off_y = _my - _ay;
+                        }
+                        break;
                     }
                 }
             }
@@ -1484,6 +1530,20 @@ if (mouse_check_button_pressed(mb_left)) {
     // ADD VOICE Button
     if (!is_speaking && playing_block_index == -1 && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h) {
         selection_start = 0; selection_end = 0;
+        // Block voice creation for dead characters
+        var _vdead = false;
+        var _vcheck_limit = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
+        for (var _vk = 0; _vk < _vcheck_limit; _vk++) {
+            var _vb = script_blocks[_vk];
+            if (!variable_struct_exists(_vb, "type")) continue;
+            if (_vb.type == "action" && _vb.char_index == selected_character_index) {
+                var _vaname = string_lower(_vb.action_name);
+                if (variable_struct_exists(_vb, "kill_style"))                                      _vdead = true;
+                else if (string_pos("resurrects", _vaname) > 0)                                     _vdead = false;
+                else if (string_pos("exit", _vaname) > 0 || string_pos("disappears", _vaname) > 0) _vdead = false;
+            }
+        }
+        if (_vdead) return;
         var _c = characters[selected_character_index];
         var _idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
         array_insert(script_blocks, _idx, { 
@@ -1512,14 +1572,17 @@ if (mouse_check_button_pressed(mb_left)) {
             action_modal_selected_idx = -1;
             action_modal_locked = false;
             
-            // Calculate onstage context for the selected character
+            // Calculate onstage/dead context for the selected character
             var _is_onstage = false;
+            var _is_dead    = false;
+            var _char_death_style = "";
             var _limit = (action_modal_target_index == -1) ? array_length(script_blocks) : action_modal_target_index;
             for (var k = 0; k < _limit; k++) {
                 var _b = script_blocks[k];
                 if (variable_struct_exists(_b, "type")) {
                     if (_b.type == "scene") {
                         _is_onstage = false;
+                        _char_death_style = "";
                         if (variable_struct_exists(_b, "actors")) {
                             for (var a = 0; a < array_length(_b.actors); a++) {
                                 if (_b.actors[a].char_index == selected_character_index) {
@@ -1529,13 +1592,17 @@ if (mouse_check_button_pressed(mb_left)) {
                         }
                     } else if (_b.type == "action" && _b.char_index == selected_character_index) {
                         var _aname = string_lower(_b.action_name);
-                        if (string_pos("enter", _aname) > 0) _is_onstage = true;
-                        else if (string_pos("exit", _aname) > 0) _is_onstage = false;
-                        else if (string_pos("disappears", _aname) > 0) _is_onstage = false;
+                        if (string_pos("enter", _aname) > 0)       { _is_onstage = true;  _is_dead = false; _char_death_style = ""; }
+                        else if (string_pos("exit", _aname) > 0)        { _is_onstage = false; _is_dead = false; _char_death_style = ""; }
+                        else if (string_pos("disappears", _aname) > 0)  { _is_onstage = false; _is_dead = false; _char_death_style = ""; }
+                        else if (variable_struct_exists(_b, "kill_style"))         { _is_dead = true;  _char_death_style = _b.kill_style; }
+                        else if (string_pos("resurrects", _aname) > 0)            { _is_dead = false; _char_death_style = ""; }
                     }
                 }
             }
-            action_modal_char_onstage = _is_onstage;
+            action_modal_char_onstage    = _is_onstage;
+            action_modal_char_is_dead    = _is_dead;
+            action_modal_char_death_style = _char_death_style;
             
             scene_edit_mode = false;
         }
@@ -1645,16 +1712,18 @@ if (mouse_check_button_pressed(mb_left)) {
                     scene_modal_target_index = i;
                     scene_modal_edit_mode = true;
                 }
-                else if (_is_action && (string_pos("WAIT", string_upper(_block.action_name)) > 0 || string_pos("PLAY SFX", string_upper(_block.action_name)) > 0 || string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0 || string_pos("DISAPPEARS", string_upper(_block.action_name)) > 0)) {
+                else if (_is_action && (string_pos("WAIT", string_upper(_block.action_name)) > 0 || string_pos("PLAY SFX", string_upper(_block.action_name)) > 0 || string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0 || string_pos("DISAPPEARS", string_upper(_block.action_name)) > 0 || variable_struct_exists(_block, "kill_style") || string_pos("RESURRECTS", string_upper(_block.action_name)) > 0)) {
                     action_modal_open = true;
                     action_modal_target_index = i;
                     action_modal_edit_mode = true;
-                    
+
                     var _is_wait       = string_pos("WAIT",          string_upper(_block.action_name)) > 0;
                     var _is_title      = string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0;
                     var _is_disappear  = string_pos("DISAPPEARS",    string_upper(_block.action_name)) > 0;
+                    var _is_kill       = variable_struct_exists(_block, "kill_style");
+                    var _is_resurrect  = string_pos("RESURRECTS",    string_upper(_block.action_name)) > 0;
                     if (_is_wait || _is_title) action_modal_wait_duration = variable_struct_exists(_block, "duration") ? _block.duration : 1.0;
-                    
+
                     if (_is_title) {
                         action_modal_title_text = variable_struct_exists(_block, "title_text") ? _block.title_text : "";
                         action_modal_title_caret = string_length(action_modal_title_text);
@@ -1666,13 +1735,15 @@ if (mouse_check_button_pressed(mb_left)) {
                         action_modal_dropdown_open = "";
                         keyboard_string = "";
                     }
-                    
+
                     // Automatically find and select the action in the modal list
                     for (var j = 0; j < array_length(all_actions); j++) {
                         if ((_is_wait && all_actions[j].name == "wait")
                          || (_is_title && all_actions[j].name == "display title")
                          || (_is_disappear && all_actions[j].name == "disappear")
-                         || (!_is_wait && !_is_title && !_is_disappear && all_actions[j].name == "play sfx")) {
+                         || (_is_kill && all_actions[j].name == "kill")
+                         || (_is_resurrect && all_actions[j].name == "resurrect")
+                         || (!_is_wait && !_is_title && !_is_disappear && !_is_kill && !_is_resurrect && all_actions[j].name == "play sfx")) {
                             action_modal_selected_idx = j;
                             action_modal_locked = true;
                             break;
@@ -1681,7 +1752,19 @@ if (mouse_check_button_pressed(mb_left)) {
                     if (_is_disappear) {
                         action_modal_disappear_style = variable_struct_exists(_block, "disappear_style") ? _block.disappear_style : "pop";
                         action_modal_disappear_speed = variable_struct_exists(_block, "disappear_speed") ? _block.disappear_speed : 2;
-                        action_modal_char_onstage = true; // character was on stage when this action was placed
+                        action_modal_char_onstage = true;
+                    }
+                    if (_is_kill) {
+                        action_modal_kill_style   = variable_struct_exists(_block, "kill_style") ? _block.kill_style : "sudden";
+                        action_modal_kill_speed   = variable_struct_exists(_block, "kill_speed") ? _block.kill_speed : 2;
+                        action_modal_char_onstage = true;
+                        action_modal_char_is_dead = false;
+                    }
+                    if (_is_resurrect) {
+                        action_modal_char_onstage     = true;
+                        action_modal_char_is_dead     = true;
+                        action_modal_resurrect_speed  = variable_struct_exists(_block, "resurrect_speed")           ? _block.resurrect_speed           : 2;
+                        action_modal_char_death_style = variable_struct_exists(_block, "resurrect_prev_death_style") ? _block.resurrect_prev_death_style : "";
                     }
 
                     if (!_is_wait && !_is_title) {
@@ -1877,8 +1960,11 @@ if (mouse_check_button_pressed(mb_left)) {
                             var _dbl_is_expr_only = (string_pos("expression:", _dbl_aname_lo) > 0) || (_dbl_has_looks && !_dbl_has_and_pose);
                             var _dbl_is_pose      = (!_dbl_is_expr_only) && (string_pos("poses ", _dbl_aname_lo) > 0 || _dbl_has_and_pose
                                                     || (string_pos("pose ", _dbl_aname_lo) > 0 && string_pos("poses ", _dbl_aname_lo) == 0 && !_dbl_has_looks));
+                            var _dbl_is_kill      = variable_struct_exists(_block, "kill_style");
+                            var _dbl_is_resurrect = (string_pos("RESURRECTS", _dbl_aname_u) > 0);
                             var _dbl_is_gen = (string_pos("WAIT", _dbl_aname_u) > 0 || string_pos("PLAY SFX", _dbl_aname_u) > 0
-                                           || string_pos("DISPLAY TITLE", _dbl_aname_u) > 0 || string_pos("DISAPPEARS", _dbl_aname_u) > 0);
+                                           || string_pos("DISPLAY TITLE", _dbl_aname_u) > 0 || string_pos("DISAPPEARS", _dbl_aname_u) > 0
+                                           || _dbl_is_kill || _dbl_is_resurrect);
 
                             if (_dbl_is_move) {
                                 move_modal_open = true; move_modal_target_index = i; move_modal_edit_mode = true;
@@ -1908,15 +1994,25 @@ if (mouse_check_button_pressed(mb_left)) {
                                     action_modal_disappear_style = variable_struct_exists(_block, "disappear_style") ? _block.disappear_style : "pop";
                                     action_modal_disappear_speed = variable_struct_exists(_block, "disappear_speed") ? _block.disappear_speed : 2;
                                     action_modal_char_onstage = true;
+                                } else if (_dbl_is_kill) {
+                                    action_modal_kill_style   = variable_struct_exists(_block, "kill_style") ? _block.kill_style : "sudden";
+                                    action_modal_kill_speed   = variable_struct_exists(_block, "kill_speed") ? _block.kill_speed : 2;
+                                    action_modal_char_onstage = true; action_modal_char_is_dead = false;
+                                } else if (_dbl_is_resurrect) {
+                                    action_modal_char_onstage     = true; action_modal_char_is_dead = true;
+                                    action_modal_resurrect_speed  = variable_struct_exists(_block, "resurrect_speed")           ? _block.resurrect_speed           : 2;
+                                    action_modal_char_death_style = variable_struct_exists(_block, "resurrect_prev_death_style") ? _block.resurrect_prev_death_style : "";
                                 }
                                 for (var _dj = 0; _dj < array_length(all_actions); _dj++) {
                                     if ((_aw2 && all_actions[_dj].name == "wait") || (_at2 && all_actions[_dj].name == "display title")
                                      || (_ad2 && all_actions[_dj].name == "disappear")
-                                     || (!_aw2 && !_at2 && !_ad2 && all_actions[_dj].name == "play sfx")) {
+                                     || (_dbl_is_kill && all_actions[_dj].name == "kill")
+                                     || (_dbl_is_resurrect && all_actions[_dj].name == "resurrect")
+                                     || (!_aw2 && !_at2 && !_ad2 && !_dbl_is_kill && !_dbl_is_resurrect && all_actions[_dj].name == "play sfx")) {
                                         action_modal_selected_idx = _dj; action_modal_locked = true; break;
                                     }
                                 }
-                                if (!_aw2 && !_at2 && !_ad2) { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; }
+                                if (!_aw2 && !_at2 && !_ad2 && !_dbl_is_kill && !_dbl_is_resurrect) { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; }
                             } else if (_dbl_is_pose || _dbl_is_expr_only) {
                                 selected_character_index = _block.char_index;
                                 pose_expr_modal_open = true;
@@ -2025,6 +2121,11 @@ if (mouse_check_button_pressed(mb_left)) {
                     if (_other_t == "voice" || _other_t == "sfx" || _other_t == "particle" || _other_t == "title") _base_valid = true;
                     else if ((_other_t == "move" || _other_t == "charaction") && _diff_char) _base_valid = true;
                 }
+                else if (_b1_type == "kill" || _b2_type == "kill") {
+                    var _other_kt = (_b1_type == "kill") ? _b2_type : _b1_type;
+                    if (_other_kt == "sfx" || _other_kt == "particle") _base_valid = true;
+                    else if (_diff_char) _base_valid = true;
+                }
 
                 var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
                 var _chain_valid = true;
@@ -2048,11 +2149,14 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_bk_type == "move")     _move_in_chain = true;
                         if (_bk_type == "particle") _particle_in_chain++;
 
-                        if (_bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
+                        if (_bk_type == "kill" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
                             for (var j = k + 1; j <= _end_idx; j++) {
                                 var _bj = script_blocks[j];
                                 if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
                                     var _bj_type = get_link_type(_bj);
+                                    // kill/resurrect is the only action allowed per character in a chain
+                                    if (_bk_type == "kill" && _bj_type != "sfx" && _bj_type != "particle" && _bj_type != "other") { _chain_valid = false; break; }
+                                    if (_bj_type == "kill" && _bk_type != "sfx" && _bk_type != "particle" && _bk_type != "other") { _chain_valid = false; break; }
                                     if (_bk_type == "voice" && _bj_type == "voice") { _chain_valid = false; break; }
                                     if (_bk_type == "move"  && _bj_type == "move")  { _chain_valid = false; break; }
                                     if (_bk_type == "charaction" && (_bj_type == "charaction" || _bj_type == "move")) { _chain_valid = false; break; }
@@ -2337,20 +2441,31 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                         if (_scene.actors[a].char_index == dragging_char_index) { _dup_idx = a; break; }
                     }
                     if (_dup_idx == -1) {
+                        // Block adding a character who was killed before this scene
+                        var _char_dead_stage = false;
+                        for (var _dds = 0; _dds < active_scene_block_idx; _dds++) {
+                            var _ddb = script_blocks[_dds];
+                            if (!variable_struct_exists(_ddb, "type") || _ddb.type != "action") continue;
+                            if (!variable_struct_exists(_ddb, "char_index") || _ddb.char_index != dragging_char_index) continue;
+                            if (variable_struct_exists(_ddb, "kill_style")) _char_dead_stage = true;
+                            else if (string_pos("resurrects", string_lower(_ddb.action_name)) > 0) _char_dead_stage = false;
+                        }
+                        if (!_char_dead_stage) {
                         // Auto-flip for entrance
                         var _is_left = (_mx < scene_win_x + (scene_win_w / 2));
                         _face = _is_left ? -1 : 1;
-                        
+
                         // Precise coordinates within background
                         var _nx = _px;
                         var _ny = _py;
-                        
+
                         var _c = characters[dragging_char_index];
                         var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
                         var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
-                        
+
                         array_push(_scene.actors, { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face, pose: _pose, expression: _expr });
                         scene_edit_selected_actor_idx = array_length(_scene.actors) - 1;
+                        }
                     } else {
                         // If character already onstage, update selection to them immediately
                         scene_edit_selected_actor_idx = _dup_idx;

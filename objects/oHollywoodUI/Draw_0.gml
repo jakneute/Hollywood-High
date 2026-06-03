@@ -204,9 +204,17 @@ if (theater_mode) {
 					}
 				}
 				var _final_layers = [];
+				var _is_dead_dr   = variable_struct_exists(_act, "dead") && _act.dead;
+				var _dstyle_dr    = _is_dead_dr ? (variable_struct_exists(_act, "death_style") ? _act.death_style : "sudden") : "";
+				var _dangle_dr    = _is_dead_dr ? (variable_struct_exists(_act, "death_angle") ? _act.death_angle : 0) : 0;
 				for (var _li = 0; _li < array_length(_layers); _li++) {
 					var _l       = _layers[_li];
-					var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open;
+					// For decapitate: skip head layers (face=1, mouth=2, eyes=3)
+					if (_is_dead_dr && _dstyle_dr == "decapitate" && _li > 0) {
+						array_push(_final_layers, { spr: -1, dx: _l.dx, dy: _l.dy });
+						continue;
+					}
+					var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open && !_is_dead_dr;
 					var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
 					var _lspr    = _is_anim ? _ae.spr : _l.spr;
 					var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
@@ -217,7 +225,22 @@ if (theater_mode) {
 				var _dp_th   = variable_struct_exists(_act, "dissolve_progress") ? _act.dissolve_progress : 0;
 				var _melt_th = variable_struct_exists(_act, "melt_progress")     ? _act.melt_progress     : 0;
 				var _ang_th  = variable_struct_exists(_act, "image_angle")       ? _act.image_angle       : 0;
-				if (_dp_th > 0) {
+				if (_is_dead_dr && (_dstyle_dr == "fall_forwards" || _dstyle_dr == "fall_backwards") && _dangle_dr != 0) {
+					// Fall: rotate all layers around foot pivot
+					var _rpx_dr = (target_surface == -1) ? (_stg_x + _ax) : _ax;
+					var _rpy_dr = (target_surface == -1) ? (_stg_y + _ay + _y_off) : (_ay + _y_off);
+					var _cos_dr = dcos(_dangle_dr); var _sin_dr = dsin(_dangle_dr);
+					for (var _rli = 0; _rli < array_length(_final_layers); _rli++) {
+						var _rl = _final_layers[_rli];
+						if (_rl.spr == -1) continue;
+						var _vx_dr = (_draw_x + _rl.dx * _asc) - _rpx_dr;
+						var _vy_dr = (_draw_y + _rl.dy * _asc) - _rpy_dr;
+						draw_sprite_ext(_rl.spr, 0,
+							_rpx_dr + _vx_dr * _cos_dr + _vy_dr * _sin_dr,
+							_rpy_dr - _vx_dr * _sin_dr + _vy_dr * _cos_dr,
+							_asc, _asc, _dangle_dr, c_white, 1);
+					}
+				} else if (_dp_th > 0) {
 					var _dta = max(0, (1.0 - _dp_th) * (1.0 - _dp_th * 0.5));
 					var _dtc = make_color_rgb(max(80, 255 - round(_dp_th * 175)), min(255, 180 + round(_dp_th * 75)), 255);
 					draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, _dta, _dtc, false, 0, c_white, _clip);
@@ -262,7 +285,8 @@ if (theater_mode) {
 						draw_sprite_ext(_rl_th.spr, 0, _rpx_th + _vx_th * _cos_th + _vy_th * _sin_th, _rpy_th - _vx_th * _sin_th + _vy_th * _cos_th, _asc, _asc, _ang_th, c_white, 1);
 					}
 				} else {
-					draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, 1, c_white, false, 3, c_yellow, _clip);
+					var _dead_sel = _is_dead_dr && (target_surface == -1) && (_act.char_index == selected_character_index) && playing_block_index == -1;
+					draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _asc, 1, c_white, _dead_sel, 3, make_color_rgb(200, 30, 30), _clip);
 				}
 				// Restore scissor clip for subsequent actors (since surface target switches clear it in GameMaker)
 				if (target_surface == -1) {
@@ -404,6 +428,41 @@ if (theater_mode) {
         gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
         var _p_sx2 = _stage_w / scene_win_w; var _p_sy2 = _stage_h / scene_win_h;
         draw_active_explosions(_stage_x, _stage_y, _p_sx2, _p_sy2);
+        gpu_set_scissor(0, 0, 1280, 960);
+    }
+
+    // --- Theater Decap Heads ---
+    if (array_length(active_decap_heads) > 0) {
+        gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
+        var _th_psx = _stage_w / scene_win_w;
+        var _th_psy = _stage_h / scene_win_h;
+        var _th_asc = (scene_win_h * 1.5) / 450 * _th_psy;
+        for (var _tdhi = 0; _tdhi < array_length(active_decap_heads); _tdhi++) {
+            var _tdh = active_decap_heads[_tdhi];
+            var _tdlys = get_composite_character_sprite(_tdh.char_index, _tdh.pose, _tdh.expression, _tdh.facing);
+            var _tdbwpx = (_tdlys[0].spr != -1) ? sprite_get_width(_tdlys[0].spr) : 80;
+            var _tdbhpx = (_tdlys[0].spr != -1) ? sprite_get_height(_tdlys[0].spr) : 200;
+            var _td_neck_bx = _tdbwpx * 0.5;
+            var _td_neck_by = _tdbhpx * 0.75;
+            var _tdx = _stage_x + (_tdh.x - scene_win_x) * _th_psx;
+            var _tdy = _stage_y + (_tdh.y - scene_win_y) * _th_psy;
+            var _td_face = _tdlys[1];
+            var _td_piv_x = _tdx + ((_td_face.spr != -1 ? _td_face.dx + sprite_get_width(_td_face.spr) * 0.5 : _td_neck_bx) - _td_neck_bx) * _th_asc;
+            var _td_piv_y = _tdy + ((_td_face.spr != -1 ? _td_face.dy + sprite_get_height(_td_face.spr) * 0.5 : _td_neck_by) - _td_neck_by) * _th_asc;
+            var _td_hcos = dcos(_tdh.angle); var _td_hsin = dsin(_tdh.angle);
+            draw_set_alpha(_tdh.alpha);
+            for (var _thli = 1; _thli < 4; _thli++) {
+                var _thl = _tdlys[_thli];
+                if (_thl.spr == -1) continue;
+                var _tulx = _tdx + (_thl.dx - _td_neck_bx) * _th_asc;
+                var _tuly = _tdy + (_thl.dy - _td_neck_by) * _th_asc;
+                var _tox = _tulx - _td_piv_x; var _toy = _tuly - _td_piv_y;
+                var _tsx_h = _td_piv_x + _tox * _td_hcos + _toy * _td_hsin;
+                var _tsy_h = _td_piv_y - _tox * _td_hsin + _toy * _td_hcos;
+                draw_sprite_ext(_thl.spr, 0, _tsx_h, _tsy_h, _th_asc, _th_asc, _tdh.angle, c_white, _tdh.alpha);
+            }
+            draw_set_alpha(1.0);
+        }
         gpu_set_scissor(0, 0, 1280, 960);
     }
 
@@ -754,7 +813,8 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				if (dragging_actor_idx != -1 && dragging_actor_idx < array_length(_s.actors) && _s.actors[dragging_actor_idx].char_index == _act.char_index) _is_being_dragged = true;
 				if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) _is_being_dragged = true;
 				if (_is_being_dragged) continue;
-				
+				if (variable_struct_exists(_act, "hidden") && _act.hidden) continue;
+
 				var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
 				var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 21;
 				var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
@@ -840,10 +900,17 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 						}
 					}
 
+					var _is_dead_ed  = variable_struct_exists(_act, "dead") && _act.dead;
+					var _dstyle_ed   = _is_dead_ed ? (variable_struct_exists(_act, "death_style") ? _act.death_style : "sudden") : "";
+					var _dangle_ed   = _is_dead_ed ? (variable_struct_exists(_act, "death_angle") ? _act.death_angle : 0) : 0;
 					var _final_layers = [];
 					for (var _li = 0; _li < array_length(_layers); _li++) {
 						var _l       = _layers[_li];
-						var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open;
+						if (_is_dead_ed && _dstyle_ed == "decapitate" && _li > 0) {
+							array_push(_final_layers, { spr: -1, dx: _l.dx, dy: _l.dy });
+							continue;
+						}
+						var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open && !_is_dead_ed;
 						var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
 						var _lspr    = _is_anim ? _ae.spr : _l.spr;
 						var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
@@ -851,8 +918,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 						array_push(_final_layers, { spr: _lspr, dx: _ldx, dy: _ldy });
 					}
 
-					// Outline: drawn independently of sprite — needed for the mask surface pass
+					// Outline: yellow for alive+selected, red for dead+selected
 					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
+						var _outline_col = _is_dead_ed ? make_color_rgb(220, 30, 30) : c_yellow;
 						var _os = _sc * 1.18;
 						for (var _oli = 0; _oli < array_length(_final_layers); _oli++) {
 							var _ol = _final_layers[_oli];
@@ -861,7 +929,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 								var _lh = sprite_get_height(_ol.spr);
 								var _olx = _draw_x + _ol.dx * _sc - _lw * (_os - _sc) * 0.5;
 								var _oly = _draw_y + _ol.dy * _sc - _lh * (_os - _sc) * 0.5;
-								draw_sprite_ext(_ol.spr, 0, _olx, _oly, _os, _os, 0, c_yellow, _alpha);
+								draw_sprite_ext(_ol.spr, 0, _olx, _oly, _os, _os, 0, _outline_col, _alpha);
 							}
 						}
 					}
@@ -905,6 +973,27 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 								var _ml_y = (_feet_y + _sink) + _dist_from_feet * (_mysc / _sc) - _mlh * _mysc;
 								draw_sprite_ext(_ml.spr, 0, _ml_x, _ml_y, _mxsc, _mysc, 0, c_white, _malpha);
 							}
+						} else if (_is_dead_ed && (_dstyle_ed == "fall_forwards" || _dstyle_ed == "fall_backwards") && _dangle_ed != 0) {
+							// Fall: rotate all layers around foot pivot
+							var _rpx_ed = (target_surface == -1) ? (scene_win_x + _act.x) : _act.x;
+							var _rpy_ed = (target_surface == -1) ? (scene_win_y + _act.y + _y_off) : (_act.y + _y_off);
+							var _cos_ed = dcos(_dangle_ed); var _sin_ed = dsin(_dangle_ed);
+							var _dead_sel_fall = (target_surface == -1) && (_act.char_index == selected_character_index) && playing_block_index == -1;
+							for (var _rli_ed = 0; _rli_ed < array_length(_final_layers); _rli_ed++) {
+								var _rl_ed = _final_layers[_rli_ed];
+								if (_rl_ed.spr == -1) continue;
+								var _vx_ed = (_draw_x + _rl_ed.dx * _sc) - _rpx_ed;
+								var _vy_ed = (_draw_y + _rl_ed.dy * _sc) - _rpy_ed;
+								var _rx_ed = _rpx_ed + _vx_ed * _cos_ed + _vy_ed * _sin_ed;
+								var _ry_ed = _rpy_ed - _vx_ed * _sin_ed + _vy_ed * _cos_ed;
+								if (_dead_sel_fall) {
+									var _lw_e = sprite_get_width(_rl_ed.spr); var _lh_e = sprite_get_height(_rl_ed.spr);
+									var _os_e = _sc * 1.18;
+									var _olx_e = _rx_ed - _lw_e * (_os_e - _sc) * 0.5; var _oly_e = _ry_ed - _lh_e * (_os_e - _sc) * 0.5;
+									draw_sprite_ext(_rl_ed.spr, 0, _olx_e, _oly_e, _os_e, _os_e, _dangle_ed, make_color_rgb(220, 30, 30), _alpha);
+								}
+								draw_sprite_ext(_rl_ed.spr, 0, _rx_ed, _ry_ed, _sc, _sc, _dangle_ed, c_white, _alpha);
+							}
 						} else {
 							var _img_angle = variable_struct_exists(_act, "image_angle") ? _act.image_angle : 0;
 							if (_img_angle != 0) {
@@ -921,7 +1010,8 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 									draw_sprite_ext(_rl.spr, 0, _rpx + _vx * _cos_a + _vy * _sin_a, _rpy - _vx * _sin_a + _vy * _cos_a, _sc, _sc, _img_angle, c_white, _alpha);
 								}
 							} else {
-								draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _sc, _alpha, c_white, false, 8, c_yellow, _clip);
+								var _dead_sel_ed = _is_dead_ed && (target_surface == -1) && (_act.char_index == selected_character_index) && playing_block_index == -1;
+								draw_composite_character_ext(_final_layers, _draw_x, _draw_y, _sc, _alpha, c_white, _dead_sel_ed, 3, make_color_rgb(200, 30, 30), _clip);
 							}
 						}
 						// Restore scissor clip for subsequent actors (since surface target switches clear it in GameMaker)
@@ -1147,6 +1237,42 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	if (array_length(active_explosions) > 0) {
 		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
 		draw_active_explosions(scene_win_x, scene_win_y, 1.0, 1.0);
+		gpu_set_scissor(0, 0, 1280, 960);
+	}
+
+	// --- Flying decap heads (editor) ---
+	if (array_length(active_decap_heads) > 0) {
+		var _dasc = (scene_win_h * 1.5) / 450;
+		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		for (var _dhi = 0; _dhi < array_length(active_decap_heads); _dhi++) {
+			var _dh = active_decap_heads[_dhi];
+			// Only draw if inside scene bounds
+			if (_dh.x < scene_win_x - 50 || _dh.x > scene_win_x + scene_win_w + 50) continue;
+			if (_dh.y > scene_win_y + scene_win_h + 50) continue;
+			var _dlys = get_composite_character_sprite(_dh.char_index, _dh.pose, _dh.expression, _dh.facing);
+			var _dbwpx = (_dlys[0].spr != -1) ? sprite_get_width(_dlys[0].spr) : 80;
+			var _dbhpx = (_dlys[0].spr != -1) ? sprite_get_height(_dlys[0].spr) : 200;
+			// Neck pivot in body-space (sprite pixels)
+			var _neck_bx = _dbwpx * 0.5;
+			var _neck_by = _dbhpx * 0.75;
+			// Common pivot: centre of face sprite, so all layers spin as a rigid unit
+			var _face_lyr = _dlys[1];
+			var _piv_x = _dh.x + ((_face_lyr.spr != -1 ? _face_lyr.dx + sprite_get_width(_face_lyr.spr) * 0.5 : _neck_bx) - _neck_bx) * _dasc;
+			var _piv_y = _dh.y + ((_face_lyr.spr != -1 ? _face_lyr.dy + sprite_get_height(_face_lyr.spr) * 0.5 : _neck_by) - _neck_by) * _dasc;
+			var _hcos = dcos(_dh.angle); var _hsin = dsin(_dh.angle);
+			draw_set_alpha(_dh.alpha);
+			for (var _hli = 1; _hli < 4; _hli++) { // face, mouth, eyes
+				var _hl = _dlys[_hli];
+				if (_hl.spr == -1) continue;
+				var _ulx = _dh.x + (_hl.dx - _neck_bx) * _dasc;
+				var _uly = _dh.y + (_hl.dy - _neck_by) * _dasc;
+				var _ox = _ulx - _piv_x; var _oy = _uly - _piv_y;
+				var _sx_h = _piv_x + _ox * _hcos + _oy * _hsin;
+				var _sy_h = _piv_y - _ox * _hsin + _oy * _hcos;
+				draw_sprite_ext(_hl.spr, 0, _sx_h, _sy_h, _dasc, _dasc, _dh.angle, c_white, _dh.alpha);
+			}
+			draw_set_alpha(1.0);
+		}
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
 
@@ -1705,9 +1831,23 @@ for (var i = 0; i < array_length(characters); i++) {
         // Bottom-anchor: feet near the name label, face extends upward naturally
         var _sy    = _iy + _item_h - 22 - _body_h_ch * _sc;
         var _alpha = (dragging_char_index == i) ? 0.3 : 1.0;
-        draw_composite_character_ext(_ch_layers, _sx, _sy, _sc, _alpha, c_white, false, 3, c_yellow, [char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35]);
+        // Check if this character is dead at the current script position
+        var _char_is_dead_sel = false;
+        for (var _dpa = 0; _dpa < array_length(preview_actors); _dpa++) {
+            if (preview_actors[_dpa].char_index == i && variable_struct_exists(preview_actors[_dpa], "dead") && preview_actors[_dpa].dead) {
+                _char_is_dead_sel = true; break;
+            }
+        }
+        var _draw_alpha = _char_is_dead_sel ? 0.35 : _alpha;
+        draw_composite_character_ext(_ch_layers, _sx, _sy, _sc, _draw_alpha, _char_is_dead_sel ? make_color_rgb(160, 100, 100) : c_white, false, 3, c_yellow, [char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35]);
         // Restore scissor clip for subsequent selector items (since surface target switches clear it in GameMaker)
         gpu_set_scissor(char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35);
+        if (_char_is_dead_sel) {
+            draw_set_color(make_color_rgb(200, 30, 30)); draw_set_alpha(0.65);
+            draw_line_width(_ix + 8, _iy + 8, _ix + _item_w - 13, _iy + _item_h - 28, 3);
+            draw_line_width(_ix + _item_w - 13, _iy + 8, _ix + 8, _iy + _item_h - 28, 3);
+            draw_set_alpha(1.0);
+        }
     }
     if (_is_sel && char_rename_active && char_rename_target == i) {
         // Inline rename field
@@ -2223,6 +2363,11 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             if (_other_t == "voice" || _other_t == "sfx" || _other_t == "particle" || _other_t == "title") _base_valid = true;
             else if ((_other_t == "move" || _other_t == "charaction") && _diff_char) _base_valid = true;
         }
+        else if (_b1_type == "kill" || _b2_type == "kill") {
+            var _other_kt = (_b1_type == "kill") ? _b2_type : _b1_type;
+            if (_other_kt == "sfx" || _other_kt == "particle") _base_valid = true;
+            else if (_diff_char) _base_valid = true;
+        }
 
         var _chain_valid = true;
 
@@ -2245,11 +2390,13 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 if (_bk_type == "move")     _move_in_chain = true;
                 if (_bk_type == "particle") _particle_in_chain++;
 
-                if (_bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
+                if (_bk_type == "kill" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
                     for (var j = k + 1; j <= _end_idx; j++) {
                         var _bj = script_blocks[j];
                         if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
                             var _bj_type = get_link_type(_bj);
+                            if (_bk_type == "kill" && _bj_type != "sfx" && _bj_type != "particle" && _bj_type != "other") { _chain_valid = false; break; }
+                            if (_bj_type == "kill" && _bk_type != "sfx" && _bk_type != "particle" && _bk_type != "other") { _chain_valid = false; break; }
                             if (_bk_type == "voice" && _bj_type == "voice") { _chain_valid = false; break; }
                             if (_bk_type == "move"  && _bj_type == "move")  { _chain_valid = false; break; }
                             if (_bk_type == "charaction" && (_bj_type == "charaction" || _bj_type == "move")) { _chain_valid = false; break; }
@@ -2731,8 +2878,13 @@ if (action_modal_open) {
         if (action_modal_edit_mode) {
             if (action_modal_selected_idx != i) _disabled = true;
         } else if (!_is_gen) {
+            var _aname_i = all_actions[i].name;
             if (selected_character_index == 0) _disabled = true;
-            else if (!action_modal_char_onstage) _disabled = true;
+            else if (_aname_i == "resurrect") {
+                if (!action_modal_char_is_dead) _disabled = true;
+            } else if (!action_modal_char_onstage) _disabled = true;
+            else if (_aname_i == "kill" && action_modal_char_is_dead) _disabled = true;
+            else if (_aname_i != "kill" && action_modal_char_is_dead) _disabled = true;
         }
 
         var _hov = (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40);
@@ -2755,6 +2907,10 @@ if (action_modal_open) {
         if (action_modal_title_text == "") _can_proceed = false;
     } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "disappear") {
         if (selected_character_index == 0 || !action_modal_char_onstage) _can_proceed = false;
+    } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "kill") {
+        if (selected_character_index == 0 || !action_modal_char_onstage || action_modal_char_is_dead) _can_proceed = false;
+    } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "resurrect") {
+        if (selected_character_index == 0 || !action_modal_char_is_dead) _can_proceed = false;
     }
     
     var _ok_locked = (action_modal_locked && _can_proceed);
@@ -3060,6 +3216,65 @@ if (action_modal_open) {
                 draw_set_color(make_color_rgb(255,120,120)); draw_text(_mxo+290, _myo+415, "Narrator cannot use character actions.");
             } else if (!action_modal_char_onstage) {
                 draw_set_color(make_color_rgb(255,200,80)); draw_text(_mxo+290, _myo+415, "Character is not currently on stage.");
+            }
+        } else if (all_actions[action_modal_selected_idx].name == "kill") {
+            var _kill_styles  = ["sudden", "fall_forwards", "fall_backwards", "decapitate"];
+            var _kill_labels  = ["SUDDEN DEATH", "FALL FORWARDS", "FALL BACKWARDS", "DECAPITATE"];
+            draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_mxo+290, _myo+158, "DEATH STYLE");
+            draw_set_color(make_color_rgb(180, 40, 40)); draw_line(_mxo+290, _myo+176, _mxo+540, _myo+176);
+            for (var _ksi = 0; _ksi < 4; _ksi++) {
+                var _ksy = _myo + 184 + _ksi * 46;
+                var _kssel = (action_modal_kill_style == _kill_styles[_ksi]);
+                var _kshov = (_mx > _mxo+290 && _mx < _mxo+540 && _my > _ksy && _my < _ksy+40);
+                draw_set_color(_kssel ? make_color_rgb(120,16,16) : (_kshov ? make_color_rgb(65,15,15) : make_color_rgb(38,10,10)));
+                draw_roundrect_ext(_mxo+290, _ksy, _mxo+540, _ksy+40, 5, 5, false);
+                if (_kssel) { draw_set_color(make_color_rgb(200,40,40)); draw_roundrect_ext(_mxo+290, _ksy, _mxo+540, _ksy+40, 5, 5, true); }
+                draw_set_color(_kssel ? c_white : make_color_rgb(200,130,130));
+                draw_set_halign(fa_center); draw_text(_mxo+415, _ksy+11, _kill_labels[_ksi]); draw_set_halign(fa_left);
+            }
+            // Speed column — only active for fall styles
+            var _kfall = (action_modal_kill_style == "fall_forwards" || action_modal_kill_style == "fall_backwards");
+            var _kspd_labels = ["VERY SLOW", "SLOW", "NORMAL", "FAST", "VERY FAST"];
+            draw_set_color(_kfall ? make_color_rgb(196, 213, 20) : make_color_rgb(70, 88, 30));
+            draw_text(_mxo+555, _myo+158, "SPEED");
+            draw_set_color(_kfall ? make_color_rgb(180, 40, 40) : make_color_rgb(60, 25, 25));
+            draw_line(_mxo+555, _myo+176, _mxo+745, _myo+176);
+            for (var _kspi = 0; _kspi < 5; _kspi++) {
+                var _kspy = _myo + 184 + _kspi * 40;
+                var _kspsel = (_kfall && action_modal_kill_speed == _kspi);
+                var _ksphov = (_kfall && _mx > _mxo+555 && _mx < _mxo+745 && _my > _kspy && _my < _kspy+34);
+                draw_set_color(_kspsel ? make_color_rgb(120,16,16) : (_ksphov ? make_color_rgb(65,15,15) : (_kfall ? make_color_rgb(38,10,10) : make_color_rgb(18,6,6))));
+                draw_roundrect_ext(_mxo+555, _kspy, _mxo+745, _kspy+34, 5, 5, false);
+                if (_kspsel) { draw_set_color(make_color_rgb(200,40,40)); draw_roundrect_ext(_mxo+555, _kspy, _mxo+745, _kspy+34, 5, 5, true); }
+                draw_set_color(_kspsel ? c_white : (_kfall ? make_color_rgb(200,130,130) : make_color_rgb(70,35,35)));
+                draw_set_halign(fa_center); draw_text(_mxo+650, _kspy+9, _kspd_labels[_kspi]); draw_set_halign(fa_left);
+            }
+            if (selected_character_index == 0) {
+                draw_set_color(make_color_rgb(255,120,120)); draw_text(_mxo+290, _myo+415, "Narrator cannot use character actions.");
+            } else if (!action_modal_char_onstage) {
+                draw_set_color(make_color_rgb(255,200,80)); draw_text(_mxo+290, _myo+415, "Character is not currently on stage.");
+            } else if (action_modal_char_is_dead) {
+                draw_set_color(make_color_rgb(255,200,80)); draw_text(_mxo+290, _myo+415, "Character is already dead.");
+            }
+        } else if (all_actions[action_modal_selected_idx].name == "resurrect") {
+            draw_set_color(make_color_rgb(80,200,100));
+            draw_text_ext(_mxo+290, _myo+160, "The character returns to life and can be manipulated again.\nIf they are off-screen, drag them back in from the cast panel.", 28, 560);
+            var _rfell_ui = (action_modal_char_death_style == "fall_forwards" || action_modal_char_death_style == "fall_backwards");
+            if (_rfell_ui) {
+                var _rspd_labels = ["VERY SLOW", "SLOW", "NORMAL", "FAST", "VERY FAST"];
+                draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_mxo+290, _myo+236, "RISE SPEED");
+                draw_set_color(make_color_rgb(80, 200, 100)); draw_line(_mxo+290, _myo+254, _mxo+540, _myo+254);
+                for (var _rsi = 0; _rsi < 5; _rsi++) {
+                    var _rsy = _myo + 260 + _rsi * 36;
+                    var _rsel = (action_modal_resurrect_speed == _rsi);
+                    draw_set_color(_rsel ? make_color_rgb(80, 200, 100) : make_color_rgb(30, 80, 40));
+                    draw_roundrect_ext(_mxo+290, _rsy, _mxo+540, _rsy+30, 4, 4, false);
+                    draw_set_color(_rsel ? c_black : make_color_rgb(140, 190, 110));
+                    draw_set_halign(fa_center); draw_text(_mxo+415, _rsy+8, _rspd_labels[_rsi]); draw_set_halign(fa_left);
+                }
+            }
+            if (!action_modal_char_is_dead) {
+                draw_set_color(make_color_rgb(255,200,80)); draw_text(_mxo+290, _myo+450, "Character is not dead.");
             }
         }
     }

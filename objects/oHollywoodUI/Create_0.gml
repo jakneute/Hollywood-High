@@ -467,9 +467,17 @@ all_actions = [
     { name: "play sfx",      desc: "Plays a sound effect from the library.",                                   category: "general"   },
     { name: "display title", desc: "Displays a text title on screen for a set duration.",                      category: "general"   },
     { name: "disappear",     desc: "Instantly removes the character from the scene.\nChoose a vanish style.",  category: "character" },
+    { name: "kill",          desc: "Kills the character. They stay on screen but are locked from all future actions.\nChoose a death style.", category: "character" },
+    { name: "resurrect",     desc: "Brings a dead character back to life, restoring them to a standing pose.", category: "character" },
 ];
 action_modal_disappear_style = "pop";
-action_modal_disappear_speed = 2; // index into move_speeds (default: WALK)
+action_modal_disappear_speed = 2;
+action_modal_kill_style      = "sudden";
+action_modal_kill_speed           = 2; // index: 0=very slow .. 4=very fast; default NORMAL
+action_modal_resurrect_speed      = 2;
+action_modal_char_is_dead         = false;
+action_modal_char_death_style     = "";
+active_decap_heads           = [];
 
 char_facings = array_create(array_length(characters), 1);
 

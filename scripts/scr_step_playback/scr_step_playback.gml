@@ -135,6 +135,23 @@ function step_tts_playback() {
                         array_delete(preview_actors, _act_idx, 1);
                         array_delete(active_animations, _ai, 1);
                     }
+                } else if (_anim.type == "kill_fall") {
+                    _anim.progress = min(1.0, _anim.progress + 1.0 / max(1, _anim.duration));
+                    _act.death_angle = _anim.direction * 90.0 * _anim.progress * _anim.progress;
+                    if (_anim.progress >= 1.0) {
+                        _act.death_angle = _anim.direction * 90.0;
+                        array_delete(active_animations, _ai, 1);
+                    }
+                } else if (_anim.type == "kill_standup") {
+                    _anim.progress = min(1.0, _anim.progress + 1.0 / max(1, _anim.duration));
+                    var _t = 1.0 - _anim.progress;
+                    _act.death_angle = _anim.start_angle * (_t * _t);
+                    if (_anim.progress >= 1.0) {
+                        _act.death_angle  = 0;
+                        _act.dead         = false;
+                        _act.death_style  = "";
+                        array_delete(active_animations, _ai, 1);
+                    }
                 } else if (_anim.type == "disintegrate") {
                     // Time-based: advance progress, emit electric particles, then remove
                     _anim.progress = min(1.0, _anim.progress + 1.0 / max(1, _anim.duration));
@@ -318,15 +335,32 @@ function step_tts_playback() {
                     active_scene_block_idx = playing_block_index;
                     preview_actors = [];
                     if (variable_struct_exists(_b, "actors")) {
+                        // Build dead-char set from all blocks before this scene
+                        var _dead_pb = ds_map_create();
+                        for (var _di2 = 0; _di2 < playing_block_index; _di2++) {
+                            var _db2 = script_blocks[_di2];
+                            if (!variable_struct_exists(_db2, "type") || _db2.type != "action") continue;
+                            if (!variable_struct_exists(_db2, "char_index")) continue;
+                            if (variable_struct_exists(_db2, "kill_style")) {
+                                _dead_pb[? _db2.char_index] = true;
+                            } else if (string_pos("resurrects", string_lower(_db2.action_name)) > 0) {
+                                ds_map_delete(_dead_pb, _db2.char_index);
+                            }
+                        }
                         for (var a = 0; a < array_length(_b.actors); a++) {
                             var _act = _b.actors[a];
                             var _def_face = (_act.char_index >= 0 && _act.char_index < array_length(characters) && variable_struct_exists(characters[_act.char_index], "default_facing")) ? characters[_act.char_index].default_facing : 1;
                             var _face = variable_struct_exists(_act, "facing") ? _act.facing : _def_face;
                             var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
                             var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
-                            array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
-                            char_facings[_act.char_index] = _face;
+                            if (ds_map_exists(_dead_pb, _act.char_index)) {
+                                array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face, pose: _pose, expression: _expr, dead: true, hidden: true });
+                            } else {
+                                array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
+                                char_facings[_act.char_index] = _face;
+                            }
                         }
+                        ds_map_destroy(_dead_pb);
                     }
                 } else if (_is_action) {
                     var _aname    = string_lower(_b.action_name);
@@ -518,6 +552,85 @@ function step_tts_playback() {
                                 speaking_pause_timer = max(speaking_pause_timer, 4);
                             }
                         } else { speaking_pause_timer = max(speaking_pause_timer, 4); }
+                    } else if (variable_struct_exists(_b, "kill_style")) {
+                        var _kstyle = _b.kill_style;
+                        if (_act_idx != -1) {
+                            preview_actors[_act_idx].dead        = true;
+                            preview_actors[_act_idx].death_style = _kstyle;
+                            preview_actors[_act_idx].death_angle = 0;
+                            preview_actors[_act_idx].blood_timer = irandom(90);
+                            if (_kstyle == "fall_forwards" || _kstyle == "fall_backwards") {
+                                var _kspd_idx = variable_struct_exists(_b, "kill_speed") ? clamp(_b.kill_speed, 0, 4) : 2;
+                                var _kdurations = [130, 90, 65, 38, 22];
+                                var _kfacing = variable_struct_exists(preview_actors[_act_idx], "facing") ? preview_actors[_act_idx].facing : 1;
+                                var _kdir = (_kstyle == "fall_forwards") ? _kfacing : -_kfacing;
+                                action_animating = true;
+                                array_push(active_animations, {
+                                    char_index: _b.char_index,
+                                    type:       "kill_fall",
+                                    direction:  _kdir,
+                                    progress:   0,
+                                    duration:   _kdurations[_kspd_idx],
+                                });
+                            } else if (_kstyle == "decapitate") {
+                                var _ksc = (scene_win_h * 1.5) / 450;
+                                var _ka  = preview_actors[_act_idx];
+                                var _kly = get_composite_character_sprite(_ka.char_index, _ka.pose, _ka.expression, _ka.facing);
+                                var _kbh = (_kly[0].spr != -1) ? sprite_get_height(_kly[0].spr) * _ksc : 200;
+                                var _kbw = (_kly[0].spr != -1) ? sprite_get_width(_kly[0].spr)  * _ksc : 80;
+                                var _knx = _ka.x;
+                                var _kny = _ka.y - _kbh * 0.25;
+                                start_particle_emitter("splatter", _knx, _ka.y - _kbh * 0.85, 270, 1.5, 0.55, 7, 1.8, 100, "darkred", 0,0,0, 18, 8);
+                                var _kface = variable_struct_exists(_ka, "facing") ? _ka.facing : 1;
+                                var _kface = variable_struct_exists(_ka, "facing") ? _ka.facing : 1;
+                                var _hvx = random_range(-3.0, 3.0);
+                                var _hvy = random_range(-5.0, -4.0);
+                                var _hspin = random_range(5, 9) * ((_hvx >= 0) ? 1 : -1);
+                                array_push(active_decap_heads, {
+                                    char_index: _ka.char_index,
+                                    pose:       _ka.pose,
+                                    expression: _ka.expression,
+                                    facing:     _kface,
+                                    body_w:     _kbw,
+                                    body_h:     _kbh,
+                                    x:          scene_win_x + _knx,
+                                    y:          scene_win_y + _kny,
+                                    vx:         _hvx,
+                                    vy:         _hvy,
+                                    angle:      0,
+                                    spin:       _hspin,
+                                    alpha:      1.0,
+                                    life:       0,
+                                    max_life:   150,
+                                });
+                            }
+                        }
+                        if (_kstyle == "decapitate") speaking_pause_timer = max(speaking_pause_timer, 300);
+                        else speaking_pause_timer = max(speaking_pause_timer, 5);
+                    } else if (string_pos("resurrects", _aname) > 0) {
+                        if (_act_idx != -1) {
+                            var _ra = preview_actors[_act_idx];
+                            var _cur_angle = variable_struct_exists(_ra, "death_angle") ? _ra.death_angle : 0;
+                            var _rfell = variable_struct_exists(_ra, "death_style") &&
+                                         (_ra.death_style == "fall_forwards" || _ra.death_style == "fall_backwards");
+                            if (_rfell && _cur_angle != 0) {
+                                var _rdurations = [130, 90, 65, 38, 22];
+                                var _rspd = variable_struct_exists(_b, "resurrect_speed") ? clamp(_b.resurrect_speed, 0, 4) : 2;
+                                action_animating = true;
+                                array_push(active_animations, {
+                                    char_index:  _b.char_index,
+                                    type:        "kill_standup",
+                                    start_angle: _cur_angle,
+                                    progress:    0,
+                                    duration:    _rdurations[_rspd],
+                                });
+                            } else {
+                                _ra.dead        = false;
+                                _ra.death_style = "";
+                                _ra.death_angle = 0;
+                            }
+                        }
+                        speaking_pause_timer = max(speaking_pause_timer, 22);
                     } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                 } else if (_is_particle) {
                     var _psize  = variable_struct_exists(_b, "size")     ? _b.size     : 1.0;

@@ -325,14 +325,43 @@ function update_preview_actors_for_block(_idx, _inclusive) {
     if (active_scene_block_idx != -1) {
         var _scene = script_blocks[active_scene_block_idx];
         if (variable_struct_exists(_scene, "actors")) {
+            // Scan all blocks before this scene to find chars that were killed and not resurrected
+            var _dead_before = ds_map_create();
+            for (var _di = 0; _di < active_scene_block_idx; _di++) {
+                var _db = script_blocks[_di];
+                if (!variable_struct_exists(_db, "type") || _db.type != "action") continue;
+                if (!variable_struct_exists(_db, "char_index")) continue;
+                if (variable_struct_exists(_db, "kill_style")) {
+                    _dead_before[? _db.char_index] = true;
+                } else if (string_pos("resurrects", string_lower(_db.action_name)) > 0) {
+                    ds_map_delete(_dead_before, _db.char_index);
+                }
+            }
             for (var a = 0; a < array_length(_scene.actors); a++) {
                 var _sa = _scene.actors[a];
                 var _face = variable_struct_exists(_sa, "facing")     ? _sa.facing     : 1;
                 var _pose = variable_struct_exists(_sa, "pose")       ? _sa.pose       : 1;
                 var _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 21;
-                array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
-                char_facings[_sa.char_index] = _face;
+                if (ds_map_exists(_dead_before, _sa.char_index)) {
+                    // Keep in preview_actors so panel shows dead state, but hidden from scene render
+                    array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr, dead: true, hidden: true });
+                } else {
+                    array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
+                    char_facings[_sa.char_index] = _face;
+                }
             }
+            // Also add dead chars not already in preview_actors so the panel can mark them
+            for (var _ci = 0; _ci < array_length(characters); _ci++) {
+                if (!ds_map_exists(_dead_before, _ci)) continue;
+                var _in_pa = false;
+                for (var _pi = 0; _pi < array_length(preview_actors); _pi++) {
+                    if (preview_actors[_pi].char_index == _ci) { _in_pa = true; break; }
+                }
+                if (!_in_pa) {
+                    array_push(preview_actors, { char_index: _ci, x: 0, y: 0, is_base: false, facing: 1, pose: 1, expression: 21, dead: true, hidden: true });
+                }
+            }
+            ds_map_destroy(_dead_before);
         }
 
         var _limit = _inclusive ? _idx : (_idx - 1);
@@ -433,6 +462,20 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                     }
                 } else if (string_pos("disappears", _aname) > 0) {
                     if (_act_idx != -1) array_delete(preview_actors, _act_idx, 1);
+                } else if (variable_struct_exists(_b, "kill_style")) {
+                    if (_act_idx != -1) {
+                        var _kstyle = _b.kill_style;
+                        preview_actors[_act_idx].dead        = true;
+                        preview_actors[_act_idx].death_style = _kstyle;
+                        var _rface = variable_struct_exists(preview_actors[_act_idx], "facing") ? preview_actors[_act_idx].facing : 1;
+                        preview_actors[_act_idx].death_angle = (_kstyle == "fall_forwards") ? (_rface * 90) : ((_kstyle == "fall_backwards") ? (-_rface * 90) : 0);
+                    }
+                } else if (string_pos("resurrects", _aname) > 0) {
+                    if (_act_idx != -1) {
+                        preview_actors[_act_idx].dead        = false;
+                        preview_actors[_act_idx].death_style = "";
+                        preview_actors[_act_idx].death_angle = 0;
+                    }
                 }
             }
         }
