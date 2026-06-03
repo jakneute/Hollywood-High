@@ -634,7 +634,6 @@ function step_tts_playback() {
                                 var _kny = _ka.y - _kbh * 0.25;
                                 start_particle_emitter("splatter", _knx, _ka.y - _kbh * 0.90, 270, 1.5, 0.55, 7, 1.8, 100, "darkred", 0,0,0, 18, 8);
                                 var _kface = variable_struct_exists(_ka, "facing") ? _ka.facing : 1;
-                                var _kface = variable_struct_exists(_ka, "facing") ? _ka.facing : 1;
                                 var _hvx = random_range(-3.0, 3.0);
                                 var _hvy = random_range(-5.0, -4.0);
                                 var _hspin = random_range(5, 9) * ((_hvx >= 0) ? 1 : -1);

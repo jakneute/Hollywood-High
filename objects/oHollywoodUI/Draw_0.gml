@@ -2837,7 +2837,7 @@ if (edit_mode) {
         var _ctrl_y = _myo + 360;
         
         // Pitch
-        var _p_x = _mxo+180 + (modal_pitch/180)*300;
+        var _p_x = _mxo+180 + (modal_pitch/100)*300;
         _p_hov = (_mx > _mxo+180 && _mx < _mxo+480 && _my > _ctrl_y-5 && _my < _ctrl_y+25);
         draw_set_color(c_white); draw_text(_mxo+50, _ctrl_y+2, "Pitch:");
         draw_set_color(_p_hov || slider_drag==1 ? make_color_rgb(80,80,110) : make_color_rgb(60,60,80));

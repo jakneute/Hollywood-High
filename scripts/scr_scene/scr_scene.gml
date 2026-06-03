@@ -528,4 +528,16 @@ function play_from_index(_idx) {
     active_animations    = [];
     audio_stop_all();
     tts_stop();
+    active_particles  = [];
+    active_emitters   = [];
+    active_beams      = [];
+    active_explosions = [];
+    active_decap_heads = [];
+    active_shots      = [];
+    waiting_for_shots = false;
+    quake_x = 0; quake_y = 0; quake_frames = 0; quake_tied_to_chain = false;
+    for (var _pai = 0; _pai < array_length(preview_actors); _pai++) {
+        preview_actors[_pai].jitter_x = 0;
+        preview_actors[_pai].jitter_y = 0;
+    }
 }

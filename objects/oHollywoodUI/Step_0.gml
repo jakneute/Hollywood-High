@@ -444,7 +444,7 @@ if (edit_mode) {
     var _m_w = 800; var _m_h = 700;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     if (mouse_check_button(mb_left) && slider_drag != 0) {
-        if (slider_drag == 1) modal_pitch = clamp(((_mx - (_m_x + 180)) / 300) * 180, 0, 180);
+        if (slider_drag == 1) modal_pitch = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
         if (slider_drag == 2) modal_speed = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
     }
     if (mouse_check_button_released(mb_left)) slider_drag = 0;
@@ -466,10 +466,10 @@ if (edit_mode) {
             // Pitch Fine-Tuning Arrows
             if (_my > _ctrl_y - 5 && _my < _ctrl_y + 25) {
                 if (_mx > _m_x + 150 && _mx < _m_x + 175) modal_pitch = max(0, modal_pitch - 5);
-                if (_mx > _m_x + 485 && _mx < _m_x + 510) modal_pitch = min(180, modal_pitch + 5);
-                if (_mx > _m_x + 180 && _mx < _m_x + 480) { modal_pitch = clamp(((_mx - (_m_x + 180)) / 300) * 180, 0, 180); slider_drag = 1; }
+                if (_mx > _m_x + 485 && _mx < _m_x + 510) modal_pitch = min(100, modal_pitch + 5);
+                if (_mx > _m_x + 180 && _mx < _m_x + 480) { modal_pitch = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100); slider_drag = 1; }
             }
-            
+
             // Speed Fine-Tuning Arrows
             if (_my > _ctrl_y + 45 && _my < _ctrl_y + 75) {
                 if (_mx > _m_x + 150 && _mx < _m_x + 175) modal_speed = max(0, modal_speed - 5);
@@ -1403,6 +1403,7 @@ if (mouse_check_button_pressed(mb_left)) {
             var _pcb2   = variable_struct_exists(_peb2, "color_b") ? _peb2.color_b : 0;
             var _paw2   = variable_struct_exists(_peb2, "area_w")  ? _peb2.area_w  : 0;
             var _pah2   = variable_struct_exists(_peb2, "area_h")  ? _peb2.area_h  : 0;
+            active_particles = []; active_emitters = []; active_beams = []; active_explosions = []; active_shots = []; waiting_for_shots = false;
             start_particle_emitter(_peb2.effect, _peb2.x, _peb2.y, _peb2.angle, _psize2, _pdur2, _pden2, _pspd2, _pspr2, _pcol2, _pcr2, _pcg2, _pcb2, _paw2, _pah2); return;
         }
         var _ped_dot_sx = scene_win_x + _peb2.x;
