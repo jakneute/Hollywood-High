@@ -74,7 +74,7 @@ function step_modal_dictionary() {
 
 function step_modal_movement() {
     var _mx = mouse_x; var _my = mouse_y;
-    var _m_w = 400; var _m_h = 580;
+    var _m_w = 400; var _m_h = 660;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
 
     if (mouse_check_button_pressed(mb_left)) {
@@ -91,6 +91,18 @@ function step_modal_movement() {
             var _ty = _m_y + 380 + _ti * 44;
             if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _ty && _my < _ty + 38) {
                 move_modal_temp_trick = (move_modal_temp_trick == _trick_vals[_ti]) ? "none" : _trick_vals[_ti];
+                if (move_modal_temp_trick == "none") move_modal_temp_trick_count = 1;
+            }
+        }
+        // Count buttons (1–5)
+        if (move_modal_temp_trick != "none") {
+            var _cbw2 = 52; var _cbg2 = 8;
+            for (var _ci2 = 0; _ci2 < 5; _ci2++) {
+                var _cx2 = _m_x + 50 + _ci2 * (_cbw2 + _cbg2);
+                var _cy2 = _m_y + 540;
+                if (_mx > _cx2 && _mx < _cx2 + _cbw2 && _my > _cy2 && _my < _cy2 + 34) {
+                    move_modal_temp_trick_count = _ci2 + 1;
+                }
             }
         }
         if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
@@ -102,17 +114,23 @@ function step_modal_movement() {
                     if (variable_struct_exists(_b, "facing")) _b.facing *= -1;
                     _b.moonwalk = move_modal_temp_moonwalk;
                 }
-                _b.trick = move_modal_temp_trick;
+                _b.trick       = move_modal_temp_trick;
+                _b.trick_count = (move_modal_temp_trick != "none") ? move_modal_temp_trick_count : 1;
                 var _bn = _b.action_name;
                 var _pos = string_pos(" (", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
                 _pos = string_pos(" [MOONWALK]", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
-                _pos = string_pos(" [JUMP]", string_upper(_bn)); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
-                _pos = string_pos(" [FRONT FLIP]", string_upper(_bn)); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
-                _pos = string_pos(" [BACK FLIP]", string_upper(_bn)); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                // Strip trick labels — match prefix so "x2" variants are also removed
+                _pos = string_pos(" [JUMP", string_upper(_bn));       if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                _pos = string_pos(" [FRONT FLIP", string_upper(_bn)); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
+                _pos = string_pos(" [BACK FLIP", string_upper(_bn));  if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
                 var _lbl = move_speed_labels[move_modal_temp_speed_index];
                 if (_lbl != "WALK") _bn += " (" + _lbl + ")";
                 if (_b.moonwalk) _bn += " [MOONWALK]";
-                if (_b.trick != "none") _bn += " [" + string_upper(_b.trick) + "]";
+                if (_b.trick != "none") {
+                    _bn += " [" + string_upper(_b.trick);
+                    if (_b.trick_count > 1) _bn += " x" + string(_b.trick_count);
+                    _bn += "]";
+                }
                 _b.action_name = _bn;
                 move_modal_edit_mode = false;
             } else {

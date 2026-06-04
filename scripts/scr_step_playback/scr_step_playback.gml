@@ -212,6 +212,7 @@ function step_tts_playback() {
                 if (!variable_struct_exists(_act, "y_offset"))     _act.y_offset = 0;
                 if (!variable_struct_exists(_anim, "cur_speed"))   _anim.cur_speed = 0;
                 var _trick = variable_struct_exists(_anim, "trick") ? _anim.trick : "none";
+                var _trick_count = variable_struct_exists(_anim, "trick_count") ? max(1, _anim.trick_count) : 1;
                 // Initialize trick_start_dist on first frame
                 if (_trick != "none" && _anim.trick_start_dist < 0) _anim.trick_start_dist = max(1, _dist);
                 var _target_speed = _anim.speed;
@@ -223,17 +224,18 @@ function step_tts_playback() {
                     var _dx = lengthdir_x(_anim.cur_speed, _dir); var _dy = lengthdir_y(_anim.cur_speed, _dir);
                     _act.x += _dx; _act.y += _dy;
                     if (_trick != "none") {
-                        // Sine arc instead of walk bounce
                         var _prog = clamp(1.0 - (_dist / _anim.trick_start_dist), 0, 1);
-                        _act.y_offset = -sin(_prog * pi) * (scene_win_h * 0.18);
                         _act.bounce_timer = 0;
                         if (_trick != "jump") {
-                            // Flip: direction based on travel direction; moonwalk reverses it
+                            // Flips: single arc so character stays airborne through all rotations
+                            _act.y_offset = -sin(_prog * pi) * (scene_win_h * 0.18);
                             var _moving_right = (_anim.target_x > _act.x);
                             var _flip_dir = (_trick == "front flip") ? (_moving_right ? -1 : 1) : (_moving_right ? 1 : -1);
                             if (variable_struct_exists(_anim, "moonwalk") && _anim.moonwalk) _flip_dir *= -1;
-                            _act.image_angle = _prog * 360 * _flip_dir;
+                            _act.image_angle = _prog * 360 * _trick_count * _flip_dir;
                         } else {
+                            // Jumps: multiple hops, each touching down
+                            _act.y_offset = -abs(sin(_prog * _trick_count * pi)) * (scene_win_h * 0.18);
                             _act.image_angle = 0;
                         }
                     } else {
@@ -413,6 +415,7 @@ function step_tts_playback() {
                                 target_x: variable_struct_exists(_b, "target_x") ? _b.target_x : (_is_left ? (_w/2)+20 : scene_win_w-(_w/2)-20),
                                 target_y: variable_struct_exists(_b, "target_y") ? _b.target_y : scene_win_h,
                                 trick: variable_struct_exists(_b, "trick") ? _b.trick : "none",
+                                trick_count: variable_struct_exists(_b, "trick_count") ? _b.trick_count : 1,
                                 trick_start_dist: -1, moonwalk: _moon
                             });
                         }
@@ -432,6 +435,7 @@ function step_tts_playback() {
                                 target_x: _exit_left ? -(_w/2)-50 : scene_win_w+(_w/2)+50,
                                 target_y: preview_actors[_act_idx].y,
                                 trick: variable_struct_exists(_b, "trick") ? _b.trick : "none",
+                                trick_count: variable_struct_exists(_b, "trick_count") ? _b.trick_count : 1,
                                 trick_start_dist: -1, moonwalk: _moon
                             });
                         }
@@ -477,7 +481,7 @@ function step_tts_playback() {
                             var _base_face = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
                             char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                             preview_actors[_act_idx].facing = char_facings[_b.char_index];
-                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y, trick: variable_struct_exists(_b, "trick") ? _b.trick : "none", trick_start_dist: -1, moonwalk: _moon });
+                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y, trick: variable_struct_exists(_b, "trick") ? _b.trick : "none", trick_count: variable_struct_exists(_b, "trick_count") ? _b.trick_count : 1, trick_start_dist: -1, moonwalk: _moon });
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                     } else if (string_pos("expression:", _aname) > 0) {
                         if (_act_idx != -1) {

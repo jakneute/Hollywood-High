@@ -129,6 +129,7 @@ move_trick = "none";
 move_modal_temp_speed_index = 2;
 move_modal_temp_moonwalk = false;
 move_modal_temp_trick = "none";
+move_modal_temp_trick_count = 1;
 move_modal_edit_mode = false;
 move_modal_target_index = -1;
 
@@ -654,7 +655,7 @@ if (array_length(all_voices) > 0) {
 // Data saved to datafiles/config/<Name>/expressions_config.json.
 
 // Set to false before shipping to hide the expression configurator entirely.
-SHOW_EXPR_CFG           = false;
+SHOW_EXPR_CFG           = true;
 // Set to false before shipping to hide the voice config export button.
 SHOW_VOICE_CFG          = false;
 

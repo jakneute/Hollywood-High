@@ -485,15 +485,18 @@ function update_preview_actors_for_block(_idx, _inclusive) {
 function play_from_index(_idx) {
     if (_idx < 0 || _idx >= array_length(script_blocks)) return;
 
-    // Free any SFX sounds and their buffers while still live, before audio_stop_all()
-    // stops them (which would leave buffer references dangling).
+    // Stop all audio before freeing buffers — deleting a buffer while it's playing causes a crash.
+    // Guards with buffer_exists/audio_exists handle stale IDs loaded from save files.
+    audio_stop_all();
     for (var _si = 0; _si < array_length(script_blocks); _si++) {
         var _sb = script_blocks[_si];
         if (variable_struct_exists(_sb, "last_sound") && _sb.last_sound != -1) {
-            audio_free_buffer_sound(_sb.last_sound); _sb.last_sound = -1;
+            if (audio_exists(_sb.last_sound)) audio_free_buffer_sound(_sb.last_sound);
+            _sb.last_sound = -1;
         }
         if (variable_struct_exists(_sb, "last_buffer") && _sb.last_buffer != -1) {
-            buffer_delete(_sb.last_buffer); _sb.last_buffer = -1;
+            if (buffer_exists(_sb.last_buffer)) buffer_delete(_sb.last_buffer);
+            _sb.last_buffer = -1;
         }
     }
 
@@ -526,7 +529,6 @@ function play_from_index(_idx) {
     active_requests      = [];
     action_animating     = false;
     active_animations    = [];
-    audio_stop_all();
     tts_stop();
     active_particles  = [];
     active_emitters   = [];

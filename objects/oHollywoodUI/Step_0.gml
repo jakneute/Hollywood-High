@@ -868,49 +868,47 @@ if (theater_mode) {
         for (var _ni = 0; _ni < array_length(script_blocks); _ni++) _total_h += script_blocks[_ni].height + 20;
         var _max_scroll = min(0, box_h - 40 - _total_h);
 
+        // Home/End — single press only
         if (_not_typing) {
-            if (keyboard_check_pressed(vk_home)) {
-                block_scroll_y = 0;
-                focused_block  = 0;
-            } else if (keyboard_check_pressed(vk_end)) {
-                block_scroll_y = _max_scroll;
-                focused_block  = array_length(script_blocks) - 1;
-            } else if (keyboard_check_pressed(vk_pageup)) {
-                block_scroll_y = min(0, block_scroll_y + box_h);
-            } else if (keyboard_check_pressed(vk_pagedown)) {
-                block_scroll_y = max(_max_scroll, block_scroll_y - box_h);
-            }
+            if (keyboard_check_pressed(vk_home)) { block_scroll_y = 0;           focused_block = 0; }
+            else if (keyboard_check_pressed(vk_end))  { block_scroll_y = _max_scroll; focused_block = array_length(script_blocks) - 1; }
         }
 
-        // Nav buttons (right gutter) — same actions triggered by mouse click
-        if (mouse_check_button_pressed(mb_left) && !_overlay_active) {
-            var _nb_x   = box_x + box_w + 5;
-            var _nb_w   = 38;
-            var _nb_h   = 26;
-            var _nb_gap = 5;
-            var _nb_y0  = box_y + (box_h - (4 * _nb_h + 3 * _nb_gap)) / 2;
+        // Nav button geometry
+        var _nb_x   = box_x + box_w + 5; var _nb_w   = 38;
+        var _nb_h   = 26;                 var _nb_gap = 5;
+        var _nb_y0  = box_y + (box_h - (4 * _nb_h + 3 * _nb_gap)) / 2;
+        var _nav_full_h     = _total_h;
+        var _nav_can_scroll = (_nav_full_h > box_h - 20);
+        var _nav_max_scroll = _nav_can_scroll ? (-(_nav_full_h + box_h / 2 - (box_h - 20))) : 0;
+        var _at_top    = !_nav_can_scroll || block_scroll_y >= 0;
+        var _at_bottom = !_nav_can_scroll || block_scroll_y <= _nav_max_scroll;
 
-            var _nav_full_h = _total_h;
-            var _nav_can_scroll = (_nav_full_h > box_h - 20);
-            var _nav_max_scroll = _nav_can_scroll ? (-(_nav_full_h + box_h / 2 - (box_h - 20))) : 0;
-            var _at_top    = !_nav_can_scroll || block_scroll_y >= 0;
-            var _at_bottom = !_nav_can_scroll || block_scroll_y <= _nav_max_scroll;
-
-            if (_mx >= _nb_x && _mx <= _nb_x + _nb_w) {
-                for (var _bi = 0; _bi < 4; _bi++) {
-                    var _by = _nb_y0 + _bi * (_nb_h + _nb_gap);
-                    if (_my >= _by && _my <= _by + _nb_h) {
-                        var _disabled = (_bi < 2) ? _at_top : _at_bottom;
-                        if (!_disabled) {
-                            if      (_bi == 0) { block_scroll_y = 0;                                        focused_block = 0; }
-                            else if (_bi == 1) { block_scroll_y = min(0, block_scroll_y + box_h); }
-                            else if (_bi == 2) { block_scroll_y = max(_nav_max_scroll, block_scroll_y - box_h); }
-                            else if (_bi == 3) { block_scroll_y = _nav_max_scroll;                          focused_block = array_length(script_blocks) - 1; }
-                        }
-                        break;
-                    }
-                }
+        // PgUp/PgDown: keyboard OR nav buttons 1/2 — both support hold-to-repeat
+        var _pgup_y  = _nb_y0 + (_nb_h + _nb_gap);
+        var _pgdn_y  = _nb_y0 + 2 * (_nb_h + _nb_gap);
+        var _mb_held = mouse_check_button(mb_left) && !_overlay_active && _mx >= _nb_x && _mx <= _nb_x + _nb_w;
+        var _pgup_btn = _mb_held && _my >= _pgup_y && _my <= _pgup_y + _nb_h;
+        var _pgdn_btn = _mb_held && _my >= _pgdn_y && _my <= _pgdn_y + _nb_h;
+        var _pgup_key = _not_typing && keyboard_check(vk_pageup);
+        var _pgdn_key = _not_typing && keyboard_check(vk_pagedown);
+        if (!variable_instance_exists(id, "nav_hold_timer")) nav_hold_timer = 0;
+        if (_pgup_btn || _pgdn_btn || _pgup_key || _pgdn_key) {
+            nav_hold_timer++;
+            var _first = keyboard_check_pressed(vk_pageup) || keyboard_check_pressed(vk_pagedown)
+                      || (mouse_check_button_pressed(mb_left) && (_pgup_btn || _pgdn_btn));
+            if (_first || (nav_hold_timer > 22 && nav_hold_timer mod 10 == 0)) {
+                if ((_pgup_btn || _pgup_key) && !_at_top)    block_scroll_y = min(0, block_scroll_y + box_h);
+                if ((_pgdn_btn || _pgdn_key) && !_at_bottom) block_scroll_y = max(_nav_max_scroll, block_scroll_y - box_h);
             }
+        } else { nav_hold_timer = 0; }
+
+        // Nav buttons 0 and 3 (jump to top/bottom) — single press only
+        if (mouse_check_button_pressed(mb_left) && !_overlay_active && _mx >= _nb_x && _mx <= _nb_x + _nb_w) {
+            var _top_y = _nb_y0;
+            var _end_y = _nb_y0 + 3 * (_nb_h + _nb_gap);
+            if (_my >= _top_y && _my <= _top_y + _nb_h && !_at_top)    { block_scroll_y = 0;             focused_block = 0; }
+            if (_my >= _end_y && _my <= _end_y + _nb_h && !_at_bottom) { block_scroll_y = _nav_max_scroll; focused_block = array_length(script_blocks) - 1; }
         }
     }
 }
@@ -1251,7 +1249,7 @@ if (insertion_idx != -1 && mouse_check_button_pressed(mb_left)) {
 }
 if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
     // Keep sorted alphabetically by label (OFF always first). Add future effects in order.
-    var _fx_ids    = ["none","blackwhite","brighten","candlelight","crt","darken","dream","drunk","embers","fog","frigid","goldenhour","heat","infrared","nightvision","rain","sepia","snow","static","stoned","underwater"];
+    var _fx_ids    = ["none","blackwhite","brighten","candlelight","crt","darken","dream","drunk","embers","filth","fog","frigid","goldenhour","heat","infrared","moonlight","nightvision","rain","sepia","snow","static","stoned","sunlight","underwater"];
     var _fx_btn_x  = _ind_x + 120; var _fx_btn_w = 130;
     var _pick_item_h = 22; var _pick_count = array_length(_fx_ids);
 
@@ -1293,7 +1291,7 @@ if (!scene_edit_mode) { fx_picker_open = false; fx_picker_scroll = 0; }
 
 // --- FX picker scroll wheel + scrollbar drag (runs every step) ---
 if (fx_picker_open) {
-    var _fp_total  = 21; // must match picker list length
+    var _fp_total  = 24; // must match picker list length
     var _fp_max_sb = 13;
     if (mouse_wheel_up())   fx_picker_scroll = max(0, fx_picker_scroll - 1);
     if (mouse_wheel_down()) fx_picker_scroll = min(_fp_total - _fp_max_sb, fx_picker_scroll + 1);
@@ -1908,8 +1906,9 @@ if (mouse_check_button_pressed(mb_left)) {
                         move_modal_target_index = i;
                         move_modal_edit_mode = true;
                         var _blk_spd = variable_struct_exists(_block, "speed") ? _block.speed : 1.9;
-                        move_modal_temp_moonwalk = variable_struct_exists(_block, "moonwalk") ? _block.moonwalk : false;
-                        move_modal_temp_trick = variable_struct_exists(_block, "trick") ? _block.trick : "none";
+                        move_modal_temp_moonwalk    = variable_struct_exists(_block, "moonwalk")     ? _block.moonwalk     : false;
+                        move_modal_temp_trick       = variable_struct_exists(_block, "trick")       ? _block.trick       : "none";
+                        move_modal_temp_trick_count = variable_struct_exists(_block, "trick_count") ? _block.trick_count : 1;
                         move_modal_temp_speed_index = 2;
                         for (var j = 0; j < array_length(move_speeds); j++) {
                             if (abs(move_speeds[j] - _blk_spd) < 0.01) { move_modal_temp_speed_index = j; break; }
@@ -2505,7 +2504,7 @@ if (!_overlay_active) {
 
                     dragging_char_index = i; // START DRAGGING (Unified)
                     drag_off_x = 0;
-                    drag_off_y = -(_csh * _scale) / 2;
+                    drag_off_y = 0;
                     
                     // Auto-scroll logic
                     var _row = floor(selected_character_index / 2);
@@ -2518,9 +2517,9 @@ if (!_overlay_active) {
         } // end particle_panel_mode else
         } // end !_char_sb_clicked block
     } else {
-        // Normal script scrolling
-        if (mouse_wheel_up()) block_scroll_y += 80;
-        if (mouse_wheel_down()) block_scroll_y -= 80;
+        // Normal script scrolling — suppressed when FX picker is open
+        if (!fx_picker_open && mouse_wheel_up()) block_scroll_y += 80;
+        if (!fx_picker_open && mouse_wheel_down()) block_scroll_y -= 80;
     }
 }
 
@@ -2536,7 +2535,6 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
         // Proposed Position (relative to window, with offsets and clamps)
         var _px = _mx - scene_win_x - drag_off_x;
         var _py = _my - scene_win_y - drag_off_y;
-        if (_py > scene_win_h) _py = scene_win_h;
         if (_py < scene_win_h * 0.25) _py = scene_win_h * 0.25;
 
         // Vertical intersection (using Proposed Position)

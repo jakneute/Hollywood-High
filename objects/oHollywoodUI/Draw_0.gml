@@ -562,6 +562,24 @@ if (theater_mode) {
         draw_set_color(c_white); draw_set_alpha(1.0);
         draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h);
         shader_reset();
+    } else if (_active_fx == "moonlight" && shader_is_compiled(shMoonlight)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shMoonlight); shader_set_uniform_f(shader_get_uniform(shMoonlight, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
+    } else if (_active_fx == "sunlight" && shader_is_compiled(shSunlight)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shSunlight); shader_set_uniform_f(shader_get_uniform(shSunlight, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
+    } else if (_active_fx == "filth" && shader_is_compiled(shFilth)) {
+        var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
+        if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
+        surface_copy_part(heat_surface, 0, 0, application_surface, round(_stage_x), round(_stage_y), _sw, _sh2);
+        shader_set(shFilth); shader_set_uniform_f(shader_get_uniform(shFilth, "u_time"), current_time * 0.001);
+        draw_set_color(c_white); draw_set_alpha(1.0); draw_surface_stretched(heat_surface, _stage_x, _stage_y, _stage_w, _stage_h); shader_reset();
     } else if (_active_fx == "candlelight" && shader_is_compiled(shCandlelight)) {
         var _sw = ceil(_stage_w); var _sh2 = ceil(_stage_h);
         if (!surface_exists(heat_surface) || surface_get_width(heat_surface) != _sw || surface_get_height(heat_surface) != _sh2) { if (surface_exists(heat_surface)) surface_free(heat_surface); heat_surface = surface_create(_sw, _sh2); }
@@ -1344,7 +1362,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	var _edit_fx = variable_struct_exists(_scene, "fx") ? _scene.fx : "none";
 	if (_edit_fx != "none") {
 		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-		var _is_capture_fx = (_edit_fx == "blackwhite" || _edit_fx == "brighten" || _edit_fx == "candlelight" || _edit_fx == "crt" || _edit_fx == "darken" || _edit_fx == "dream" || _edit_fx == "drunk" || _edit_fx == "frigid" || _edit_fx == "goldenhour" || _edit_fx == "heat" || _edit_fx == "infrared" || _edit_fx == "nightvision" || _edit_fx == "sepia" || _edit_fx == "stoned" || _edit_fx == "underwater");
+		var _is_capture_fx = (_edit_fx == "blackwhite" || _edit_fx == "brighten" || _edit_fx == "candlelight" || _edit_fx == "crt" || _edit_fx == "darken" || _edit_fx == "dream" || _edit_fx == "drunk" || _edit_fx == "filth" || _edit_fx == "frigid" || _edit_fx == "goldenhour" || _edit_fx == "heat" || _edit_fx == "infrared" || _edit_fx == "moonlight" || _edit_fx == "nightvision" || _edit_fx == "sepia" || _edit_fx == "stoned" || _edit_fx == "sunlight" || _edit_fx == "underwater");
 		var _cap_sh_for_fx = shHeat;
 		if      (_edit_fx == "blackwhite")  _cap_sh_for_fx = shBlackWhite;
 		else if (_edit_fx == "brighten")    _cap_sh_for_fx = shBrighten;
@@ -1353,7 +1371,10 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		else if (_edit_fx == "darken")      _cap_sh_for_fx = shDarken;
 		else if (_edit_fx == "dream")       _cap_sh_for_fx = shDream;
 		else if (_edit_fx == "drunk")       _cap_sh_for_fx = shDrunk;
+		else if (_edit_fx == "filth")       _cap_sh_for_fx = shFilth;
 		else if (_edit_fx == "frigid")      _cap_sh_for_fx = shFrigid;
+		else if (_edit_fx == "moonlight")   _cap_sh_for_fx = shMoonlight;
+		else if (_edit_fx == "sunlight")    _cap_sh_for_fx = shSunlight;
 		else if (_edit_fx == "goldenhour")  _cap_sh_for_fx = shGoldenHour;
 		else if (_edit_fx == "infrared")    _cap_sh_for_fx = shInfrared;
 		else if (_edit_fx == "nightvision") _cap_sh_for_fx = shNightVision;
@@ -1741,8 +1762,8 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
     var _sfx_scene = script_blocks[active_scene_block_idx];
     var _cur_fx = variable_struct_exists(_sfx_scene, "fx") ? _sfx_scene.fx : "none";
     // Keep sorted alphabetically by label (OFF always first). Add future effects in order.
-    var _fx_ids    = ["none", "blackwhite", "brighten", "candlelight", "crt",   "darken", "dream",  "drunk", "embers", "fog", "frigid",  "goldenhour",  "heat",      "infrared", "nightvision",  "rain", "sepia", "snow", "static",    "stoned", "underwater"];
-    var _fx_labels = ["OFF",  "B&W FILM",  "BRIGHTEN", "CANDLELIGHT", "CRT",   "DARKEN", "DREAM",  "DRUNK", "EMBERS", "FOG", "FRIGID",  "GOLDEN HOUR", "HEAT HAZE", "INFRARED", "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED", "UNDERWATER"];
+    var _fx_ids    = ["none", "blackwhite", "brighten", "candlelight", "crt",   "darken", "dream",  "drunk", "embers", "filth",  "fog", "frigid",  "goldenhour",  "heat",      "infrared", "moonlight",  "nightvision",  "rain", "sepia", "snow", "static",    "stoned", "sunlight",   "underwater"];
+    var _fx_labels = ["OFF",  "B&W FILM",  "BRIGHTEN", "CANDLELIGHT", "CRT",   "DARKEN", "DREAM",  "DRUNK", "EMBERS", "FILTH",  "FOG", "FRIGID",  "GOLDEN HOUR", "HEAT HAZE", "INFRARED", "MOONLIGHT",  "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED", "SUNLIGHT",   "UNDERWATER"];
     var _fx_btn_x = _ind_x + 120; var _fx_btn_w = 130;
     var _fx_hov = (!_overlay_active && !fx_picker_open && _mx > _fx_btn_x && _mx < _fx_btn_x + _fx_btn_w && _my > scene_win_y - 45 && _my < scene_win_y - 10);
     var _fx_on  = (_cur_fx != "none");
@@ -2065,12 +2086,12 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
     _mx = mouse_x;
     _my = mouse_y;
 
-    // Facing: new placements flip dynamically with mouse position (matching drop logic);
-    // existing in-scene or preview actors hold whatever facing they already have.
+    // Facing: mirrors drop logic exactly — left of centre gets -1, right gets 1 — consistent
+    // in all modes so the ghost never flips as the cursor enters the scene area.
     var _drag_face = undefined;
     if (dragging_char_index != -1) {
         var _ghost_is_left = (_mx < scene_win_x + scene_win_w / 2);
-        _drag_face = scene_edit_mode ? (_ghost_is_left ? -1 : 1) : (_ghost_is_left ? 1 : -1);
+        _drag_face = _ghost_is_left ? -1 : 1;
     } else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
         var _da = script_blocks[active_scene_block_idx].actors[dragging_actor_idx];
         _drag_face = variable_struct_exists(_da, "facing") ? _da.facing : undefined;
@@ -3170,6 +3191,7 @@ if (action_modal_open) {
                 for (var f = 0; f < _rc; f++) {
                     var _res = action_modal_sfx_search_results[f];
                     var _rby = _boxy + (f * 28) - action_modal_sfx_search_scroll_y;
+                    if (_rby + 28 > _boxy2 || _rby < _boxy) continue;
                     var _is_sel = (action_modal_sfx_search_sel == f);
                     var _r_hov = (_mx > _fx + 10 && _mx < _fx + 578 && _my > _rby && _my < _rby + 28 && _my > _boxy && _my < _boxy2);
                     draw_set_color(_is_sel ? make_color_rgb(16, 55, 148) : (_r_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 38, 14)));
@@ -3195,6 +3217,7 @@ if (action_modal_open) {
                 gpu_set_scissor(_fx + 10, _boxy, 230, _boxh);
                 for (var f = 0; f < array_length(action_modal_sfx_folders); f++) {
                     var _fby = _boxy + (f * 30) - action_modal_sfx_scroll_y;
+                    if (_fby + 30 > _boxy2 || _fby < _boxy) continue;
                     var _is_sel = (action_modal_sfx_folder_idx == f);
                     var _f_hov = (!action_modal_sfx_dragging_folder && _mx > _fx + 10 && _mx < _fx + 230 && _my > _fby && _my < _fby + 30 && _my > _boxy && _my < _boxy2);
                     draw_set_color(_is_sel ? make_color_rgb(16, 55, 148) : (_f_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 38, 14)));
@@ -3210,6 +3233,7 @@ if (action_modal_open) {
                 if (action_modal_sfx_folder_idx != -1) {
                     for (var f = 0; f < array_length(action_modal_sfx_files); f++) {
                         var _fby = _boxy + (f * 30) - action_modal_sfx_files_scroll_y;
+                        if (_fby + 30 > _boxy2 || _fby < _boxy) continue;
                         var _is_sel = (action_modal_sfx_file_idx == f);
                         var _f_hov = (!action_modal_sfx_dragging_file && _mx > _lx - 10 && _mx < _lx + 300 && _my > _fby && _my < _fby + 30 && _my > _boxy && _my < _boxy2);
                         draw_set_color(_is_sel ? make_color_rgb(16, 55, 148) : (_f_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 38, 14)));
@@ -3511,7 +3535,7 @@ if (action_modal_open) {
 
 if (move_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    var _m_w = 400; var _m_h = 580;
+    var _m_w = 400; var _m_h = 660;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 14, 14, false);
     draw_set_color(make_color_rgb(196, 213, 20));
@@ -3555,6 +3579,25 @@ if (move_modal_open) {
         if (_t_sel) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_m_x + 50, _ty, _m_x + 350, _ty + 38, 6, 6, true); }
         draw_set_color(_t_sel ? c_white : make_color_rgb(200, 220, 200));
         draw_set_halign(fa_center); draw_text(_m_x + 200, _ty + 10, _trick_labels[_ti]); draw_set_halign(fa_left);
+    }
+
+    // Count section (1–5 repeats, only meaningful when a trick is selected)
+    var _cnt_active = (move_modal_temp_trick != "none");
+    draw_set_color(_cnt_active ? make_color_rgb(196, 213, 20) : make_color_rgb(80, 95, 30));
+    draw_text(_m_x + 50, _m_y + 514, "COUNT");
+    draw_set_color(_cnt_active ? make_color_rgb(100, 120, 40) : make_color_rgb(50, 65, 20));
+    draw_line(_m_x + 50, _m_y + 532, _m_x + 350, _m_y + 532);
+    var _cbw = 52; var _cbg = 8;
+    for (var _ci = 0; _ci < 5; _ci++) {
+        var _cx = _m_x + 50 + _ci * (_cbw + _cbg);
+        var _cy = _m_y + 540;
+        var _c_sel = (_cnt_active && move_modal_temp_trick_count == _ci + 1);
+        var _c_hov = (_cnt_active && !_c_sel && _mx > _cx && _mx < _cx + _cbw && _my > _cy && _my < _cy + 34);
+        draw_set_color(_c_sel ? make_color_rgb(16, 55, 148) : (_c_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 30, 10)));
+        draw_roundrect_ext(_cx, _cy, _cx + _cbw, _cy + 34, 5, 5, false);
+        if (_c_sel) { draw_set_color(make_color_rgb(196, 213, 20)); draw_roundrect_ext(_cx, _cy, _cx + _cbw, _cy + 34, 5, 5, true); }
+        draw_set_color(_c_sel ? c_white : (_cnt_active ? make_color_rgb(200, 220, 200) : make_color_rgb(80, 95, 60)));
+        draw_set_halign(fa_center); draw_text(_cx + _cbw/2, _cy + 9, string(_ci + 1)); draw_set_halign(fa_left);
     }
 
     // OK Button
@@ -4630,8 +4673,8 @@ if (fx_picker_open && scene_edit_mode && active_scene_block_idx != -1 && active_
     var _cur_fx2   = variable_struct_exists(_sfx2, "fx") ? _sfx2.fx : "none";
     var _ind_x2    = max(scene_win_x, 110);
     var _fp_btn_x  = _ind_x2 + 120; var _fp_btn_w = 130;
-    var _fp_ids    = ["none", "blackwhite", "brighten", "candlelight", "crt",   "darken", "dream",  "drunk", "embers", "fog", "frigid",  "goldenhour",  "heat",      "infrared", "nightvision",  "rain", "sepia", "snow", "static",    "stoned", "underwater"];
-    var _fp_labels = ["OFF",  "B&W FILM",  "BRIGHTEN", "CANDLELIGHT", "CRT",   "DARKEN", "DREAM",  "DRUNK", "EMBERS", "FOG", "FRIGID",  "GOLDEN HOUR", "HEAT HAZE", "INFRARED", "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED", "UNDERWATER"];
+    var _fp_ids    = ["none", "blackwhite", "brighten", "candlelight", "crt",   "darken", "dream",  "drunk", "embers", "filth",  "fog", "frigid",  "goldenhour",  "heat",      "infrared", "moonlight",  "nightvision",  "rain", "sepia", "snow", "static",    "stoned", "sunlight",   "underwater"];
+    var _fp_labels = ["OFF",  "B&W FILM",  "BRIGHTEN", "CANDLELIGHT", "CRT",   "DARKEN", "DREAM",  "DRUNK", "EMBERS", "FILTH",  "FOG", "FRIGID",  "GOLDEN HOUR", "HEAT HAZE", "INFRARED", "MOONLIGHT",  "NIGHT VISION", "RAIN", "SEPIA", "SNOW", "TV STATIC", "STONED", "SUNLIGHT",   "UNDERWATER"];
     var _fp_count  = array_length(_fp_ids);
     var _fp_item_h = 22;
     var _fp_max    = 13; // max visible rows
