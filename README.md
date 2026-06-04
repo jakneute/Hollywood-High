@@ -7,15 +7,29 @@ A modern take on old Windows 95 edutainment software. Write screenplays, cast ch
 ## Features
 
 - **Screenplay Editor** — Create scripts with Voice, Action, Scene, and Particle blocks. Reorder, delete, and splice blocks anywhere in the timeline.
-- **TTS Voice System** — Powered by the TiSpeech engine. Each character has a unique voice with configurable pitch, speed, effort, and quality. Individual blocks can override the character default.
+- **TTS Voice System** — Powered by the TiSpeech engine (TalkIt, original Hollywood High Windows engine). Each character has a unique voice with configurable pitch, speed, effort, quality, and timbre. Individual blocks can override the character default.
 - **Theater Mode** — Full-screen playback of your screenplay with automated character positioning, movement, expressions, and voice-over.
 - **Scene Staging** — Place and position characters directly in the scene window. Characters remember their positions per scene block.
 - **Particle System** — Add visual effects (rain, fire, sparks, etc.) tied to script blocks.
 - **Action Blocks** — Characters can move, enter/exit, change pose and expression, display title cards, play sound effects, or disappear with various animations.
 - **Dictionary** — Override TTS pronunciation of specific words globally.
+- **Unsaved Changes Protection** — The app warns before starting a new script, loading a file, or exiting (Alt+F4) if there are unsaved changes. A `*` indicator appears next to Save Script in the file menu when changes are pending.
 - **SFX Library** — Browse and attach sound effects from a folder-based library. Supports both packed and custom loose files.
 - **Expanded Script View** — Toggle a full-screen script editor that hides the scene window for easier writing.
 - **Keyboard Shortcuts** — Full keyboard editing in voice blocks and the title card text field: caret navigation, click-to-position, drag-to-select, hold-to-repeat backspace/delete/arrows, Ctrl+A, Ctrl+C, Ctrl+V.
+
+---
+
+## File Menu
+
+| Option | Description |
+|---|---|
+| **New Script** | Clears the current script and resets to a blank slate. Warns if there are unsaved changes. |
+| **Save Script** | Saves the full script (blocks, character voice settings, dictionary) to a `.hhi` file. |
+| **Load Script** | Opens a `.hhi` file. Warns if there are unsaved changes. |
+| **Save Screenplay** | Exports the script as a readable `.txt` or `.fountain` text file (dialogue and actions only, no voice metadata). |
+| **Import Assets** | Import custom background scenes or sound effects into the project. |
+| **Export Script** | Packages the script and all referenced assets for distribution. |
 
 ---
 
@@ -36,6 +50,18 @@ A modern take on old Windows 95 edutainment software. Write screenplays, cast ch
 - The **VOICE** button (amber) opens the global voice studio for the selected character — changes here apply to all unaltered blocks for that character.
 - Double-clicking a voice block, or using the pencil icon, opens the voice studio scoped to that block only ("alter voice — this block only").
 - Altered blocks are indicated in the block header and are not affected by subsequent global voice changes.
+
+### Voice Studio — Advanced Tweaks
+
+Enable **Advanced Voice Tweaks** in the voice studio to access fine-grained synthesis controls:
+
+| Control | Description |
+|---|---|
+| **Pitch** | Fundamental frequency of the voice (0–100). |
+| **Speed** | Speaking rate (0–100). |
+| **Quality** | F0 contour style: Normal, Monotone, or Sung. |
+| **Effort** | Voicing mode: Normal, Breathy, or Whispered. |
+| **Timbre** | Glottal source model (off / 0–5). Controls the timbral texture of the voice. Value 5 is recommended for the cleanest, most uniform sound across all characters. |
 
 ---
 
