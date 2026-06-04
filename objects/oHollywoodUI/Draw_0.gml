@@ -695,7 +695,7 @@ if (theater_mode) {
             if (_pb != -1) {
             var _c_ref = characters[theater_active_char];
             var _is_v = !variable_struct_exists(_pb, "type") || _pb.type == "voice";
-            var _is_alt = _is_v && (variable_struct_exists(_pb, "is_altered") ? _pb.is_altered : (_pb.voice_id != _c_ref.voice_id || _pb.pitch != _c_ref.pitch || _pb.speed != _c_ref.speed || _pb.mode != _c_ref.mode || _pb.style != _c_ref.style || _pb.tweaked != _c_ref.tweaked));
+            var _is_alt = _is_v && (variable_struct_exists(_pb, "is_altered") ? _pb.is_altered : (_pb.voice_id != _c_ref.voice_id || _pb.pitch != _c_ref.pitch || _pb.speed != _c_ref.speed || _pb.mode != _c_ref.mode || _pb.style != _c_ref.style || (_pb[$ "glottal"] ?? -1) != (_c_ref[$ "glottal"] ?? -1) || _pb.tweaked != _c_ref.tweaked));
             if (_pb.char_index != 0 && _is_alt) {
                 _name += " (altered voice)";
             }
@@ -1816,15 +1816,18 @@ if (playing_block_index == -1 && current_scene_sprite != -1) {
 }
 
 if (file_menu_open) {
-    var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 175;
+    var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 210;
     draw_set_color(make_color_rgb(10, 42, 15)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, false);
     draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, true);
-    var _opts = ["SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY", "IMPORT ASSETS", "EXPORT SCRIPT"];
-    for (var i = 0; i < 5; i++) {
+    var _opts = ["NEW SCRIPT", "SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY", "IMPORT ASSETS", "EXPORT SCRIPT"];
+    for (var i = 0; i < 6; i++) {
         var _hov = (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + (i * 35) && _my < _fm_y + ((i + 1) * 35));
         if (_hov) { draw_set_color(make_color_rgb(18, 72, 26)); draw_rectangle(_fm_x + 1, _fm_y + (i * 35) + 1, _fm_x + _fm_w - 1, _fm_y + ((i + 1) * 35) - 1, false); }
-        draw_set_color(i == 2 ? make_color_rgb(180, 220, 255) : (i == 3 ? make_color_rgb(190, 160, 240) : (i == 4 ? make_color_rgb(130, 210, 155) : c_white)));
-        draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _opts[i]);
+        draw_set_color(i == 3 ? make_color_rgb(180, 220, 255) : (i == 4 ? make_color_rgb(190, 160, 240) : (i == 5 ? make_color_rgb(130, 210, 155) : c_white)));
+        var _lbl = _opts[i];
+        if (i == 0 && script_dirty) _lbl = "NEW SCRIPT";
+        draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _lbl);
+        if (i == 1 && script_dirty) { draw_set_color(make_color_rgb(255, 200, 60)); draw_text(_fm_x + _fm_w - 18, _fm_y + (i * 35) + 8, "*"); }
     }
 }
 
@@ -2382,7 +2385,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         
         var _c_ref = characters[_block.char_index];
         var _is_v = !variable_struct_exists(_block, "type") || _block.type == "voice";
-        var _is_alt = _is_v && (variable_struct_exists(_block, "is_altered") ? _block.is_altered : (_block.voice_id != _c_ref.voice_id || _block.pitch != _c_ref.pitch || _block.speed != _c_ref.speed || _block.mode != _c_ref.mode || _block.style != _c_ref.style || _block.tweaked != _c_ref.tweaked));
+        var _is_alt = _is_v && (variable_struct_exists(_block, "is_altered") ? _block.is_altered : (_block.voice_id != _c_ref.voice_id || _block.pitch != _c_ref.pitch || _block.speed != _c_ref.speed || _block.mode != _c_ref.mode || _block.style != _c_ref.style || (_block[$ "glottal"] ?? -1) != (_c_ref[$ "glottal"] ?? -1) || _block.tweaked != _c_ref.tweaked));
         
         var _char_name = string_upper(_c_ref.name);
         if (_is_alt) _char_name += " (altered voice)";
@@ -2846,7 +2849,7 @@ if (edit_mode) {
         draw_text(_bx + 10, _by + 13, _ns);
     }
 	  // --- Tweak Toggle ---
-    var _toggle_y = _myo + 580;
+    var _toggle_y = _myo + 610;
     var _twk_hov = (_mx > _mxo+50 && _mx < _mxo+350 && _my > _toggle_y && _my < _toggle_y+25);
     draw_set_color(_twk_hov ? c_white : c_ltgray);
     draw_rectangle(_mxo+50, _toggle_y, _mxo+70, _toggle_y+20, true); // checkbox outline
@@ -2887,23 +2890,53 @@ if (edit_mode) {
         draw_set_color(c_white); draw_text(_mxo+50, _ctrl_y+93, "Quality:");
         var _q_labels = ["Normal", "Monotone", "Sung"]; var _q_vals = [0, 2, 4];
         for (var e = 0; e < 3; e++) {
-            var _ex = _mxo+180+(e*105);
-            draw_set_color((modal_quality == _q_vals[e]) ? c_lime : c_gray);
+            var _ex = _mxo+195+(e*105);
+            var _q_sel = (modal_quality == _q_vals[e]);
+            var _q_hov = (point_distance(_mx, _my, _ex, _ctrl_y+108) < 16);
+            draw_set_color(_q_sel ? c_lime : (_q_hov ? make_color_rgb(180, 220, 180) : make_color_rgb(90, 90, 90)));
             draw_circle(_ex, _ctrl_y+108, 10, true);
-            if (modal_quality == _q_vals[e]) draw_circle(_ex, _ctrl_y+108, 6, false);
-            draw_set_color(c_white); draw_text(_ex-12, _ctrl_y+120, _q_labels[e]);
+            if (_q_sel) { draw_set_color(make_color_rgb(30, 80, 30)); draw_circle(_ex, _ctrl_y+108, 6, false); }
+            draw_set_halign(fa_center);
+            draw_set_color(_q_sel ? c_white : (_q_hov ? c_white : make_color_rgb(180, 180, 180)));
+            draw_text(_ex, _ctrl_y+121, _q_labels[e]);
+            draw_set_halign(fa_left);
         }
 
         // Effort radio buttons
-        draw_set_color(c_white); draw_text(_mxo+50, _ctrl_y+133, "Effort:");
+        draw_set_color(c_white); draw_text(_mxo+50, _ctrl_y+143, "Effort:");
         var _s_labels = ["Normal", "Breathy", "Whispered"];
         for (var s = 0; s < 3; s++) {
-            var _sx = _mxo+180+(s*105);
-            draw_set_color((modal_effort == s) ? c_lime : c_gray);
-            draw_circle(_sx, _ctrl_y+148, 10, true);
-            if (modal_effort == s) draw_circle(_sx, _ctrl_y+148, 6, false);
-            draw_set_color(c_white); draw_text(_sx-12, _ctrl_y+160, _s_labels[s]);
+            var _sx = _mxo+195+(s*105);
+            var _s_sel = (modal_effort == s);
+            var _s_hov = (point_distance(_mx, _my, _sx, _ctrl_y+158) < 16);
+            draw_set_color(_s_sel ? c_lime : (_s_hov ? make_color_rgb(180, 220, 180) : make_color_rgb(90, 90, 90)));
+            draw_circle(_sx, _ctrl_y+158, 10, true);
+            if (_s_sel) { draw_set_color(make_color_rgb(30, 80, 30)); draw_circle(_sx, _ctrl_y+158, 6, false); }
+            draw_set_halign(fa_center);
+            draw_set_color(_s_sel ? c_white : (_s_hov ? c_white : make_color_rgb(180, 180, 180)));
+            draw_text(_sx, _ctrl_y+171, _s_labels[s]);
+            draw_set_halign(fa_left);
         }
+
+        // Glottal source slider (-1 to 5)
+        var _g_y = _ctrl_y + 193;
+        var _g_val = clamp(modal_glottal, -1, 5);
+        var _g_x = _mxo+180 + ((_g_val + 1) / 6.0) * 300;
+        var _g_hov = (_mx > _mxo+180 && _mx < _mxo+480 && _my > _g_y-5 && _my < _g_y+25);
+        draw_set_color(c_white); draw_text(_mxo+50, _g_y+2, "Timbre:");
+        draw_set_color(make_color_rgb(130, 130, 130)); draw_text(_mxo+50, _g_y+16, "(5 recommended)");
+        draw_set_color(_g_hov || slider_drag==3 ? make_color_rgb(90,55,10) : make_color_rgb(60,38,8));
+        draw_rectangle(_mxo+180, _g_y+2, _mxo+480, _g_y+18, false);
+        if (_g_val >= 0) {
+            draw_set_color(slider_drag==3 ? make_color_rgb(255,175,70) : make_color_rgb(210,135,40));
+            draw_rectangle(_mxo+180, _g_y+2, _g_x, _g_y+18, false);
+        }
+        draw_set_color(c_white); draw_circle(_g_x, _g_y+10, 9, false);
+        draw_set_color(slider_drag==3 ? make_color_rgb(255,175,70) : make_color_rgb(210,135,40));
+        draw_circle(_g_x, _g_y+10, 6, false);
+        draw_set_color(c_white);
+        draw_text(_mxo+155, _g_y+2, "<"); draw_text(_mxo+485, _g_y+2, ">");
+        draw_text(_mxo+520, _g_y+2, (_g_val == -1) ? "off" : string(_g_val));
     }
 
     // --- Bottom Buttons ---

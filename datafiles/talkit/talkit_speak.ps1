@@ -6,7 +6,12 @@ param(
     [int]$Pitch = 100,
     [int]$Mode = 0,
     [int]$Style = 0,
-    [int]$Req = 0
+    [int]$Req = 0,
+    [int]$GlottalSource = -1,
+    [int]$F0Perturb = -1,
+    [int]$F0Range = -1,
+    [int]$SpeakingMode = -1,
+    [int]$VowelFactor = -1
 )
 
 if ($Path -and (Test-Path $Path)) { $Text = Get-Content $Path -Raw }
@@ -96,6 +101,11 @@ Send @{"Cmd"="SetPitch"; "I"=$Pitch}
 # New settings (if supported by Host)
 Send @{"Cmd"="SetVoicingMode"; "I"=$Mode}
 Send @{"Cmd"="SetF0Style"; "I"=$Style}
+if ($GlottalSource -ge 0) { Send @{"Cmd"="SetGlottalSource"; "I"=$GlottalSource} }
+if ($F0Perturb     -ge 0) { Send @{"Cmd"="SetF0Perturb";     "I"=$F0Perturb}     }
+if ($F0Range       -ge 0) { Send @{"Cmd"="SetF0Range";       "I"=$F0Range}       }
+if ($SpeakingMode  -ge 0) { Send @{"Cmd"="SetSpeakingMode";  "I"=$SpeakingMode}  }
+if ($VowelFactor   -ge 0) { Send @{"Cmd"="SetVowelFactor";   "I"=$VowelFactor}   }
 
 $totalPhoneticLength = $Text.Length
 $charsProcessed = 0

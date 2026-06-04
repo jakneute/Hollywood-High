@@ -444,8 +444,9 @@ if (edit_mode) {
     var _m_w = 800; var _m_h = 700;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
     if (mouse_check_button(mb_left) && slider_drag != 0) {
-        if (slider_drag == 1) modal_pitch = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
-        if (slider_drag == 2) modal_speed = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
+        if (slider_drag == 1) modal_pitch  = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
+        if (slider_drag == 2) modal_speed  = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
+        if (slider_drag == 3) modal_glottal = clamp(round(((_mx - (_m_x + 180)) / 300.0) * 6) - 1, -1, 5);
     }
     if (mouse_check_button_released(mb_left)) slider_drag = 0;
     if (mouse_check_button_pressed(mb_left)) {
@@ -478,28 +479,35 @@ if (edit_mode) {
             }
             
             // Radio Buttons: Quality (Controls F0Style)
-            if (_my > _ctrl_y + 90 && _my < _ctrl_y + 125) {
+            if (_my > _ctrl_y + 90 && _my < _ctrl_y + 130) {
                 for (var e = 0; e < 3; e++) {
-                    var _ex = _m_x + 180 + (e * 105);
-                    if (point_distance(_mx, _my, _ex, _ctrl_y + 108) < 25) {
+                    var _ex = _m_x + 195 + (e * 105);
+                    if (point_distance(_mx, _my, _ex, _ctrl_y + 108) < 16) {
                         if (e == 0) modal_quality = 0;
                         if (e == 1) modal_quality = 2;
                         if (e == 2) modal_quality = 4;
                     }
                 }
             }
-            
+
             // Radio Buttons: Effort (Controls VoicingMode)
-            if (_my > _ctrl_y + 130 && _my < _ctrl_y + 165) {
+            if (_my > _ctrl_y + 140 && _my < _ctrl_y + 178) {
                 for (var s = 0; s < 3; s++) {
-                    var _sx = _m_x + 180 + (s * 105);
-                    if (point_distance(_mx, _my, _sx, _ctrl_y + 148) < 25) modal_effort = s;
+                    var _sx = _m_x + 195 + (s * 105);
+                    if (point_distance(_mx, _my, _sx, _ctrl_y + 158) < 16) modal_effort = s;
                 }
+            }
+
+            // Glottal slider
+            if (_my > _ctrl_y + 188 && _my < _ctrl_y + 218) {
+                if (_mx > _m_x + 150 && _mx < _m_x + 175) modal_glottal = max(-1, modal_glottal - 1);
+                if (_mx > _m_x + 485 && _mx < _m_x + 510) modal_glottal = min(5, modal_glottal + 1);
+                if (_mx > _m_x + 180 && _mx < _m_x + 480) { modal_glottal = clamp(round(((_mx - (_m_x + 180)) / 300.0) * 6) - 1, -1, 5); slider_drag = 3; }
             }
         }
         
         // Advanced Tweak Toggle (Moved Lower)
-        var _toggle_y = _m_y + 580;
+        var _toggle_y = _m_y + 610;
         if (_mx > _m_x + 50 && _mx < _m_x + 350 && _my > _toggle_y && _my < _toggle_y + 25) tweak_enabled = !tweak_enabled;
 
         // Bottom Buttons Layout
@@ -510,14 +518,14 @@ if (edit_mode) {
             var _b = script_blocks[modal_target_block_idx];
             var _c = characters[_b.char_index];
             modal_voice_id = _c.voice_id; modal_pitch = _c.pitch; modal_speed = _c.speed;
-            modal_effort = _c.mode; modal_quality = _c.style; tweak_enabled = _c.tweaked;
+            modal_effort = _c.mode; modal_quality = _c.style; modal_glottal = _c[$ "glottal"] ?? -1; tweak_enabled = _c.tweaked;
             tts_stop();
             return;
         }
 
         // Test Button (X position shifts if Revert is present)
         var _tx = modal_is_local_edit ? _m_x + 165 : _m_x + 30;
-        if (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality); }
+        if (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality, modal_glottal); }
         
         // Export Config (debug) — saves only the currently selected character
         if (SHOW_VOICE_CFG && !modal_is_local_edit && _mx > _m_x+_m_w-430 && _mx < _m_x+_m_w-295 && _my > _btn_y && _my < _btn_y+40) {
@@ -540,12 +548,14 @@ if (edit_mode) {
             if (modal_is_local_edit) {
                 var _b = script_blocks[modal_target_block_idx];
                 _b.voice_id = modal_voice_id; _b.pitch = modal_pitch; _b.speed = modal_speed;
-                _b.mode = modal_effort; _b.style = modal_quality; _b.tweaked = tweak_enabled;
+                _b.mode = modal_effort; _b.style = modal_quality; _b.glottal = modal_glottal; _b.tweaked = tweak_enabled;
+                script_dirty = true;
                 // Only mark as altered if it actually differs from character's current global
-                _b.is_altered = (_b.voice_id != _c.voice_id || _b.pitch != _c.pitch || _b.speed != _c.speed || _b.mode != _c.mode || _b.style != _c.style || _b.tweaked != _c.tweaked);
+                _b.is_altered = (_b.voice_id != _c.voice_id || _b.pitch != _c.pitch || _b.speed != _c.speed || _b.mode != _c.mode || _b.style != _c.style || (_b[$ "glottal"] ?? -1) != (_c[$ "glottal"] ?? -1) || _b.tweaked != _c.tweaked);
             } else {
                 _c.voice_id = modal_voice_id; _c.pitch = modal_pitch; _c.speed = modal_speed;
-                _c.mode = modal_effort; _c.style = modal_quality; _c.tweaked = tweak_enabled;
+                _c.mode = modal_effort; _c.style = modal_quality; _c.glottal = modal_glottal; _c.tweaked = tweak_enabled;
+                script_dirty = true;
                 
                 // Propagate the new "Global" settings to all blocks that are currently using the character default
                 for (var i = 0; i < array_length(script_blocks); i++) {
@@ -554,7 +564,7 @@ if (edit_mode) {
                     if (_is_v && _block.char_index == selected_character_index) {
                         if (!variable_struct_exists(_block, "is_altered") || !_block.is_altered) {
                             _block.voice_id = _c.voice_id; _block.pitch = _c.pitch; _block.speed = _c.speed;
-                            _block.mode = _c.mode; _block.style = _c.style; _block.tweaked = _c.tweaked;
+                            _block.mode = _c.mode; _block.style = _c.style; _block.glottal = _c[$ "glottal"] ?? -1; _block.tweaked = _c.tweaked;
                             _block.is_altered = false;
                         }
                     }
@@ -621,6 +631,7 @@ if (scene_modal_open) {
                             } else {
                                 array_insert(script_blocks, _target_idx, _new_scene);
                             }
+                            script_dirty = true;
                         }
 
                         update_all_block_heights();
@@ -682,14 +693,34 @@ if (scene_modal_open) {
     return;
 }
 
+// --- EXIT INTERCEPT ---
+if (keyboard_check_pressed(vk_f4) && keyboard_check(vk_alt)) {
+    if (!script_dirty || show_question("You have unsaved changes. Exit anyway?")) game_end();
+    return;
+}
+
 // --- 2c2. FILE MENU ---
 if (file_menu_open) {
     if (mouse_check_button_pressed(mb_left)) {
-        var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 175;
+        var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 210;
         var _clicked_option = false;
 
-        // ── SAVE SCRIPT ──
+        // ── NEW SCRIPT ──
         if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y && _my < _fm_y + 35) {
+            var _proceed = true;
+            if (script_dirty) _proceed = show_question("You have unsaved changes. Start a new script anyway?");
+            if (_proceed) {
+                tts_stop(); script_blocks = []; current_script_path = "";
+                focused_block = -1; playing_block_index = -1; playing_linked_index = -1;
+                scene_edit_mode = false; insertion_idx = -1; block_scroll_y = 0;
+                is_speaking = false; audio_stop_all();
+                preview_actors = []; current_scene_sprite = -1; set_scene_dimensions(-1);
+                script_dirty = false;
+            }
+            _clicked_option = true;
+
+        // ── SAVE SCRIPT ──
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 35 && _my < _fm_y + 70) {
             var _default = (current_script_path != "") ? current_script_path : working_directory + "screenplay.hhi";
             var _file = get_save_filename("Hollywood High Script|*.hhi", _default);
             if (_file != "") {
@@ -702,12 +733,14 @@ if (file_menu_open) {
                 var _cbuf = buffer_compress(_buf, 0, buffer_get_size(_buf));
                 buffer_save(_cbuf, _file);
                 buffer_delete(_buf); buffer_delete(_cbuf);
+                script_dirty = false;
             }
             _clicked_option = true;
 
         // ── LOAD SCRIPT ──
-        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 35 && _my < _fm_y + 70) {
-            var _file = get_open_filename("Hollywood High Script|*.hhi", current_script_path);
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 70 && _my < _fm_y + 105) {
+            var _load_proceed = !script_dirty || show_question("You have unsaved changes. Load a different script anyway?");
+            var _file = _load_proceed ? get_open_filename("Hollywood High Script|*.hhi", current_script_path) : "";
             if (_file != "" && file_exists(_file)) {
                 current_script_path = _file;
                 try {
@@ -738,11 +771,12 @@ if (file_menu_open) {
                     if (array_length(script_blocks) > 0) { play_from_index(0); playing_block_index = -1; }
                     else { preview_actors = []; current_scene_sprite = -1; set_scene_dimensions(-1); }
                 } catch(_e) { show_message("Error loading script file! Invalid format."); }
+                script_dirty = false;
             }
             _clicked_option = true;
 
         // ── SAVE SCREENPLAY (export-only text file) ──
-        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 70 && _my < _fm_y + 105) {
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 105 && _my < _fm_y + 140) {
             var _file = get_save_filename("Screenplay Text|*.txt|Fountain Format|*.fountain", working_directory + "screenplay.txt");
             if (_file != "") {
                 var _sf = file_text_open_write(_file);
@@ -758,7 +792,7 @@ if (file_menu_open) {
                         } else if (_btype == "action") {
                             var _aname = _bl.action_name;
                             var _aname_u = string_upper(_aname);
-                            var _cn = (_bl.char_index >= 0 && _bl.char_index < array_length(characters))
+                            var _cn = (variable_struct_exists(_bl, "char_index") && _bl.char_index >= 0 && _bl.char_index < array_length(characters))
                                       ? characters[_bl.char_index].name : "";
                             if (string_pos("WAIT", _aname_u) > 0) {
                                 // Silent pause — omit from screenplay prose
@@ -782,11 +816,11 @@ if (file_menu_open) {
                                 file_text_write_string(_sf, _sent + "\n\n");
                             }
 
-                        } else {
+                        } else if (_btype == "voice") {
                             // Voice / dialogue block
-                            var _cn = (_bl.char_index >= 0 && _bl.char_index < array_length(characters))
+                            var _cn = (variable_struct_exists(_bl, "char_index") && _bl.char_index >= 0 && _bl.char_index < array_length(characters))
                                       ? characters[_bl.char_index].name : "UNKNOWN";
-                            var _txt = _bl.text;
+                            var _txt = variable_struct_exists(_bl, "text") ? _bl.text : "";
                             if (string_length(_txt) > 0) {
                                 if (_cn == "NARRATOR") {
                                     // Narration reads as plain action prose
@@ -810,7 +844,7 @@ if (file_menu_open) {
             _clicked_option = true;
 
         // ── IMPORT ASSETS ──
-        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 105 && _my < _fm_y + 140) {
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 140 && _my < _fm_y + 175) {
             import_modal_open = true;
             import_modal_mode = 0;
             import_modal_bg_path = ""; import_modal_mask_path = ""; import_modal_snd_path = "";
@@ -818,7 +852,7 @@ if (file_menu_open) {
             _clicked_option = true;
 
         // ── EXPORT SCRIPT ──
-        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 140 && _my < _fm_y + 175) {
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 175 && _my < _fm_y + 210) {
             do_export_script();
             _clicked_option = true;
         }
@@ -1631,10 +1665,11 @@ if (mouse_check_button_pressed(mb_left)) {
         if (_vdead) return;
         var _c = characters[selected_character_index];
         var _idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
-        array_insert(script_blocks, _idx, { 
+        array_insert(script_blocks, _idx, {
             type: "voice", char_index: selected_character_index, text: "", height: 115, caret_pos: 0, selection_anchor: 0, selection_active: false,
-            voice_id: _c.voice_id, pitch: _c.pitch, speed: _c.speed, mode: _c.mode, style: _c.style, tweaked: _c.tweaked, is_altered: false
+            voice_id: _c.voice_id, pitch: _c.pitch, speed: _c.speed, mode: _c.mode, style: _c.style, glottal: _c[$ "glottal"] ?? -1, tweaked: _c.tweaked, is_altered: false
         });
+        script_dirty = true;
         update_block_height(_idx);
         focused_block = _idx; insertion_idx = -1; keyboard_string = "";
         scene_edit_mode = false;
@@ -1715,7 +1750,7 @@ if (mouse_check_button_pressed(mb_left)) {
         scene_edit_mode = false; // Exit edit mode on edit voice
         var _c = characters[selected_character_index];
         modal_voice_id = _c.voice_id; modal_pitch = _c.pitch; modal_speed = _c.speed;
-        modal_effort = _c.mode; modal_quality = _c.style; tweak_enabled = _c.tweaked;
+        modal_effort = _c.mode; modal_quality = _c.style; modal_glottal = _c[$ "glottal"] ?? -1; tweak_enabled = _c.tweaked;
         return;
     }
 }
@@ -1764,6 +1799,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     particle_drag_area_w = false; particle_drag_area_h = false;
                 }
                 array_delete(script_blocks, i, 1);
+                script_dirty = true;
                 if (particle_edit_mode && particle_edit_block_idx > i) particle_edit_block_idx--;
                 update_all_block_heights();
                 if (focused_block >= array_length(script_blocks)) focused_block = array_length(script_blocks) - 1;
@@ -1980,6 +2016,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     modal_speed = _block.speed;
                     modal_effort = _block.mode;
                     modal_quality = _block.style;
+                    modal_glottal = _block[$ "glottal"] ?? -1;
                     tweak_enabled = _block.tweaked;
                 }
                 return;
@@ -2051,7 +2088,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_is_voice) {
                             edit_mode = true; modal_is_local_edit = true; modal_target_block_idx = i;
                             modal_voice_id = _block.voice_id; modal_pitch = _block.pitch; modal_speed = _block.speed;
-                            modal_effort = _block.mode; modal_quality = _block.style; tweak_enabled = _block.tweaked;
+                            modal_effort = _block.mode; modal_quality = _block.style; modal_glottal = _block[$ "glottal"] ?? -1; tweak_enabled = _block.tweaked;
                         } else if (_is_action) {
                             var _dbl_aname_u  = string_upper(_block.action_name);
                             var _dbl_aname_lo = string_lower(_block.action_name);
@@ -2712,6 +2749,7 @@ if (playing_block_index == -1 && !is_speaking && focused_block >= 0) {
             _b.caret_pos += string_length(keyboard_string);
             update_block_height(focused_block);
             keyboard_string = "";
+            script_dirty = true;
         }
         
         if (_do_action) {

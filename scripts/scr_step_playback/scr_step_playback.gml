@@ -715,7 +715,13 @@ function step_tts_playback() {
                     if (_is_empty) {
                         _b.tts_req = -1;
                     } else {
-                        var _req = tts_speak(_phonetic_text, _b.voice_id, _b.pitch, _b.speed, _b.mode, _b.style);
+                        var _cc = characters[_b.char_index];
+                        var _req = tts_speak(_phonetic_text, _b.voice_id, _b.pitch, _b.speed, _b.mode, _b.style,
+                            _b[$ "glottal"]   ?? _cc[$ "glottal"]   ?? -1,
+                            _b[$ "f0perturb"] ?? _cc[$ "f0perturb"] ?? -1,
+                            _b[$ "f0range"]   ?? _cc[$ "f0range"]   ?? -1,
+                            _b[$ "speaking"]  ?? _cc[$ "speaking"]  ?? -1,
+                            _b[$ "vowel"]     ?? _cc[$ "vowel"]     ?? -1);
                         _b.tts_req = _req;
                         array_push(active_requests, _req);
                         if (!is_speaking) {
