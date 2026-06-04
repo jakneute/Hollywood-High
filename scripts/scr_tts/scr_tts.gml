@@ -3,7 +3,7 @@
  * Stable TTS execution with support for Pitch and Speed.
  */
 
-function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style, _glottal = -1, _f0perturb = -1, _f0range = -1, _speaking = -1, _vowel = -1) {
+function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style, _glottal = -1, _f0perturb = -1, _f0range = -1, _speaking = -1, _vowel = -1, _volume = 50) {
     if (_text == "") return;
 
     global.tts_request_id++;
@@ -36,6 +36,7 @@ function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style, _glottal = -
     if (_f0range   >= 0) _cmd += " -F0Range "       + string(_f0range);
     if (_speaking  >= 0) _cmd += " -SpeakingMode "  + string(_speaking);
     if (_vowel     >= 0) _cmd += " -VowelFactor "   + string(_vowel);
+    if (_volume != 50)   _cmd += " -Volume "         + string(clamp(round(_volume), 0, 100));
 
     if (variable_global_exists("win_exec_id")) {
         external_call(global.win_exec_id, _cmd, 0);

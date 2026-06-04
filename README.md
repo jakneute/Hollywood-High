@@ -16,7 +16,7 @@ A modern take on old Windows 95 edutainment software. Write screenplays, cast ch
 - **Unsaved Changes Protection** — The app warns before starting a new script, loading a file, or exiting (Alt+F4) if there are unsaved changes. A `*` indicator appears next to Save Script in the file menu when changes are pending.
 - **SFX Library** — Browse and attach sound effects from a folder-based library. Supports both packed and custom loose files.
 - **Expanded Script View** — Toggle a full-screen script editor that hides the scene window for easier writing.
-- **Keyboard Shortcuts** — Full keyboard editing in voice blocks and the title card text field: caret navigation, click-to-position, drag-to-select, hold-to-repeat backspace/delete/arrows, Ctrl+A, Ctrl+C, Ctrl+V.
+- **Keyboard Shortcuts** — Full keyboard editing in voice blocks and the title card text field: caret navigation, click-to-position, drag-to-select, hold-to-repeat backspace/delete/arrows, Ctrl+A, Ctrl+C, Ctrl+V. **Ctrl+S** quick-saves to the current file path without prompting (only active once a file has been saved or loaded).
 
 ---
 

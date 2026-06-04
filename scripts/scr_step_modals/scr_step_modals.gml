@@ -48,6 +48,12 @@ function step_modal_dictionary() {
 
     if (dict_focused_entry != -1) {
         var _entry = dictionary_list[dict_focused_entry];
+        if (keyboard_check_pressed(vk_tab) && dict_focused_field == 0) {
+            dict_focused_field = 1;
+            dict_caret_pos = string_length(_entry.pronunciation);
+            keyboard_string = "";
+            cursor_timer = 0; cursor_visible = true;
+        }
         var _txt = (dict_focused_field == 0) ? _entry.written : _entry.pronunciation;
         if (keyboard_string != "") {
             _txt = string_insert(keyboard_string, _txt, dict_caret_pos + 1);

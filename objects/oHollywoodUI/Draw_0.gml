@@ -1840,6 +1840,24 @@ if (export_status_timer > 0 || export_state == 1) {
     draw_set_alpha(1.0);
 }
 
+// Quick save notification
+if (quick_save_timer > 0) {
+    var _fade_in  = min(1.0, (180 - quick_save_timer) / 15.0); // 0.25s fade in
+    var _fade_out = min(1.0, quick_save_timer / 40.0);          // ~0.67s fade out
+    var _alpha = min(_fade_in, _fade_out);
+    var _slide = (1.0 - _fade_in) * 12;                         // slides down from above
+    draw_set_alpha(_alpha);
+    draw_set_halign(fa_center);
+    draw_set_color(make_color_rgb(20, 20, 20));
+    draw_roundrect_ext(540, 10 + _slide, 740, 38 + _slide, 6, 6, false);
+    draw_set_color(make_color_rgb(80, 200, 100));
+    draw_roundrect_ext(540, 10 + _slide, 740, 38 + _slide, 6, 6, true);
+    draw_set_color(c_white);
+    draw_text(640, 17 + _slide, "SAVED");
+    draw_set_halign(fa_left);
+    draw_set_alpha(1.0);
+}
+
 if (!script_expanded) { // --- 1c. CHARACTER SELECTOR WINDOW ---
 draw_set_color(make_color_rgb(12, 48, 18));
 draw_rectangle(char_sel_x, char_sel_y, char_sel_x + char_sel_w, char_sel_y + char_sel_h, false);
@@ -2848,7 +2866,26 @@ if (edit_mode) {
         draw_set_color(c_white); var _ns = all_voices[i].name; if (string_length(_ns) > 22) _ns = string_copy(_ns, 1, 20) + "..";
         draw_text(_bx + 10, _by + 13, _ns);
     }
-	  // --- Tweak Toggle ---
+    // --- Volume Slider (vertical, lower-right) ---
+    var _vsl_cx = _mxo + 680;
+    var _vsl_top = _myo + 370; var _vsl_bot = _myo + 570; var _vsl_h = _vsl_bot - _vsl_top;
+    var _vsl_thumb_y = _vsl_top + (1 - modal_volume / 100.0) * _vsl_h;
+    var _vsl_hov = (_mx > _vsl_cx-18 && _mx < _vsl_cx+18 && _my > _vsl_top-10 && _my < _vsl_bot+10);
+    draw_set_halign(fa_center);
+    draw_set_color(make_color_rgb(160, 160, 160)); draw_text(_vsl_cx, _myo+352, "VOL");
+    draw_set_color(make_color_rgb(40, 55, 42)); draw_rectangle(_vsl_cx-5, _vsl_top, _vsl_cx+5, _vsl_bot, false);
+    draw_set_color(slider_drag==4 ? make_color_rgb(100, 220, 120) : make_color_rgb(60, 160, 80));
+    draw_rectangle(_vsl_cx-5, _vsl_thumb_y, _vsl_cx+5, _vsl_bot, false);
+    draw_set_color(c_white); draw_circle(_vsl_cx, _vsl_thumb_y, 10, false);
+    draw_set_color(slider_drag==4 ? make_color_rgb(100, 220, 120) : (_vsl_hov ? make_color_rgb(120, 200, 130) : make_color_rgb(60, 160, 80)));
+    draw_circle(_vsl_cx, _vsl_thumb_y, 7, false);
+    var _vol_db = round((modal_volume / 50.0 - 1.0) * 20);
+    draw_set_color(make_color_rgb(160, 160, 160));
+    draw_text(_vsl_cx, _vsl_bot+8,  string(round(modal_volume)));
+    draw_text(_vsl_cx, _vsl_bot+22, (_vol_db >= 0 ? "+" : "") + string(_vol_db) + "dB");
+    draw_set_halign(fa_left);
+
+    // --- Tweak Toggle ---
     var _toggle_y = _myo + 610;
     var _twk_hov = (_mx > _mxo+50 && _mx < _mxo+350 && _my > _toggle_y && _my < _toggle_y+25);
     draw_set_color(_twk_hov ? c_white : c_ltgray);

@@ -356,6 +356,7 @@ if (export_state == 1 && file_exists(export_dest_path)) {
     if (file_exists(export_ps1_path)) file_delete(export_ps1_path);
 }
 if (export_status_timer > 0) export_status_timer--;
+if (quick_save_timer > 0) quick_save_timer--;
 
 // Ensure modals capture all input and prevent background logic from running
 if (dictionary_open)       { step_modal_dictionary();  return; }
@@ -443,10 +444,12 @@ if (scene_edit_menu_open) {
 if (edit_mode) {
     var _m_w = 800; var _m_h = 700;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    var _vsl_cx = _m_x + 680; var _vsl_top = _m_y + 370; var _vsl_h = 200;
     if (mouse_check_button(mb_left) && slider_drag != 0) {
-        if (slider_drag == 1) modal_pitch  = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
-        if (slider_drag == 2) modal_speed  = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
+        if (slider_drag == 1) modal_pitch   = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
+        if (slider_drag == 2) modal_speed   = clamp(((_mx - (_m_x + 180)) / 300) * 100, 0, 100);
         if (slider_drag == 3) modal_glottal = clamp(round(((_mx - (_m_x + 180)) / 300.0) * 6) - 1, -1, 5);
+        if (slider_drag == 4) modal_volume  = clamp(round((1 - (_my - _vsl_top) / _vsl_h) * 100), 0, 100);
     }
     if (mouse_check_button_released(mb_left)) slider_drag = 0;
     if (mouse_check_button_pressed(mb_left)) {
@@ -457,7 +460,7 @@ if (edit_mode) {
             var _by = _m_y + 70 + (floor(i / _cols) * (_bh + 8));
             if (_mx > _bx && _mx < _bx + _bw && _my > _by && _my < _by + _bh) {
                 modal_voice_id = all_voices[i].voice_id;
-                tts_stop(); tts_speak("Testing voice", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality);
+                tts_stop(); tts_speak("Testing voice", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality, modal_glottal, -1, -1, -1, -1, modal_volume);
             }
         }
         
@@ -505,6 +508,12 @@ if (edit_mode) {
                 if (_mx > _m_x + 180 && _mx < _m_x + 480) { modal_glottal = clamp(round(((_mx - (_m_x + 180)) / 300.0) * 6) - 1, -1, 5); slider_drag = 3; }
             }
         }
+
+        // Volume slider (always visible — outside tweak block)
+        if (_mx > _vsl_cx - 18 && _mx < _vsl_cx + 18 && _my > _vsl_top - 10 && _my < _vsl_top + _vsl_h + 10) {
+            modal_volume = clamp(round((1 - (_my - _vsl_top) / _vsl_h) * 100), 0, 100);
+            slider_drag = 4;
+        }
         
         // Advanced Tweak Toggle (Moved Lower)
         var _toggle_y = _m_y + 610;
@@ -518,14 +527,14 @@ if (edit_mode) {
             var _b = script_blocks[modal_target_block_idx];
             var _c = characters[_b.char_index];
             modal_voice_id = _c.voice_id; modal_pitch = _c.pitch; modal_speed = _c.speed;
-            modal_effort = _c.mode; modal_quality = _c.style; modal_glottal = _c[$ "glottal"] ?? -1; tweak_enabled = _c.tweaked;
+            modal_effort = _c.mode; modal_quality = _c.style; modal_glottal = _c[$ "glottal"] ?? -1; modal_volume = _c[$ "volume"] ?? 50; tweak_enabled = _c.tweaked;
             tts_stop();
             return;
         }
 
         // Test Button (X position shifts if Revert is present)
         var _tx = modal_is_local_edit ? _m_x + 165 : _m_x + 30;
-        if (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality, modal_glottal); }
+        if (_mx > _tx && _mx < _tx + 120 && _my > _btn_y && _my < _btn_y + 40) { tts_stop(); tts_speak("Testing settings", modal_voice_id, modal_pitch, modal_speed, modal_effort, modal_quality, modal_glottal, -1, -1, -1, -1, modal_volume); }
         
         // Export Config (debug) — saves only the currently selected character
         if (SHOW_VOICE_CFG && !modal_is_local_edit && _mx > _m_x+_m_w-430 && _mx < _m_x+_m_w-295 && _my > _btn_y && _my < _btn_y+40) {
@@ -548,13 +557,13 @@ if (edit_mode) {
             if (modal_is_local_edit) {
                 var _b = script_blocks[modal_target_block_idx];
                 _b.voice_id = modal_voice_id; _b.pitch = modal_pitch; _b.speed = modal_speed;
-                _b.mode = modal_effort; _b.style = modal_quality; _b.glottal = modal_glottal; _b.tweaked = tweak_enabled;
+                _b.mode = modal_effort; _b.style = modal_quality; _b.glottal = modal_glottal; _b.volume = modal_volume; _b.tweaked = tweak_enabled;
                 script_dirty = true;
                 // Only mark as altered if it actually differs from character's current global
-                _b.is_altered = (_b.voice_id != _c.voice_id || _b.pitch != _c.pitch || _b.speed != _c.speed || _b.mode != _c.mode || _b.style != _c.style || (_b[$ "glottal"] ?? -1) != (_c[$ "glottal"] ?? -1) || _b.tweaked != _c.tweaked);
+                _b.is_altered = (_b.voice_id != _c.voice_id || _b.pitch != _c.pitch || _b.speed != _c.speed || _b.mode != _c.mode || _b.style != _c.style || (_b[$ "glottal"] ?? -1) != (_c[$ "glottal"] ?? -1) || (_b[$ "volume"] ?? 50) != (_c[$ "volume"] ?? 50) || _b.tweaked != _c.tweaked);
             } else {
                 _c.voice_id = modal_voice_id; _c.pitch = modal_pitch; _c.speed = modal_speed;
-                _c.mode = modal_effort; _c.style = modal_quality; _c.glottal = modal_glottal; _c.tweaked = tweak_enabled;
+                _c.mode = modal_effort; _c.style = modal_quality; _c.glottal = modal_glottal; _c.volume = modal_volume; _c.tweaked = tweak_enabled;
                 script_dirty = true;
                 
                 // Propagate the new "Global" settings to all blocks that are currently using the character default
@@ -564,7 +573,7 @@ if (edit_mode) {
                     if (_is_v && _block.char_index == selected_character_index) {
                         if (!variable_struct_exists(_block, "is_altered") || !_block.is_altered) {
                             _block.voice_id = _c.voice_id; _block.pitch = _c.pitch; _block.speed = _c.speed;
-                            _block.mode = _c.mode; _block.style = _c.style; _block.glottal = _c[$ "glottal"] ?? -1; _block.tweaked = _c.tweaked;
+                            _block.mode = _c.mode; _block.style = _c.style; _block.glottal = _c[$ "glottal"] ?? -1; _block.volume = _c[$ "volume"] ?? 50; _block.tweaked = _c.tweaked;
                             _block.is_altered = false;
                         }
                     }
@@ -697,6 +706,20 @@ if (scene_modal_open) {
 if (keyboard_check_pressed(vk_f4) && keyboard_check(vk_alt)) {
     if (!script_dirty || show_question("You have unsaved changes. Exit anyway?")) game_end();
     return;
+}
+
+// --- QUICK SAVE (Ctrl+S) ---
+if (keyboard_check(vk_control) && keyboard_check_pressed(ord("S")) && current_script_path != "") {
+    var _save_data = { version: 2, script: script_blocks, chars: characters, dict: dictionary_list };
+    var _json = json_stringify(_save_data);
+    var _buf = buffer_create(string_byte_length(_json) + 1, buffer_fixed, 1);
+    buffer_write(_buf, buffer_string, _json);
+    buffer_seek(_buf, buffer_seek_start, 0);
+    var _cbuf = buffer_compress(_buf, 0, buffer_get_size(_buf));
+    buffer_save(_cbuf, current_script_path);
+    buffer_delete(_buf); buffer_delete(_cbuf);
+    script_dirty = false;
+    quick_save_timer = 180; // 3 seconds — reset on hammer, no stacking
 }
 
 // --- 2c2. FILE MENU ---
@@ -1750,7 +1773,7 @@ if (mouse_check_button_pressed(mb_left)) {
         scene_edit_mode = false; // Exit edit mode on edit voice
         var _c = characters[selected_character_index];
         modal_voice_id = _c.voice_id; modal_pitch = _c.pitch; modal_speed = _c.speed;
-        modal_effort = _c.mode; modal_quality = _c.style; modal_glottal = _c[$ "glottal"] ?? -1; tweak_enabled = _c.tweaked;
+        modal_effort = _c.mode; modal_quality = _c.style; modal_glottal = _c[$ "glottal"] ?? -1; modal_volume = _c[$ "volume"] ?? 50; tweak_enabled = _c.tweaked;
         return;
     }
 }
@@ -2017,6 +2040,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     modal_effort = _block.mode;
                     modal_quality = _block.style;
                     modal_glottal = _block[$ "glottal"] ?? -1;
+                    modal_volume = _block[$ "volume"] ?? 50;
                     tweak_enabled = _block.tweaked;
                 }
                 return;
@@ -2088,7 +2112,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_is_voice) {
                             edit_mode = true; modal_is_local_edit = true; modal_target_block_idx = i;
                             modal_voice_id = _block.voice_id; modal_pitch = _block.pitch; modal_speed = _block.speed;
-                            modal_effort = _block.mode; modal_quality = _block.style; modal_glottal = _block[$ "glottal"] ?? -1; tweak_enabled = _block.tweaked;
+                            modal_effort = _block.mode; modal_quality = _block.style; modal_glottal = _block[$ "glottal"] ?? -1; modal_volume = _block[$ "volume"] ?? 50; tweak_enabled = _block.tweaked;
                         } else if (_is_action) {
                             var _dbl_aname_u  = string_upper(_block.action_name);
                             var _dbl_aname_lo = string_lower(_block.action_name);

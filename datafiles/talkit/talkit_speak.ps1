@@ -11,7 +11,8 @@ param(
     [int]$F0Perturb = -1,
     [int]$F0Range = -1,
     [int]$SpeakingMode = -1,
-    [int]$VowelFactor = -1
+    [int]$VowelFactor = -1,
+    [int]$Volume = 50
 )
 
 if ($Path -and (Test-Path $Path)) { $Text = Get-Content $Path -Raw }
@@ -106,6 +107,12 @@ if ($F0Perturb     -ge 0) { Send @{"Cmd"="SetF0Perturb";     "I"=$F0Perturb}    
 if ($F0Range       -ge 0) { Send @{"Cmd"="SetF0Range";       "I"=$F0Range}       }
 if ($SpeakingMode  -ge 0) { Send @{"Cmd"="SetSpeakingMode";  "I"=$SpeakingMode}  }
 if ($VowelFactor   -ge 0) { Send @{"Cmd"="SetVowelFactor";   "I"=$VowelFactor}   }
+
+# Volume 50 = neutral (0 dB); 0..49 = -20..0 dB quieter; 51..100 = 0..+20 dB louder
+if ($Volume -ne 50) {
+    $avBias = [int][Math]::Round(($Volume / 50.0 - 1.0) * 20)
+    Send @{"Cmd"="SetAVBias"; "I"=$avBias}
+}
 
 $totalPhoneticLength = $Text.Length
 $charsProcessed = 0
