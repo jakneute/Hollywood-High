@@ -205,6 +205,49 @@ function step_tts_playback() {
                         array_delete(preview_actors, _act_idx, 1);
                         array_delete(active_animations, _ai, 1);
                     }
+                } else if (_anim.type == "canned") {
+                    var _frames = _anim.anim_data.frames;
+                    var _total  = array_length(_frames);
+                    while (_anim.frame_idx < _total && _frames[_anim.frame_idx].type == "sound") {
+                        canned_anim_fire_sound(_anim.char_index, _frames[_anim.frame_idx]);
+                        _anim.frame_idx++;
+                        _anim.tick = 0;
+                    }
+                    if (_anim.frame_idx >= _total) {
+                        _act.canned_spr      = -1;
+                        _act.canned_feet_spr = -1;
+                        array_delete(active_animations, _ai, 1);
+                    } else {
+                        var _cur_frame = _frames[_anim.frame_idx];
+                        var _hold = (_cur_frame.type == "sprite" && variable_struct_exists(_cur_frame, "hold")) ? _cur_frame.hold : 1;
+                        var _facing_ca = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+                        var _def_ca = variable_struct_exists(characters[_anim.char_index], "default_facing") ? characters[_anim.char_index].default_facing : 1;
+                        var _spr_ca = (_facing_ca != _def_ca && variable_struct_exists(_cur_frame, "sprite_flipped") && _cur_frame.sprite_flipped != "")
+                                      ? _cur_frame.sprite_flipped
+                                      : canned_anim_facing_sprite(_cur_frame.sprite, _anim.char_index, _facing_ca);
+                        _act.canned_spr      = canned_anim_load_sprite(_anim.char_index, _spr_ca);
+                        _act.canned_anchor_y = variable_struct_exists(_cur_frame, "anchor_y") ? _cur_frame.anchor_y : 0;
+                        // Feet sprite is set per-animation, not per-frame
+                        var _anim_feet_ca = "";
+                        if (_facing_ca != _def_ca) {
+                            var _ffca = variable_struct_exists(_anim.anim_data, "feet_sprite_flipped") ? _anim.anim_data.feet_sprite_flipped : "";
+                            if (_ffca != "") { _anim_feet_ca = _ffca; }
+                            else { var _nf = variable_struct_exists(_anim.anim_data, "feet_sprite") ? _anim.anim_data.feet_sprite : ""; if (_nf != "") _anim_feet_ca = canned_anim_flipped_name(_nf); }
+                        } else {
+                            _anim_feet_ca = variable_struct_exists(_anim.anim_data, "feet_sprite") ? _anim.anim_data.feet_sprite : "";
+                        }
+                        _act.canned_composite = (_anim_feet_ca != "");
+                        _act.canned_feet_spr  = (_anim_feet_ca != "") ? canned_anim_load_sprite(_anim.char_index, _anim_feet_ca) : -1;
+                        _anim.tick++;
+                        if (_anim.tick >= _hold) {
+                            _anim.tick = 0;
+                            _anim.frame_idx++;
+                            while (_anim.frame_idx < _total && _frames[_anim.frame_idx].type == "sound") {
+                                canned_anim_fire_sound(_anim.char_index, _frames[_anim.frame_idx]);
+                                _anim.frame_idx++;
+                            }
+                        }
+                    }
                 } else {
 
                 var _dist = point_distance(_act.x, _act.y, _anim.target_x, _anim.target_y);
@@ -254,6 +297,7 @@ function step_tts_playback() {
                     array_delete(active_animations, _ai, 1);
                 }
                 } // end else (non-disintegrate)
+
             } else { array_delete(active_animations, _ai, 1); }
         }
         if (array_length(active_animations) == 0) action_animating = false;
@@ -686,6 +730,48 @@ function step_tts_playback() {
                             }
                         }
                         speaking_pause_timer = max(speaking_pause_timer, 22);
+                    } else if (canned_anim_find(_b.char_index, _b.action_name) != undefined) {
+                        var _canim = canned_anim_find(_b.char_index, _b.action_name);
+                        var _ca_aidx = -1;
+                        for (var _ca_a = 0; _ca_a < array_length(preview_actors); _ca_a++) {
+                            if (preview_actors[_ca_a].char_index == _b.char_index) { _ca_aidx = _ca_a; break; }
+                        }
+                        if (_ca_aidx != -1) {
+                            var _ca_state = {
+                                type:       "canned",
+                                char_index: _b.char_index,
+                                anim_data:  _canim,
+                                frame_idx:  0,
+                                tick:       0,
+                            };
+                            canned_anim_seek_next_sprite(_ca_state);
+                            if (_ca_state.frame_idx < array_length(_canim.frames)) {
+                                var _cf0 = _canim.frames[_ca_state.frame_idx];
+                                if (_cf0.type == "sprite") {
+                                    var _facing0 = variable_struct_exists(preview_actors[_ca_aidx], "facing") ? preview_actors[_ca_aidx].facing : 1;
+                                    var _def0 = variable_struct_exists(characters[_b.char_index], "default_facing") ? characters[_b.char_index].default_facing : 1;
+                                    var _spr0 = (_facing0 != _def0 && variable_struct_exists(_cf0, "sprite_flipped") && _cf0.sprite_flipped != "")
+                                                ? _cf0.sprite_flipped
+                                                : canned_anim_facing_sprite(_cf0.sprite, _b.char_index, _facing0);
+                                    preview_actors[_ca_aidx].canned_spr      = canned_anim_load_sprite(_b.char_index, _spr0);
+                                    preview_actors[_ca_aidx].canned_anchor_y  = variable_struct_exists(_cf0, "anchor_y") ? _cf0.anchor_y : 0;
+                                    var _anim_feet0 = "";
+                                    if (_facing0 != _def0) {
+                                        var _ff0 = variable_struct_exists(_canim, "feet_sprite_flipped") ? _canim.feet_sprite_flipped : "";
+                                        if (_ff0 != "") { _anim_feet0 = _ff0; }
+                                        else { var _nf0 = variable_struct_exists(_canim, "feet_sprite") ? _canim.feet_sprite : ""; if (_nf0 != "") _anim_feet0 = canned_anim_flipped_name(_nf0); }
+                                    } else {
+                                        _anim_feet0 = variable_struct_exists(_canim, "feet_sprite") ? _canim.feet_sprite : "";
+                                    }
+                                    preview_actors[_ca_aidx].canned_composite = (_anim_feet0 != "");
+                                    preview_actors[_ca_aidx].canned_feet_spr  = (_anim_feet0 != "") ? canned_anim_load_sprite(_b.char_index, _anim_feet0) : -1;
+                                }
+                            }
+                            action_animating = true;
+                            array_push(active_animations, _ca_state);
+                        } else {
+                            speaking_pause_timer = max(speaking_pause_timer, 4);
+                        }
                     } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                 } else if (_is_particle) {
                     var _psize  = variable_struct_exists(_b, "size")     ? _b.size     : 1.0;

@@ -361,6 +361,8 @@ if (quick_save_timer > 0) quick_save_timer--;
 // Ensure modals capture all input and prevent background logic from running
 if (dictionary_open)       { step_modal_dictionary();  return; }
 
+if (anim_editor_open)      { step_modal_anim_editor(); return; }
+
 if (expr_cfg_open)         { step_modal_expr_cfg();    return; }
 
 if (move_modal_open)       { step_modal_movement();    return; }
@@ -810,7 +812,7 @@ if (file_menu_open) {
                         var _btype = variable_struct_exists(_bl, "type") ? _bl.type : "voice";
 
                         if (_btype == "scene") {
-                            file_text_write_string(_sf, "INT. " + string_upper(_bl.name) + " - DAY\n\n");
+                            file_text_write_string(_sf, "SCENE: " + string_upper(_bl.name) + "\n\n");
 
                         } else if (_btype == "action") {
                             var _aname = _bl.action_name;
@@ -829,7 +831,16 @@ if (file_menu_open) {
                                 // Resurrection — omit from screenplay prose
                             } else {
                                 // Character action — build a readable sentence
+                                var _aname_lo = string_lower(_aname);
                                 var _display_aname = _aname;
+                                if (string_pos("looks ", _aname_lo) > 0 && string_pos(" and pose ", _aname_lo) > 0) {
+                                    var _ap2 = string_pos(" and pose ", _aname_lo);
+                                    var _pn2 = real(string_copy(_aname_lo, _ap2 + 10, 1));
+                                    _display_aname = string_copy(_aname, 1, _ap2 - 1) + ", " + get_pose_label(_bl.char_index, _pn2);
+                                } else if (string_pos("pose ", _aname_lo) > 0 && string_pos("poses ", _aname_lo) == 0) {
+                                    var _pn2 = real(string_copy(_aname_lo, string_pos("pose ", _aname_lo) + 5, 1));
+                                    _display_aname = get_pose_label(_bl.char_index, _pn2);
+                                }
                                 if (string_pos("FELL FORWARDS", _aname_u) > 0)  _display_aname = "falls forwards";
                                 else if (string_pos("FELL BACKWARDS", _aname_u) > 0) _display_aname = "falls backwards";
                                 var _sent = _cn + " " + _display_aname;
@@ -1586,10 +1597,30 @@ if (mouse_check_button_pressed(mb_left)) {
         }
     }
 
-    // EXPR CFG button in character panel header (Narrator has no sprite — skip)
-    if (!particle_panel_mode && SHOW_EXPR_CFG && !theater_mode && playing_block_index == -1 && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28) {
-        if (characters[selected_character_index].name != "NARRATOR") open_expr_configurator(selected_character_index);
-        return;
+    // EXPR CFG / ANIM EDITOR buttons — side by side in the header row
+    if (!particle_panel_mode && !theater_mode && playing_block_index == -1) {
+        var _has_anims_b = SHOW_ANIM_EDITOR && canned_anim_get_data(selected_character_index) != undefined;
+        var _btn_l2  = char_sel_x + 195;
+        var _btn_r2  = char_sel_x + char_sel_w - 6;
+        var _btn_mid2 = floor((_btn_l2 + _btn_r2) / 2) - 1;
+        var _ex_r2   = (SHOW_EXPR_CFG && _has_anims_b) ? _btn_mid2 : _btn_r2;
+        var _an_l2   = (SHOW_EXPR_CFG && _has_anims_b) ? _btn_mid2 + 2 : _btn_l2;
+        if (SHOW_EXPR_CFG && _mx > _btn_l2 && _mx < _ex_r2 && _my > char_sel_y + 2 && _my < char_sel_y + 26) {
+            if (characters[selected_character_index].name != "NARRATOR") open_expr_configurator(selected_character_index);
+            return;
+        }
+        if (_has_anims_b && _mx > _an_l2 && _mx < _btn_r2 && _my > char_sel_y + 2 && _my < char_sel_y + 26) {
+            anim_editor_open          = true;
+            anim_editor_char_idx      = selected_character_index;
+            anim_editor_anim_idx      = 0;
+            anim_editor_frame_idx     = 0;
+            anim_editor_selected_frame = -1;
+            anim_editor_playing       = false;
+            anim_editor_tick          = 0;
+            anim_editor_sprite_list   = [];
+            anim_editor_flipped_mode  = false;
+            return;
+        }
     }
 
     // GLOBAL HEADER BUTTONS (Theater & Move Params)
@@ -2028,6 +2059,21 @@ if (mouse_check_button_pressed(mb_left)) {
                         pose_expr_expr_touched = true;
                         expression_modal_edit_mode = true; expression_modal_target_index = i;
                         pose_expr_modal_open = true;
+                    } else if (variable_struct_exists(_block, "char_index") && _block.char_index > 0
+                            && canned_anim_find(_block.char_index, _block.action_name) != undefined) {
+                        action_modal_open = true; action_modal_target_index = i; action_modal_edit_mode = true;
+                        action_modal_char_onstage = true; action_modal_char_is_dead = false;
+                        action_modal_selected_anim_idx = -1; action_modal_sa_scroll = 0;
+                        for (var _cj2 = 0; _cj2 < array_length(all_actions); _cj2++) {
+                            if (all_actions[_cj2].name == "special animation") { action_modal_selected_idx = _cj2; action_modal_locked = true; break; }
+                        }
+                        var _cad2 = canned_anim_get_data(_block.char_index);
+                        if (_cad2 != undefined) {
+                            var _cn2 = string_lower(_block.action_name);
+                            for (var _ci2 = 0; _ci2 < array_length(_cad2); _ci2++) {
+                                if (string_lower(_cad2[_ci2].name) == _cn2) { action_modal_selected_anim_idx = _ci2; action_modal_sa_scroll = max(0, _ci2 - 3); break; }
+                            }
+                        }
                     }
                 }
                 else if (_is_voice) {
@@ -2203,6 +2249,21 @@ if (mouse_check_button_pressed(mb_left)) {
                                 }
                                 expression_modal_locked_expr = _dbl_e; expression_modal_temp_expr = _dbl_e;
                                 pose_modal_locked_pose = _dbl_p; pose_modal_temp_pose = _dbl_p;
+                            } else if (variable_struct_exists(_block, "char_index") && _block.char_index > 0
+                                    && canned_anim_find(_block.char_index, _block.action_name) != undefined) {
+                                action_modal_open = true; action_modal_target_index = i; action_modal_edit_mode = true;
+                                action_modal_char_onstage = true; action_modal_char_is_dead = false;
+                                action_modal_selected_anim_idx = -1; action_modal_sa_scroll = 0;
+                                for (var _cj3 = 0; _cj3 < array_length(all_actions); _cj3++) {
+                                    if (all_actions[_cj3].name == "special animation") { action_modal_selected_idx = _cj3; action_modal_locked = true; break; }
+                                }
+                                var _cad3 = canned_anim_get_data(_block.char_index);
+                                if (_cad3 != undefined) {
+                                    var _cn3 = string_lower(_block.action_name);
+                                    for (var _ci3 = 0; _ci3 < array_length(_cad3); _ci3++) {
+                                        if (string_lower(_cad3[_ci3].name) == _cn3) { action_modal_selected_anim_idx = _ci3; action_modal_sa_scroll = max(0, _ci3 - 3); break; }
+                                    }
+                                }
                             }
                         }
                         return;
@@ -2308,6 +2369,11 @@ if (mouse_check_button_pressed(mb_left)) {
                     if (_other_jt == "sfx" || _other_jt == "particle" || _other_jt == "title") _base_valid = true;
                     else if (_other_jt == "voice" || _other_jt == "move") _base_valid = true;
                     else if (_other_jt != "quake" && _diff_char) _base_valid = true;
+                }
+                else if (_b1_type == "canned" || _b2_type == "canned") {
+                    var _other_ca = (_b1_type == "canned") ? _b2_type : _b1_type;
+                    if (_other_ca == "sfx" || _other_ca == "quake" || _other_ca == "particle") _base_valid = true;
+                    else if (_other_ca == "move" && _diff_char) _base_valid = true;
                 }
 
                 var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;

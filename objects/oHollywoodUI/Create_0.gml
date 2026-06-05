@@ -231,6 +231,7 @@ if (!directory_exists(datafiles_path)) {
 char_sprites      = ds_map_create();
 char_offsets_cache = ds_map_create(); // char_name → struct parsed from offsets.json, or undefined
 char_expr_cache    = ds_map_create(); // char_name → struct parsed from expressions_config.json, or undefined
+char_anim_cache    = ds_map_create(); // char_name → parsed animations.json array, or undefined
 mouth_anim_cache   = ds_map_create(); // "charName_manim_pose_NNNNN.png" → array of animation frame sprites
 char_sel_layer_cache = array_create(array_length(characters), undefined); // Per-character composite layer cache for the selector UI (avoids file_exists every frame)
 // Defined in: scr_character_sprite (get_character_sprite, get_composite_character_sprite, get_mouth_anim_sprites)
@@ -473,7 +474,8 @@ all_actions = [
     { name: "disappear",     desc: "Instantly removes the character from the scene.\nChoose a vanish style.",  category: "character" },
     { name: "jitter",        desc: "Shakes the character in place for a set duration.\nChoose intensity, duration, and direction.", category: "character" },
     { name: "kill",          desc: "Kills the character. They stay on screen but are locked from all future actions.\nChoose a death style.", category: "character" },
-    { name: "resurrect",     desc: "Brings a dead character back to life, restoring them to a standing pose.", category: "character" },
+    { name: "resurrect",          desc: "Brings a dead character back to life, restoring them to a standing pose.", category: "character" },
+    { name: "special animation",  desc: "Plays one of this character's custom animations.",                          category: "character" },
 ];
 action_modal_disappear_style  = "pop";
 action_modal_disappear_speed  = 2;
@@ -496,6 +498,10 @@ action_modal_kill_speed           = 2; // index: 0=very slow .. 4=very fast; def
 action_modal_resurrect_speed      = 2;
 action_modal_char_is_dead         = false;
 action_modal_char_death_style     = "";
+action_modal_selected_anim_idx    = -1;  // index into canned_anim_get_data(), -1 = none
+action_modal_sa_scroll            = 0;
+action_modal_sa_sb_drag           = false;
+action_modal_sa_sb_drag_off       = 0;
 active_decap_heads           = [];
 active_shots                 = [];
 waiting_for_shots            = false;
@@ -662,6 +668,42 @@ if (array_length(all_voices) > 0) {
 SHOW_EXPR_CFG           = false;
 // Set to false before shipping to hide the voice config export button.
 SHOW_VOICE_CFG          = false;
+// Set to false before shipping to hide the animation editor.
+SHOW_ANIM_EDITOR        = true;
+
+// Animation editor state
+anim_editor_open             = false;
+anim_editor_char_idx         = -1;
+anim_editor_anim_idx         = 0;
+anim_editor_frame_idx        = 0;
+anim_editor_playing          = false;
+anim_editor_tick             = 0;
+anim_editor_selected_frame   = -1;   // frame being edited in the strip
+anim_editor_sprite_picker    = false;
+anim_editor_sprite_list      = [];   // pose_*.png filenames for current char
+anim_editor_sprite_scroll    = 0;
+anim_editor_sprite_pending   = "";   // filename of clicked-but-not-confirmed sprite
+anim_editor_sfx_picker       = false;
+anim_editor_sfx_root         = "";   // absolute path to sounds root (set on open)
+anim_editor_sfx_path         = "";   // current subfolder relative to root
+anim_editor_sfx_folders      = [];
+anim_editor_sfx_files        = [];
+anim_editor_sfx_scroll       = 0;
+anim_editor_sfx_pending      = "";   // relative path of clicked-but-not-confirmed file
+anim_editor_strip_scroll     = 0;   // leftmost visible frame index in the strip
+anim_editor_sprite_sb_drag   = false;
+anim_editor_sprite_sb_drag_off = 0;
+anim_editor_sfx_sb_drag      = false;
+anim_editor_sfx_sb_drag_off  = 0;
+anim_editor_pgud_dir         = 0;   // 1=pgdown, -1=pgup, 0=none
+anim_editor_pgud_timer       = 0;
+anim_editor_dirty            = false; // unsaved changes
+anim_editor_hold_btn         = 0;    // 0=none, 1=minus, 2=plus
+anim_editor_hold_repeat      = 0;    // repeat timer
+anim_editor_anchor_btn       = 0;
+anim_editor_anchor_repeat    = 0;
+anim_editor_flipped_mode     = false;
+anim_editor_sprite_picker_mode = 0;  // 0 = main anim sprite, 1 = feet sprite
 
 char_rename_active = false;  // true while the inline name editor is open
 char_rename_target = -1;    // index into characters[] being renamed

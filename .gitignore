@@ -79,6 +79,7 @@ datafiles/scenes/
 datafiles/scenes_backup/
 datafiles/sounds/
 datafiles/sounds_backup/
+datafiles/actors/
 
 # Voice config (machine-specific, regenerated at runtime)
 datafiles/voice_config.json

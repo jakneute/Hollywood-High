@@ -1,7 +1,7 @@
 /// @description Professional Editor UI Renderer (With Hover Effects)
 var _mx = mouse_x; var _my = mouse_y;
 
-var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || pose_expr_modal_open || expr_cfg_open || import_modal_open);
+var _overlay_active = (file_menu_open || dictionary_open || edit_mode || scene_modal_open || action_modal_open || move_modal_open || theater_mode || pose_modal_open || expression_modal_open || pose_expr_modal_open || expr_cfg_open || import_modal_open || anim_editor_open);
 
 draw_clear(make_color_rgb(10, 42, 16));
 
@@ -116,7 +116,27 @@ if (theater_mode) {
 			var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 21;
 			var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
 
-			var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+			// Canned animation override — build layers before using _layers for size calc
+			if (variable_struct_exists(_act, "canned_spr") && _act.canned_spr != -1) {
+			    var _canned_ay = variable_struct_exists(_act, "canned_anchor_y") ? _act.canned_anchor_y : 0;
+			    var _feet_spr  = (variable_struct_exists(_act, "canned_composite") && _act.canned_composite
+			                      && variable_struct_exists(_act, "canned_feet_spr") && _act.canned_feet_spr != -1)
+			                     ? _act.canned_feet_spr : -1;
+			    if (_feet_spr != -1) {
+			        // Animation sprite behind (layer 0), feet tile on top (layer 1) covering the legs.
+			        // Feet dy anchors its bottom to actor_y regardless of per-frame animation height.
+			        var _canned_h = sprite_get_height(_act.canned_spr);
+			        var _lower_h  = sprite_get_height(_feet_spr);
+			        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay },
+			                   { spr: _feet_spr, dx: 0, dy: _canned_h - _lower_h },
+			                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
+			    } else {
+			        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay },
+			                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
+			    }
+			} else {
+			    _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+			}
 			var _spr    = _layers[0].spr;
 
 			if (_spr != -1) {
@@ -867,7 +887,25 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 21;
 				var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
 
-				var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+				// Canned animation override
+				if (variable_struct_exists(_act, "canned_spr") && _act.canned_spr != -1) {
+				    var _canned_ay2 = variable_struct_exists(_act, "canned_anchor_y") ? _act.canned_anchor_y : 0;
+				    var _feet_spr2  = (variable_struct_exists(_act, "canned_composite") && _act.canned_composite
+				                       && variable_struct_exists(_act, "canned_feet_spr") && _act.canned_feet_spr != -1)
+				                      ? _act.canned_feet_spr : -1;
+				    if (_feet_spr2 != -1) {
+				        var _canned_h2 = sprite_get_height(_act.canned_spr);
+				        var _lower_h2  = sprite_get_height(_feet_spr2);
+				        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay2 },
+				                   { spr: _feet_spr2, dx: 0, dy: _canned_h2 - _lower_h2 },
+				                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
+				    } else {
+				        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay2 },
+				                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
+				    }
+				} else {
+				    _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+				}
 				var _spr    = _layers[0].spr;
 
 				if (_spr != -1) {
@@ -1874,12 +1912,29 @@ draw_roundrect_ext(_tab_p1, _tab_y, _tab_p2, _tab_y+_tab_h, 3, 3, false);
 draw_set_color(particle_panel_mode ? c_white : make_color_rgb(200,80,80)); draw_set_halign(fa_center); draw_text((_tab_p1+_tab_p2)/2, _tab_y+4, "FX"); draw_set_halign(fa_left);
 
 var _is_narrator_sel = (characters[selected_character_index].name == "NARRATOR");
+var _has_anims_btn   = (!particle_panel_mode && SHOW_ANIM_EDITOR && canned_anim_get_data(selected_character_index) != undefined);
+var _btn_l  = char_sel_x + 195;
+var _btn_r  = char_sel_x + char_sel_w - 6;
+var _btn_y1 = char_sel_y + 2;
+var _btn_y2 = char_sel_y + 26;
+var _btn_mid = floor((_btn_l + _btn_r) / 2) - 1;
+
 if (!particle_panel_mode && SHOW_EXPR_CFG) {
-    var _ecfg_btn_hov = (!_overlay_active && !_is_narrator_sel && _mx > char_sel_x + 195 && _mx < char_sel_x + char_sel_w - 6 && _my > char_sel_y + 2 && _my < char_sel_y + 28);
+    var _ex_r = (SHOW_EXPR_CFG && _has_anims_btn) ? _btn_mid : _btn_r;
+    var _ecfg_btn_hov = (!_overlay_active && !_is_narrator_sel && _mx > _btn_l && _mx < _ex_r && _my > _btn_y1 && _my < _btn_y2);
     draw_set_color(_is_narrator_sel ? make_color_rgb(10, 38, 14) : (_ecfg_btn_hov ? make_color_rgb(28, 90, 195) : make_color_rgb(16, 58, 148)));
-    draw_roundrect_ext(char_sel_x + 195, char_sel_y + 2, char_sel_x + char_sel_w - 6, char_sel_y + 28, 4, 4, false);
+    draw_roundrect_ext(_btn_l, _btn_y1, _ex_r, _btn_y2, 4, 4, false);
     draw_set_color(_is_narrator_sel ? make_color_rgb(55, 80, 58) : c_white); draw_set_halign(fa_center);
-    draw_text((char_sel_x + 195 + char_sel_x + char_sel_w - 6) / 2, char_sel_y + 7, "EXPR CFG");
+    draw_text((_btn_l + _ex_r) / 2, _btn_y1 + 5, "EXPR CFG");
+    draw_set_halign(fa_left);
+}
+if (_has_anims_btn) {
+    var _an_l = (SHOW_EXPR_CFG && _has_anims_btn) ? _btn_mid + 2 : _btn_l;
+    var _abtn_hov = (!_overlay_active && !_is_narrator_sel && _mx > _an_l && _mx < _btn_r && _my > _btn_y1 && _my < _btn_y2);
+    draw_set_color(_abtn_hov ? make_color_rgb(28, 148, 90) : make_color_rgb(16, 90, 58));
+    draw_roundrect_ext(_an_l, _btn_y1, _btn_r, _btn_y2, 4, 4, false);
+    draw_set_color(c_white); draw_set_halign(fa_center);
+    draw_text((_an_l + _btn_r) / 2, _btn_y1 + 5, "ANIMS");
     draw_set_halign(fa_left);
 }
 
@@ -2549,6 +2604,15 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             else if (_other_jt == "voice" || _other_jt == "move") _base_valid = true;
             else if (_other_jt != "quake" && _diff_char) _base_valid = true;
         }
+        else if (_b1_type == "canned" || _b2_type == "canned") {
+            var _other_ct = (_b1_type == "canned") ? _b2_type : _b1_type;
+            // Same-char: only movement is allowed alongside a special animation
+            if (_other_ct == "move" && !_diff_char) _base_valid = true;
+            // General actions are always fine
+            else if (_other_ct == "sfx" || _other_ct == "quake" || _other_ct == "particle" || _other_ct == "title") _base_valid = true;
+            // Different-character blocks are fine
+            else if (_diff_char && (_other_ct == "voice" || _other_ct == "move" || _other_ct == "charaction" || _other_ct == "canned")) _base_valid = true;
+        }
 
         var _chain_valid = true;
 
@@ -2573,7 +2637,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 if (_bk_type == "particle") _particle_in_chain++;
                 if (_bk_type == "quake")    _quake_in_chain++;
 
-                if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
+                if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned") {
                     for (var j = k + 1; j <= _end_idx; j++) {
                         var _bj = script_blocks[j];
                         if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
@@ -2587,6 +2651,9 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                             if (_bk_type == "move"   && _bj_type == "move")       { _chain_valid = false; break; }
                             if (_bk_type == "charaction" && (_bj_type == "charaction" || _bj_type == "move")) { _chain_valid = false; break; }
                             if (_bk_type == "move"   && _bj_type == "charaction") { _chain_valid = false; break; }
+                            // Canned animation: same character cannot also talk, do other char-actions, or run another canned anim
+                            if (_bk_type == "canned" && (_bj_type == "voice" || _bj_type == "charaction" || _bj_type == "canned")) { _chain_valid = false; break; }
+                            if (_bj_type == "canned" && (_bk_type == "voice" || _bk_type == "charaction")) { _chain_valid = false; break; }
                         }
                     }
                 }
@@ -3134,7 +3201,7 @@ if (action_modal_open) {
         if (action_modal_selected_idx == i) { draw_set_color(make_color_rgb(196,213,20)); draw_roundrect_ext(_mxo+20, _by, _mxo+250, _by+40, 5, 5, true); }
         draw_set_color(_disabled ? make_color_rgb(70,90,72) : c_white); draw_text(_mxo+30, _by+10, string_upper(all_actions[i].name));
     }
-    
+
     // OK / Cancel Buttons
     var _can_proceed = true;
     if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "play sfx") {
@@ -3151,8 +3218,12 @@ if (action_modal_open) {
         if (selected_character_index == 0 || !action_modal_char_onstage || action_modal_char_is_dead) _can_proceed = false;
     } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "resurrect") {
         if (selected_character_index == 0 || !action_modal_char_is_dead) _can_proceed = false;
+    } else if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "special animation") {
+        _can_proceed = (action_modal_selected_anim_idx >= 0 && action_modal_char_onstage && !action_modal_char_is_dead && selected_character_index > 0);
+    } else if (action_modal_selected_idx == -1) {
+        _can_proceed = false;
     }
-    
+
     var _ok_locked = (action_modal_locked && _can_proceed);
     var _ok_hov = (_ok_locked && _mx > _mxo+_mw-280 && _mx < _mxo+_mw-150 && _my > _myo+_mh-50 && _my < _myo+_mh-15);
     draw_set_color(_ok_locked ? (_ok_hov ? make_color_rgb(22,110,32) : make_color_rgb(14,75,22)) : make_color_rgb(28,45,30));
@@ -3599,9 +3670,49 @@ if (action_modal_open) {
             if (!action_modal_char_is_dead) {
                 draw_set_color(make_color_rgb(255,200,80)); draw_text(_mxo+290, _myo+450, "Character is not dead.");
             }
+        } else if (all_actions[action_modal_selected_idx].name == "special animation") {
+            var _sa_dr = canned_anim_get_data(selected_character_index);
+            var _sa_on = (action_modal_char_onstage && !action_modal_char_is_dead && selected_character_index > 0);
+            var _sa_rx = _mxo+290; var _sa_ry = _myo+115; var _sa_rh = 36; var _sa_rw = _mw-324;
+            var _sa_lh = _mh - 185; var _sa_stp = _sa_rh + 6;
+            var _sa_vis = floor(_sa_lh / _sa_stp);
+            if (_sa_dr != undefined && array_length(_sa_dr) > 0) {
+                var _sa_total = array_length(_sa_dr);
+                var _sa_max = max(0, _sa_total - _sa_vis);
+                var _sa_scr = clamp(action_modal_sa_scroll, 0, _sa_max);
+                for (var _sai2 = 0; _sai2 < _sa_total; _sai2++) {
+                    var _sby2 = _sa_ry + (_sai2 - _sa_scr) * _sa_stp;
+                    if (_sby2 < _sa_ry || _sby2 + _sa_rh > _sa_ry + _sa_lh) continue;
+                    var _sa_sel2 = (action_modal_selected_anim_idx == _sai2);
+                    var _sa_hov2 = (_sa_on && _mx > _sa_rx && _mx < _sa_rx + _sa_rw && _my > _sby2 && _my < _sby2 + _sa_rh);
+                    draw_set_color(_sa_sel2 ? make_color_rgb(16, 100, 55) : (_sa_hov2 ? make_color_rgb(14, 70, 35) : make_color_rgb(10, 40, 18)));
+                    draw_roundrect_ext(_sa_rx, _sby2, _sa_rx + _sa_rw, _sby2 + _sa_rh, 5, 5, false);
+                    if (_sa_sel2) { draw_set_color(make_color_rgb(80, 220, 130)); draw_roundrect_ext(_sa_rx, _sby2, _sa_rx + _sa_rw, _sby2 + _sa_rh, 5, 5, true); }
+                    draw_set_color(_sa_on ? (_sa_sel2 ? c_white : make_color_rgb(150, 220, 170)) : make_color_rgb(60, 80, 62));
+                    draw_text(_sa_rx + 12, _sby2 + 9, string_upper(_sa_dr[_sai2].name));
+                }
+                // Scrollbar
+                if (_sa_max > 0) {
+                    var _sbx_sa = _sa_rx + _sa_rw + 4;
+                    draw_set_color(make_color_rgb(10, 35, 14));
+                    draw_rectangle(_sbx_sa, _sa_ry, _sbx_sa + 10, _sa_ry + _sa_lh, false);
+                    var _th_sa = max(20, _sa_lh * _sa_vis / _sa_total);
+                    var _ty_sa = _sa_ry + (_sa_scr / _sa_max) * (_sa_lh - _th_sa);
+                    draw_set_color(make_color_rgb(80, 180, 100));
+                    draw_rectangle(_sbx_sa, _ty_sa, _sbx_sa + 10, _ty_sa + _th_sa, false);
+                }
+            } else {
+                draw_set_color(make_color_rgb(180, 140, 60));
+                draw_text(_sa_rx, _sa_ry, "No animations found for this character.");
+            }
+            if (!_sa_on) {
+                draw_set_color(make_color_rgb(200, 160, 60));
+                draw_text(_sa_rx, _myo + 460, action_modal_char_is_dead ? "Character is dead." : "Character is not on stage.");
+            }
         }
     }
 }
+
 
 if (move_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
@@ -3775,6 +3886,413 @@ if (pose_expr_modal_open) {
     draw_set_color(_can_hov ? make_color_rgb(200, 40, 40) : make_color_rgb(148, 22, 22));
     draw_roundrect_ext(_cx_pe, _btn_y_pe, _cx_pe + _btn_w_pe, _btn_y_pe + _btn_h_pe, 7, 7, false);
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_cx_pe + _btn_w_pe / 2, _btn_y_pe + 11, "CANCEL"); draw_set_halign(fa_left);
+}
+
+// ── ANIMATION EDITOR MODAL ──
+if (anim_editor_open) {
+    var _data = canned_anim_get_data(anim_editor_char_idx);
+    if (_data != undefined) {
+        var _m_w = 900; var _m_h = 620;
+        var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+
+        draw_set_color(c_black); draw_set_alpha(0.78);
+        draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+        draw_set_color(make_color_rgb(10, 36, 16));
+        draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 8, 8, false);
+        draw_set_color(make_color_rgb(40, 140, 70));
+        draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 8, 8, true);
+
+        // Title + close
+        draw_set_color(anim_editor_dirty ? make_color_rgb(255, 200, 60) : c_white); draw_set_halign(fa_left);
+        var _cname = characters[anim_editor_char_idx].name;
+        draw_text(_m_x + 14, _m_y + 14, "ANIMATIONS — " + _cname + (anim_editor_dirty ? "  *" : ""));
+        draw_set_color(make_color_rgb(200, 80, 80));
+        draw_roundrect_ext(_m_x + _m_w - 50, _m_y + 10, _m_x + _m_w - 10, _m_y + 40, 4, 4, false);
+        draw_set_color(c_white); draw_set_halign(fa_center);
+        draw_text(_m_x + _m_w - 30, _m_y + 17, "X"); draw_set_halign(fa_left);
+
+        // Controls
+        var _playing_label = anim_editor_playing ? "PAUSE" : "PLAY";
+        draw_set_color(anim_editor_playing ? make_color_rgb(200, 120, 20) : make_color_rgb(20, 140, 60));
+        draw_roundrect_ext(_m_x + 230, _m_y + 20, _m_x + 330, _m_y + 48, 4, 4, false);
+        draw_set_color(c_white); draw_set_halign(fa_center);
+        draw_text((_m_x + 230 + _m_x + 330) / 2, _m_y + 27, _playing_label);
+        draw_set_color(make_color_rgb(40, 90, 130));
+        draw_roundrect_ext(_m_x + 340, _m_y + 20, _m_x + 390, _m_y + 48, 4, 4, false);
+        draw_roundrect_ext(_m_x + 400, _m_y + 20, _m_x + 450, _m_y + 48, 4, 4, false);
+        draw_set_color(c_white);
+        draw_text((_m_x + 340 + _m_x + 390) / 2, _m_y + 27, "<");
+        draw_text((_m_x + 400 + _m_x + 450) / 2, _m_y + 27, ">");
+        // Save button
+        var _save_hov = (_mx > _m_x + 460 && _mx < _m_x + 560 && _my > _m_y + 20 && _my < _m_y + 48);
+        draw_set_color(anim_editor_dirty ? ((_save_hov) ? make_color_rgb(180, 140, 20) : make_color_rgb(130, 100, 14)) : make_color_rgb(30, 55, 32));
+        draw_roundrect_ext(_m_x + 460, _m_y + 20, _m_x + 560, _m_y + 48, 4, 4, false);
+        draw_set_color(anim_editor_dirty ? c_white : make_color_rgb(60, 90, 62));
+        draw_text((_m_x + 460 + _m_x + 560) / 2, _m_y + 27, "SAVE");
+        // Flip mode toggle
+        var _flip_hov = (_mx > _m_x + 572 && _mx < _m_x + 642 && _my > _m_y + 20 && _my < _m_y + 48);
+        draw_set_color(anim_editor_flipped_mode ? make_color_rgb(40, 110, 190) : (_flip_hov ? make_color_rgb(30, 60, 90) : make_color_rgb(18, 38, 58)));
+        draw_roundrect_ext(_m_x + 572, _m_y + 20, _m_x + 642, _m_y + 48, 4, 4, false);
+        if (anim_editor_flipped_mode) { draw_set_color(make_color_rgb(120, 190, 255)); draw_roundrect_ext(_m_x + 572, _m_y + 20, _m_x + 642, _m_y + 48, 4, 4, true); }
+        draw_set_color(anim_editor_flipped_mode ? c_white : make_color_rgb(80, 120, 160));
+        draw_text((_m_x + 572 + _m_x + 642) / 2, _m_y + 27, "FLIP");
+        draw_set_halign(fa_left);
+
+        // Animation list (left panel)
+        draw_set_color(make_color_rgb(8, 28, 12));
+        draw_roundrect_ext(_m_x + 10, _m_y + 55, _m_x + 225, _m_y + _m_h - 10, 4, 4, false);
+        for (var _ai = 0; _ai < array_length(_data); _ai++) {
+            var _anim_entry = _data[_ai];
+            var _ly = _m_y + 60 + _ai * 30;
+            var _is_sel = (_ai == anim_editor_anim_idx);
+            draw_set_color(_is_sel ? make_color_rgb(20, 120, 55) : make_color_rgb(14, 50, 22));
+            draw_roundrect_ext(_m_x + 12, _ly, _m_x + 222, _ly + 26, 3, 3, false);
+            draw_set_color(_is_sel ? c_white : c_ltgray);
+            draw_text(_m_x + 18, _ly + 5, _anim_entry.name);
+        }
+
+        // Frame preview (right panel)
+        var _cur_anim = _data[clamp(anim_editor_anim_idx, 0, array_length(_data) - 1)];
+        var _frames   = _cur_anim.frames;
+        var _preview_x = _m_x + 235; var _preview_y = _m_y + 55;
+        var _preview_w = _m_w - 245; var _preview_h = _m_h - 100;
+
+        // Current frame sprite
+        var _cf = (_frames != undefined && anim_editor_frame_idx < array_length(_frames)) ? _frames[anim_editor_frame_idx] : undefined;
+        if (_cf != undefined && _cf.type == "sprite") {
+            var _fspr_name = _cf.sprite;
+            if (anim_editor_flipped_mode) {
+                _fspr_name = (variable_struct_exists(_cf, "sprite_flipped") && _cf.sprite_flipped != "")
+                             ? _cf.sprite_flipped : canned_anim_flipped_name(_cf.sprite);
+            }
+            var _fspr = canned_anim_load_sprite(anim_editor_char_idx, _fspr_name);
+            if (_fspr != -1) {
+                var _fw = sprite_get_width(_fspr); var _fh = sprite_get_height(_fspr);
+                var _fsc = min((_preview_h * 0.85) / _fh, (_preview_w * 0.5) / _fw);
+                var _fdx = _preview_x + (_preview_w * 0.25) - (_fw * _fsc * 0.5);
+                var _fdy = _preview_y + (_preview_h * 0.85) - _fh * _fsc;
+                draw_sprite_ext(_fspr, 0, _fdx, _fdy, _fsc, _fsc, 0, c_white, 1);
+            }
+        }
+
+        // Frame info + edit controls
+        var _sprite_count = 0;
+        for (var _fi2 = 0; _fi2 < array_length(_frames); _fi2++) {
+            if (_frames[_fi2].type == "sprite") _sprite_count++;
+        }
+        var _info_x = _preview_x + _preview_w * 0.55;
+        var _edit_frame = (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames)) ? _frames[anim_editor_selected_frame] : _cf;
+        // Compact header: frame position + sprite count on one line
+        draw_set_color(c_ltgray);
+        draw_text(_info_x, _preview_y + 10, "Frame " + string(anim_editor_frame_idx + 1) + " / " + string(array_length(_frames)) + "  (" + string(_sprite_count) + " spr)");
+        if (_edit_frame != undefined) {
+            // ── Per-animation FEET row (shown regardless of frame type) ──
+            var _anim_fs = variable_struct_exists(_cur_anim, "feet_sprite") ? _cur_anim.feet_sprite : "";
+            if (!anim_editor_flipped_mode) {
+                var _fs_disp = (_anim_fs == "") ? "none" : _anim_fs;
+                if (string_length(_fs_disp) > 20) _fs_disp = ".." + string_copy(_fs_disp, string_length(_fs_disp) - 17, 18);
+                draw_set_color(_anim_fs != "" ? make_color_rgb(100, 160, 100) : make_color_rgb(100, 100, 100));
+                draw_text(_info_x, _preview_y + 32, "FEET  " + _fs_disp);
+                draw_set_color(make_color_rgb(32, 76, 140));
+                draw_roundrect_ext(_info_x, _preview_y + 50, _info_x + 54, _preview_y + 68, 3, 3, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 27, _preview_y + 54, "SET");
+                draw_set_halign(fa_left);
+                draw_set_color(_anim_fs != "" ? make_color_rgb(112, 40, 40) : make_color_rgb(36, 27, 27));
+                draw_roundrect_ext(_info_x + 60, _preview_y + 50, _info_x + 114, _preview_y + 68, 3, 3, false);
+                draw_set_color(_anim_fs != "" ? c_white : make_color_rgb(65, 50, 50)); draw_set_halign(fa_center);
+                draw_text(_info_x + 87, _preview_y + 54, "CLR");
+                draw_set_halign(fa_left);
+                draw_set_color(make_color_rgb(28, 54, 82));
+                draw_roundrect_ext(_info_x + 120, _preview_y + 50, _info_x + 192, _preview_y + 68, 3, 3, false);
+                draw_set_color(make_color_rgb(75, 150, 220)); draw_set_halign(fa_center);
+                draw_text(_info_x + 156, _preview_y + 54, "AUTO");
+                draw_set_halign(fa_left);
+            } else {
+                var _anim_fsf = variable_struct_exists(_cur_anim, "feet_sprite_flipped") ? _cur_anim.feet_sprite_flipped : "";
+                var _fsf_disp = (_anim_fsf == "") ? "none" : _anim_fsf;
+                if (string_length(_fsf_disp) > 20) _fsf_disp = ".." + string_copy(_fsf_disp, string_length(_fsf_disp) - 17, 18);
+                draw_set_color(_anim_fsf != "" ? make_color_rgb(80, 140, 200) : make_color_rgb(80, 100, 120));
+                draw_text(_info_x, _preview_y + 32, "FEET  " + _fsf_disp);
+                draw_set_color(make_color_rgb(32, 76, 140));
+                draw_roundrect_ext(_info_x, _preview_y + 50, _info_x + 54, _preview_y + 68, 3, 3, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 27, _preview_y + 54, "SET");
+                draw_set_halign(fa_left);
+                draw_set_color(_anim_fsf != "" ? make_color_rgb(112, 40, 40) : make_color_rgb(36, 27, 27));
+                draw_roundrect_ext(_info_x + 60, _preview_y + 50, _info_x + 114, _preview_y + 68, 3, 3, false);
+                draw_set_color(_anim_fsf != "" ? c_white : make_color_rgb(65, 50, 50)); draw_set_halign(fa_center);
+                draw_text(_info_x + 87, _preview_y + 54, "CLR");
+                draw_set_halign(fa_left);
+                draw_set_color(make_color_rgb(28, 54, 82));
+                draw_roundrect_ext(_info_x + 120, _preview_y + 50, _info_x + 192, _preview_y + 68, 3, 3, false);
+                draw_set_color(make_color_rgb(75, 150, 220)); draw_set_halign(fa_center);
+                draw_text(_info_x + 156, _preview_y + 54, "AUTO");
+                draw_set_halign(fa_left);
+            }
+            if (_edit_frame.type == "sprite") {
+                // Frame filename
+                var _fn_short = _edit_frame.sprite;
+                if (string_length(_fn_short) > 20) _fn_short = ".." + string_copy(_fn_short, string_length(_fn_short) - 17, 18);
+                draw_set_color(make_color_rgb(140, 160, 140));
+                draw_text(_info_x, _preview_y + 82, _fn_short);
+                // ── HOLD row ──
+                draw_set_color(make_color_rgb(130, 145, 130));
+                draw_text(_info_x, _preview_y + 102, "HOLD  " + string(_edit_frame.hold));
+                draw_set_color(make_color_rgb(32, 88, 140));
+                draw_roundrect_ext(_info_x + 100, _preview_y + 98, _info_x + 126, _preview_y + 116, 3, 3, false);
+                draw_roundrect_ext(_info_x + 132, _preview_y + 98, _info_x + 158, _preview_y + 116, 3, 3, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 113, _preview_y + 101, "-");
+                draw_text(_info_x + 145, _preview_y + 101, "+");
+                draw_set_halign(fa_left);
+                draw_set_color(make_color_rgb(48, 66, 30));
+                draw_roundrect_ext(_info_x + 164, _preview_y + 98, _info_x + 232, _preview_y + 116, 3, 3, false);
+                draw_set_color(make_color_rgb(130, 180, 70)); draw_set_halign(fa_center);
+                draw_text(_info_x + 198, _preview_y + 101, "ALL");
+                draw_set_halign(fa_left);
+                // ── CHANGE SPRITE ──
+                draw_set_color(anim_editor_flipped_mode ? make_color_rgb(26, 60, 128) : make_color_rgb(32, 80, 144));
+                draw_roundrect_ext(_info_x, _preview_y + 128, _info_x + 160, _preview_y + 150, 4, 4, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 80, _preview_y + 133, anim_editor_flipped_mode ? "CHANGE FLIPPED" : "CHANGE SPRITE");
+                draw_set_halign(fa_left);
+                // ── COPY TO FLIPPED / status ──
+                if (!anim_editor_flipped_mode) {
+                    var _ctf_hov = (_mx > _info_x && _mx < _info_x + 220 && _my > _preview_y + 158 && _my < _preview_y + 180);
+                    draw_set_color(_ctf_hov ? make_color_rgb(44, 80, 148) : make_color_rgb(26, 52, 98));
+                    draw_roundrect_ext(_info_x, _preview_y + 158, _info_x + 220, _preview_y + 180, 4, 4, false);
+                    draw_set_color(make_color_rgb(105, 165, 245)); draw_set_halign(fa_center);
+                    draw_text(_info_x + 110, _preview_y + 163, "COPY TO FLIPPED");
+                    draw_set_halign(fa_left);
+                } else {
+                    var _has_flip = variable_struct_exists(_edit_frame, "sprite_flipped") && _edit_frame.sprite_flipped != "";
+                    draw_set_color(make_color_rgb(26, 52, 98));
+                    draw_roundrect_ext(_info_x, _preview_y + 158, _info_x + 220, _preview_y + 180, 4, 4, false);
+                    draw_set_color(_has_flip ? make_color_rgb(105, 185, 105) : make_color_rgb(185, 125, 50)); draw_set_halign(fa_center);
+                    draw_text(_info_x + 110, _preview_y + 163, _has_flip ? "OVERRIDE SET" : "USING +250 AUTO");
+                    draw_set_halign(fa_left);
+                }
+            } else if (_edit_frame.type == "sound") {
+                var _sfile = variable_struct_exists(_edit_frame, "file") && _edit_frame.file != undefined ? string(_edit_frame.file) : "unset";
+                draw_set_color(make_color_rgb(160, 180, 160));
+                draw_text(_info_x, _preview_y + 30, _sfile);
+                draw_set_color(make_color_rgb(130, 145, 130));
+                draw_text(_info_x, _preview_y + 50, "ID: " + string(_edit_frame[$ "_sound_id"]));
+                draw_set_color(make_color_rgb(120, 74, 18));
+                draw_roundrect_ext(_info_x, _preview_y + 72, _info_x + 160, _preview_y + 94, 4, 4, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 80, _preview_y + 77, "CHANGE SFX");
+                draw_set_halign(fa_left);
+            }
+        }
+
+        // Frame strip (two rows tall to accommodate selection highlight)
+        var _strip_y = _m_y + _m_h - 145;
+        draw_set_color(make_color_rgb(8, 28, 12));
+        draw_rectangle(_preview_x, _strip_y, _m_x + _m_w - 10, _strip_y + 68, false);
+        var _strip_frame_w = 54; var _arr_w = 28;
+        var _sx = _preview_x + 4 + _arr_w;
+        var _strip_inner_w = _preview_w - _arr_w * 2 - 8;
+        var _visible = floor(_strip_inner_w / _strip_frame_w);
+        var _max_strip_scroll = max(0, array_length(_frames) - _visible);
+        // Auto-scroll during playback to keep current frame in view
+        if (anim_editor_playing) {
+            if (anim_editor_frame_idx < anim_editor_strip_scroll)
+                anim_editor_strip_scroll = anim_editor_frame_idx;
+            else if (anim_editor_frame_idx >= anim_editor_strip_scroll + _visible)
+                anim_editor_strip_scroll = anim_editor_frame_idx - _visible + 1;
+        }
+        anim_editor_strip_scroll = clamp(anim_editor_strip_scroll, 0, _max_strip_scroll);
+        var _strip_start = anim_editor_strip_scroll;
+        // Left arrow
+        var _larr_hov = (_mx > _preview_x + 4 && _mx < _preview_x + 4 + _arr_w && _my > _strip_y + 2 && _my < _strip_y + 66);
+        draw_set_color(_larr_hov ? make_color_rgb(60, 80, 60) : make_color_rgb(20, 45, 22));
+        draw_roundrect_ext(_preview_x + 4, _strip_y + 20, _preview_x + 4 + _arr_w, _strip_y + 48, 3, 3, false);
+        draw_set_color(anim_editor_strip_scroll > 0 ? c_white : make_color_rgb(60, 70, 60));
+        draw_set_halign(fa_center); draw_text(_preview_x + 4 + _arr_w / 2, _strip_y + 26, "<"); draw_set_halign(fa_left);
+        // Right arrow
+        var _rarr_x = _sx + _visible * _strip_frame_w + 4;
+        var _rarr_hov = (_mx > _rarr_x && _mx < _rarr_x + _arr_w && _my > _strip_y + 2 && _my < _strip_y + 66);
+        draw_set_color(_rarr_hov ? make_color_rgb(60, 80, 60) : make_color_rgb(20, 45, 22));
+        draw_roundrect_ext(_rarr_x, _strip_y + 20, _rarr_x + _arr_w, _strip_y + 48, 3, 3, false);
+        draw_set_color(anim_editor_strip_scroll < _max_strip_scroll ? c_white : make_color_rgb(60, 70, 60));
+        draw_set_halign(fa_center); draw_text(_rarr_x + _arr_w / 2, _strip_y + 26, ">"); draw_set_halign(fa_left);
+        for (var _si = _strip_start; _si < min(array_length(_frames), _strip_start + _visible); _si++) {
+            var _sf = _frames[_si]; var _sx2 = _sx + (_si - _strip_start) * _strip_frame_w;
+            var _is_cur  = (_si == anim_editor_frame_idx);
+            var _is_sel  = (_si == anim_editor_selected_frame);
+            draw_set_color(_is_sel ? make_color_rgb(20, 80, 180) : (_is_cur ? make_color_rgb(20, 160, 70) : make_color_rgb(20, 50, 28)));
+            draw_roundrect_ext(_sx2, _strip_y + 2, _sx2 + _strip_frame_w - 2, _strip_y + 66, 3, 3, false);
+            if (_is_sel) { draw_set_color(make_color_rgb(80, 140, 255)); draw_roundrect_ext(_sx2, _strip_y + 2, _sx2 + _strip_frame_w - 2, _strip_y + 66, 3, 3, true); }
+            if (_sf.type == "sprite") {
+                var _strip_sname = _sf.sprite;
+                if (anim_editor_flipped_mode) {
+                    _strip_sname = (variable_struct_exists(_sf, "sprite_flipped") && _sf.sprite_flipped != "")
+                                   ? _sf.sprite_flipped : canned_anim_flipped_name(_sf.sprite);
+                }
+                var _tspr = canned_anim_load_sprite(anim_editor_char_idx, _strip_sname);
+                if (_tspr != -1) {
+                    var _tw = sprite_get_width(_tspr); var _th = sprite_get_height(_tspr);
+                    if (_tw > 5 && _th > 5) {  // skip garbage 10x10 frames
+                        var _tsc = min(58.0 / _th, 48.0 / _tw);
+                        draw_sprite_ext(_tspr, 0, _sx2 + (_strip_frame_w - _tw * _tsc) / 2, _strip_y + 4, _tsc, _tsc, 0, c_white, 1);
+                    } else {
+                        draw_set_color(make_color_rgb(180, 60, 60)); draw_set_halign(fa_center);
+                        draw_text(_sx2 + _strip_frame_w / 2, _strip_y + 24, "?"); draw_set_halign(fa_left);
+                    }
+                }
+            } else if (_sf.type == "sound") {
+                draw_set_color(make_color_rgb(200, 180, 40)); draw_set_halign(fa_center);
+                draw_text(_sx2 + _strip_frame_w / 2, _strip_y + 24, "SFX"); draw_set_halign(fa_left);
+            }
+        }
+
+        // SFX picker overlay
+        if (anim_editor_sfx_picker) {
+            draw_set_color(c_black); draw_set_alpha(0.85);
+            draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+            draw_set_color(make_color_rgb(36, 20, 8));
+            draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 8, 8, false);
+            draw_set_color(make_color_rgb(200, 140, 40));
+            draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 8, 8, true);
+            var _spath = (anim_editor_sfx_path == "") ? "actors\\" : "actors\\" + anim_editor_sfx_path;
+            draw_set_color(c_white); draw_text(_m_x + 14, _m_y + 14, "SELECT SOUND — " + _spath);
+            var _lx2 = _m_x + 10; var _ly2 = _m_y + 60; var _lh2 = 28; var _lw2 = _m_w - 32;
+            var _btn_y2 = _m_y + _m_h - 44; var _btn_h2 = 32;
+            var _clip_bot2 = _btn_y2 - 6;
+            var _list_h2 = _clip_bot2 - _ly2;
+            var _has_back2 = (anim_editor_sfx_path != "");
+            var _total_rows2 = (_has_back2 ? 1 : 0) + array_length(anim_editor_sfx_folders) + array_length(anim_editor_sfx_files);
+            var _vis_rows2 = floor(_list_h2 / (_lh2 + 4));
+            var _max_scroll2 = max(0, _total_rows2 - _vis_rows2);
+            var _scr2 = clamp(anim_editor_sfx_scroll, 0, _max_scroll2);
+            var _r2 = 0;
+            // Back button
+            if (_has_back2) {
+                var _rsy = _ly2 + (_r2 - _scr2) * (_lh2 + 4);
+                if (_rsy >= _ly2 && _rsy + _lh2 <= _clip_bot2) {
+                    var _bhov = (_mx > _lx2 && _mx < _lx2 + _lw2 && _my > _rsy && _my < _rsy + _lh2);
+                    draw_set_color(_bhov ? make_color_rgb(80, 50, 20) : make_color_rgb(50, 32, 10));
+                    draw_roundrect_ext(_lx2, _rsy, _lx2 + _lw2, _rsy + _lh2, 3, 3, false);
+                    draw_set_color(make_color_rgb(255, 200, 80)); draw_text(_lx2 + 10, _rsy + 6, "< BACK");
+                }
+                _r2++;
+            }
+            for (var _fdi = 0; _fdi < array_length(anim_editor_sfx_folders); _fdi++) {
+                var _rsy = _ly2 + (_r2 - _scr2) * (_lh2 + 4);
+                if (_rsy >= _ly2 && _rsy + _lh2 <= _clip_bot2) {
+                    var _fdhov = (_mx > _lx2 && _mx < _lx2 + _lw2 && _my > _rsy && _my < _rsy + _lh2);
+                    draw_set_color(_fdhov ? make_color_rgb(60, 40, 15) : make_color_rgb(38, 25, 8));
+                    draw_roundrect_ext(_lx2, _rsy, _lx2 + _lw2, _rsy + _lh2, 3, 3, false);
+                    draw_set_color(make_color_rgb(220, 180, 60)); draw_text(_lx2 + 10, _rsy + 6, "[folder]  " + anim_editor_sfx_folders[_fdi]);
+                }
+                _r2++;
+            }
+            for (var _wfi2 = 0; _wfi2 < array_length(anim_editor_sfx_files); _wfi2++) {
+                var _rsy = _ly2 + (_r2 - _scr2) * (_lh2 + 4);
+                if (_rsy >= _ly2 && _rsy + _lh2 <= _clip_bot2) {
+                    var _rel2 = (anim_editor_sfx_path == "") ? anim_editor_sfx_files[_wfi2] : (anim_editor_sfx_path + "\\" + anim_editor_sfx_files[_wfi2]);
+                    var _is_pending = (_rel2 == anim_editor_sfx_pending);
+                    var _wfhov = (_mx > _lx2 && _mx < _lx2 + _lw2 && _my > _rsy && _my < _rsy + _lh2);
+                    draw_set_color(_is_pending ? make_color_rgb(80, 55, 10) : (_wfhov ? make_color_rgb(60, 35, 10) : make_color_rgb(28, 18, 6)));
+                    draw_roundrect_ext(_lx2, _rsy, _lx2 + _lw2, _rsy + _lh2, 3, 3, false);
+                    if (_is_pending) { draw_set_color(make_color_rgb(255, 210, 80)); draw_roundrect_ext(_lx2, _rsy, _lx2 + _lw2, _rsy + _lh2, 3, 3, true); }
+                    var _fname2 = anim_editor_sfx_files[_wfi2];
+                    var _dot2 = string_last_pos(".", _fname2);
+                    if (_dot2 > 0) _fname2 = string_copy(_fname2, 1, _dot2 - 1);
+                    draw_set_color(_is_pending ? make_color_rgb(255, 220, 100) : c_white);
+                    draw_text(_lx2 + 10, _rsy + 6, _fname2);
+                }
+                _r2++;
+            }
+            // Scrollbar
+            if (_max_scroll2 > 0) {
+                var _sbx = _m_x + _m_w - 16; var _sby2 = _ly2; var _sbh2 = _list_h2;
+                draw_set_color(make_color_rgb(30, 20, 8));
+                draw_rectangle(_sbx, _sby2, _sbx + 10, _sby2 + _sbh2, false);
+                var _thumb_h2 = max(20, _sbh2 * _vis_rows2 / _total_rows2);
+                var _thumb_y2 = _sby2 + (_scr2 / _max_scroll2) * (_sbh2 - _thumb_h2);
+                draw_set_color(make_color_rgb(180, 120, 40));
+                draw_rectangle(_sbx, _thumb_y2, _sbx + 10, _thumb_y2 + _thumb_h2, false);
+            }
+            // OK / Cancel buttons
+            var _ok_x2  = _m_x + _m_w - 220; var _ok_w2 = 90;
+            var _cx2    = _m_x + _m_w - 120; var _cw2   = 90;
+            var _ok_active = (anim_editor_sfx_pending != "");
+            draw_set_color(_ok_active ? ((_mx > _ok_x2 && _mx < _ok_x2 + _ok_w2 && _my > _btn_y2 && _my < _btn_y2 + _btn_h2) ? make_color_rgb(80, 160, 80) : make_color_rgb(40, 100, 40)) : make_color_rgb(30, 50, 30));
+            draw_roundrect_ext(_ok_x2, _btn_y2, _ok_x2 + _ok_w2, _btn_y2 + _btn_h2, 4, 4, false);
+            draw_set_color(_ok_active ? c_white : make_color_rgb(80, 100, 80));
+            draw_text(_ok_x2 + 22, _btn_y2 + 8, "OK");
+            var _chov2 = (_mx > _cx2 && _mx < _cx2 + _cw2 && _my > _btn_y2 && _my < _btn_y2 + _btn_h2);
+            draw_set_color(_chov2 ? make_color_rgb(100, 40, 30) : make_color_rgb(60, 28, 20));
+            draw_roundrect_ext(_cx2, _btn_y2, _cx2 + _cw2, _btn_y2 + _btn_h2, 4, 4, false);
+            draw_set_color(c_white); draw_text(_cx2 + 14, _btn_y2 + 8, "CANCEL");
+        }
+
+        // Sprite picker overlay
+        if (anim_editor_sprite_picker) {
+            draw_set_color(c_black); draw_set_alpha(0.85);
+            draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
+            draw_set_color(make_color_rgb(8, 28, 14));
+            draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 8, 8, false);
+            draw_set_color(make_color_rgb(80, 140, 255));
+            draw_roundrect_ext(_m_x, _m_y, _m_x + _m_w, _m_y + _m_h, 8, 8, true);
+            draw_set_color(c_white); draw_text(_m_x + 14, _m_y + 14, anim_editor_sprite_picker_mode == 1 ? "SELECT FEET SPRITE" : "SELECT SPRITE");
+            var _sp_btn_y2 = _m_y + _m_h - 44; var _sp_btn_h2 = 32;
+            var _grid_x = _m_x + 10; var _grid_y = _m_y + 60;
+            var _cols = 7; var _tw2 = 116; var _th2 = 90;
+            var _visible_rows = floor((_sp_btn_y2 - 10 - _grid_y) / _th2);
+            var _start = anim_editor_sprite_scroll * _cols;
+            for (var _pi = _start; _pi < min(array_length(anim_editor_sprite_list), _start + _cols * _visible_rows); _pi++) {
+                var _pidx = _pi - _start;
+                var _pr = floor(_pidx / _cols); var _pc = _pidx mod _cols;
+                var _px = _grid_x + _pc * _tw2; var _py = _grid_y + _pr * _th2;
+                var _is_pend = (anim_editor_sprite_list[_pi] == anim_editor_sprite_pending);
+                var _phov = (_mx > _px && _mx < _px + _tw2 - 4 && _my > _py && _my < _py + _th2 - 4);
+                draw_set_color(_is_pend ? make_color_rgb(20, 70, 120) : (_phov ? make_color_rgb(20, 80, 140) : make_color_rgb(14, 44, 20)));
+                draw_roundrect_ext(_px, _py, _px + _tw2 - 4, _py + _th2 - 4, 3, 3, false);
+                if (_is_pend) { draw_set_color(make_color_rgb(80, 180, 255)); draw_roundrect_ext(_px, _py, _px + _tw2 - 4, _py + _th2 - 4, 3, 3, true); }
+                var _pspr = canned_anim_load_sprite(anim_editor_char_idx, anim_editor_sprite_list[_pi]);
+                if (_pspr != -1) {
+                    var _pw = sprite_get_width(_pspr); var _ph = sprite_get_height(_pspr);
+                    if (_pw > 5 && _ph > 5) {
+                        var _psc = min(80.0 / _ph, 100.0 / _pw);
+                        draw_sprite_ext(_pspr, 0, _px + (_tw2 - 4 - _pw * _psc) / 2, _py + (_th2 - 4 - _ph * _psc) / 2, _psc, _psc, 0, c_white, 1);
+                    }
+                }
+                draw_set_color(_is_pend ? make_color_rgb(140, 210, 255) : make_color_rgb(100, 130, 100)); draw_set_halign(fa_center);
+                var _lbl = anim_editor_sprite_list[_pi];
+                if (string_length(_lbl) > 10) _lbl = string_copy(_lbl, string_pos("_", _lbl) + 1, 8);
+                draw_text(_px + _tw2 / 2, _py + _th2 - 18, _lbl);
+                draw_set_halign(fa_left);
+            }
+            // Scrollbar
+            var _total_spr_rows = ceil(array_length(anim_editor_sprite_list) / _cols);
+            var _max_spr_scroll = max(0, _total_spr_rows - _visible_rows);
+            if (_max_spr_scroll > 0) {
+                var _sbx2 = _m_x + _m_w - 16; var _sby3 = _grid_y; var _sbh3 = _visible_rows * _th2;
+                draw_set_color(make_color_rgb(10, 30, 15));
+                draw_rectangle(_sbx2, _sby3, _sbx2 + 10, _sby3 + _sbh3, false);
+                var _thumb_h3 = max(20, _sbh3 * _visible_rows / _total_spr_rows);
+                var _thumb_y3 = _sby3 + (anim_editor_sprite_scroll / _max_spr_scroll) * (_sbh3 - _thumb_h3);
+                draw_set_color(make_color_rgb(80, 140, 255));
+                draw_rectangle(_sbx2, _thumb_y3, _sbx2 + 10, _thumb_y3 + _thumb_h3, false);
+            }
+            // OK / Cancel buttons
+            var _sp_ok_x2 = _m_x + _m_w - 220; var _sp_ok_w2 = 90;
+            var _sp_cx2   = _m_x + _m_w - 120; var _sp_cw2   = 90;
+            var _sp_ok_active = (anim_editor_sprite_pending != "");
+            draw_set_color(_sp_ok_active ? ((_mx > _sp_ok_x2 && _mx < _sp_ok_x2 + _sp_ok_w2 && _my > _sp_btn_y2 && _my < _sp_btn_y2 + _sp_btn_h2) ? make_color_rgb(80, 160, 80) : make_color_rgb(40, 100, 40)) : make_color_rgb(30, 50, 30));
+            draw_roundrect_ext(_sp_ok_x2, _sp_btn_y2, _sp_ok_x2 + _sp_ok_w2, _sp_btn_y2 + _sp_btn_h2, 4, 4, false);
+            draw_set_color(_sp_ok_active ? c_white : make_color_rgb(80, 100, 80));
+            draw_text(_sp_ok_x2 + 22, _sp_btn_y2 + 8, "OK");
+            var _sp_chov = (_mx > _sp_cx2 && _mx < _sp_cx2 + _sp_cw2 && _my > _sp_btn_y2 && _my < _sp_btn_y2 + _sp_btn_h2);
+            draw_set_color(_sp_chov ? make_color_rgb(100, 40, 30) : make_color_rgb(60, 28, 20));
+            draw_roundrect_ext(_sp_cx2, _sp_btn_y2, _sp_cx2 + _sp_cw2, _sp_btn_y2 + _sp_btn_h2, 4, 4, false);
+            draw_set_color(c_white); draw_text(_sp_cx2 + 14, _sp_btn_y2 + 8, "CANCEL");
+        }
+    }
 }
 
 // ── EXPRESSION TILE CONFIGURATOR MODAL ──

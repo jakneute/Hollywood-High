@@ -1,5 +1,504 @@
 /// @description Step handlers for all editor modals (dictionary, movement, pose, expression, action).
 
+// ── Animation Editor ─────────────────────────────────────────────────────────
+
+function step_modal_anim_editor() {
+    var _mx = mouse_x; var _my = mouse_y;
+    var _m_w = 900; var _m_h = 620;
+    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+
+    // Derive layout constants (must match Draw_0)
+    var _preview_x = _m_x + 235;
+    var _preview_y = _m_y + 55;
+    var _preview_w = _m_w - 245;
+    var _info_x    = _preview_x + _preview_w * 0.55;
+    var _strip_y   = _m_y + _m_h - 145;
+
+    var _data = canned_anim_get_data(anim_editor_char_idx);
+    if (_data == undefined) { anim_editor_open = false; return; }
+
+    var _anim   = _data[clamp(anim_editor_anim_idx, 0, array_length(_data) - 1)];
+    var _frames = _anim.frames;
+
+    // Playback tick — sound frames fire immediately, hold only counts on sprite frames
+    if (anim_editor_playing) {
+        while (anim_editor_frame_idx < array_length(_frames) && _frames[anim_editor_frame_idx].type == "sound") {
+            canned_anim_fire_sound(anim_editor_char_idx, _frames[anim_editor_frame_idx]);
+            anim_editor_frame_idx++;
+            anim_editor_tick = 0;
+        }
+        if (anim_editor_frame_idx >= array_length(_frames)) anim_editor_frame_idx = 0;
+        var _pcf  = (anim_editor_frame_idx < array_length(_frames)) ? _frames[anim_editor_frame_idx] : undefined;
+        var _hold = (_pcf != undefined && _pcf.type == "sprite" && variable_struct_exists(_pcf, "hold")) ? _pcf.hold : 1;
+        anim_editor_tick++;
+        if (anim_editor_tick >= _hold) {
+            anim_editor_tick = 0;
+            anim_editor_frame_idx++;
+            while (anim_editor_frame_idx < array_length(_frames) && _frames[anim_editor_frame_idx].type == "sound") {
+                canned_anim_fire_sound(anim_editor_char_idx, _frames[anim_editor_frame_idx]);
+                anim_editor_frame_idx++;
+            }
+            if (anim_editor_frame_idx >= array_length(_frames)) anim_editor_frame_idx = 0;
+        }
+    }
+
+    // ── SFX picker ────────────────────────────────────────────────────────────
+    if (anim_editor_sfx_picker) {
+        var _lx = _m_x + 10; var _ly_base = _m_y + 60; var _lh = 28; var _lw = _m_w - 32;
+        var _has_back = (anim_editor_sfx_path != "");
+        var _total_rows = (_has_back ? 1 : 0) + array_length(anim_editor_sfx_folders) + array_length(anim_editor_sfx_files);
+        var _visible_rows = floor((_m_h - 114) / (_lh + 4)); // 60 header + 54 button bar
+        var _max_scroll = max(0, _total_rows - _visible_rows);
+        anim_editor_sfx_scroll = clamp(anim_editor_sfx_scroll, 0, _max_scroll);
+        var _scr = anim_editor_sfx_scroll;
+
+        // Scrollbar geometry (must match Draw_0)
+        var _sbx_fx = _m_x + _m_w - 16; var _sby_fx = _m_y + 60;
+        var _sbh_fx = _m_h - 110;
+        var _thumb_h_fx = (_total_rows > 0) ? max(20, _sbh_fx * _visible_rows / _total_rows) : _sbh_fx;
+        var _thumb_y_fx = _sby_fx + (_max_scroll > 0 ? (anim_editor_sfx_scroll / _max_scroll) * (_sbh_fx - _thumb_h_fx) : 0);
+
+        // Scrollbar drag (runs every frame while held)
+        if (mouse_check_button(mb_left) && anim_editor_sfx_sb_drag) {
+            if (_max_scroll > 0 && _sbh_fx - _thumb_h_fx > 0) {
+                var _raw_fx = clamp(_my - anim_editor_sfx_sb_drag_off - _sby_fx, 0, _sbh_fx - _thumb_h_fx);
+                anim_editor_sfx_scroll = clamp(round(_raw_fx / (_sbh_fx - _thumb_h_fx) * _max_scroll), 0, _max_scroll);
+            }
+            return;
+        }
+        if (!mouse_check_button(mb_left)) anim_editor_sfx_sb_drag = false;
+
+        // Bottom bar: OK and Cancel buttons
+        var _btn_y = _m_y + _m_h - 44; var _btn_h = 32;
+        var _ok_x  = _m_x + _m_w - 220; var _ok_w  = 90;
+        var _cx    = _m_x + _m_w - 120; var _cw    = 90;
+
+        if (mouse_check_button_pressed(mb_left)) {
+            // Start scrollbar drag
+            if (_max_scroll > 0 && _mx > _sbx_fx && _mx < _sbx_fx + 10 && _my > _thumb_y_fx && _my < _thumb_y_fx + _thumb_h_fx) {
+                anim_editor_sfx_sb_drag = true;
+                anim_editor_sfx_sb_drag_off = _my - _thumb_y_fx;
+                return;
+            }
+            // OK — confirm pending selection
+            if (anim_editor_sfx_pending != "" && _mx > _ok_x && _mx < _ok_x + _ok_w && _my > _btn_y && _my < _btn_y + _btn_h) {
+                if (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames)) {
+                    _frames[anim_editor_selected_frame].file = anim_editor_sfx_pending;
+                    anim_editor_dirty = true;
+                }
+                anim_editor_sfx_pending = ""; anim_editor_sfx_picker = false; return;
+            }
+            // Cancel
+            if (_mx > _cx && _mx < _cx + _cw && _my > _btn_y && _my < _btn_y + _btn_h) {
+                anim_editor_sfx_pending = ""; anim_editor_sfx_picker = false; return;
+            }
+
+            var _r = 0;
+            // Back button
+            if (_has_back) {
+                var _sy = _ly_base + (_r - _scr) * (_lh + 4);
+                if (_sy >= _ly_base && _sy + _lh <= _m_y + _m_h - 54) {
+                    if (_mx > _lx && _mx < _lx + _lw && _my > _sy && _my < _sy + _lh) {
+                        var _sep = string_last_pos("\\", anim_editor_sfx_path);
+                        anim_editor_sfx_path = (_sep > 0) ? string_copy(anim_editor_sfx_path, 1, _sep - 1) : "";
+                        anim_editor_sfx_pending = "";
+                        _anim_sfx_refresh(); return;
+                    }
+                }
+                _r++;
+            }
+            // Folders
+            for (var _fi = 0; _fi < array_length(anim_editor_sfx_folders); _fi++) {
+                var _sy = _ly_base + (_r - _scr) * (_lh + 4);
+                if (_sy >= _ly_base && _sy + _lh <= _m_y + _m_h - 54) {
+                    if (_mx > _lx && _mx < _lx + _lw && _my > _sy && _my < _sy + _lh) {
+                        anim_editor_sfx_path = (anim_editor_sfx_path == "") ? anim_editor_sfx_folders[_fi] : (anim_editor_sfx_path + "\\" + anim_editor_sfx_folders[_fi]);
+                        anim_editor_sfx_pending = "";
+                        _anim_sfx_refresh(); return;
+                    }
+                }
+                _r++;
+            }
+            // WAV files — click plays and sets pending
+            for (var _wfi = 0; _wfi < array_length(anim_editor_sfx_files); _wfi++) {
+                var _sy = _ly_base + (_r - _scr) * (_lh + 4);
+                if (_sy >= _ly_base && _sy + _lh <= _m_y + _m_h - 54) {
+                    if (_mx > _lx && _mx < _lx + _lw && _my > _sy && _my < _sy + _lh) {
+                        var _rel = (anim_editor_sfx_path == "") ? anim_editor_sfx_files[_wfi] : (anim_editor_sfx_path + "\\" + anim_editor_sfx_files[_wfi]);
+                        canned_anim_play_abs(anim_editor_sfx_root + _rel);
+                        anim_editor_sfx_pending = _rel;
+                        return;
+                    }
+                }
+                _r++;
+            }
+            // Click outside list (but not buttons) closes picker
+            if (_my < _btn_y) { anim_editor_sfx_pending = ""; anim_editor_sfx_picker = false; }
+        }
+        if (mouse_wheel_up())   anim_editor_sfx_scroll = max(0, anim_editor_sfx_scroll - 1);
+        if (mouse_wheel_down()) anim_editor_sfx_scroll = min(_max_scroll, anim_editor_sfx_scroll + 1);
+        return;
+    }
+
+    // ── Sprite picker ─────────────────────────────────────────────────────────
+    if (anim_editor_sprite_picker) {
+        var _cols = 7; var _th = 90;
+        var _gy = _m_y + 60;
+        var _vis_rows = floor((_m_h - 80) / _th);
+        var _total_spr_rows = ceil(array_length(anim_editor_sprite_list) / _cols);
+        var _max_spr = max(0, _total_spr_rows - _vis_rows);
+        var _sbx_s = _m_x + _m_w - 16; var _sby_s = _gy;
+        var _sbh_s = _vis_rows * _th;
+        var _thumb_h_s = (_total_spr_rows > 0) ? max(20, _sbh_s * _vis_rows / _total_spr_rows) : _sbh_s;
+        var _thumb_y_s = _sby_s + (_max_spr > 0 ? (anim_editor_sprite_scroll / _max_spr) * (_sbh_s - _thumb_h_s) : 0);
+
+        // Scrollbar drag (runs every frame while held)
+        if (mouse_check_button(mb_left) && anim_editor_sprite_sb_drag) {
+            if (_max_spr > 0 && _sbh_s - _thumb_h_s > 0) {
+                var _raw = clamp(_my - anim_editor_sprite_sb_drag_off - _sby_s, 0, _sbh_s - _thumb_h_s);
+                anim_editor_sprite_scroll = round(_raw / (_sbh_s - _thumb_h_s) * _max_spr);
+            }
+            anim_editor_sprite_scroll = clamp(anim_editor_sprite_scroll, 0, _max_spr);
+            return;
+        }
+        if (!mouse_check_button(mb_left)) anim_editor_sprite_sb_drag = false;
+
+        var _sp_btn_y = _m_y + _m_h - 44; var _sp_btn_h = 32;
+        var _sp_ok_x  = _m_x + _m_w - 220; var _sp_ok_w  = 90;
+        var _sp_cx    = _m_x + _m_w - 120; var _sp_cw    = 90;
+
+        if (mouse_check_button_pressed(mb_left)) {
+            // OK — confirm pending sprite
+            if (anim_editor_sprite_pending != "" && _mx > _sp_ok_x && _mx < _sp_ok_x + _sp_ok_w && _my > _sp_btn_y && _my < _sp_btn_y + _sp_btn_h) {
+                if (anim_editor_sprite_picker_mode == 1) {
+                    // Animation-level feet sprite (normal or flipped)
+                    var _fk = anim_editor_flipped_mode ? "feet_sprite_flipped" : "feet_sprite";
+                    _anim[$ _fk] = anim_editor_sprite_pending;
+                    anim_editor_dirty = true;
+                    anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false;
+                    anim_editor_sprite_picker_mode = 0; return;
+                }
+                if (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames)) {
+                    if (anim_editor_flipped_mode) {
+                        _frames[anim_editor_selected_frame].sprite_flipped = anim_editor_sprite_pending;
+                    } else {
+                        _frames[anim_editor_selected_frame].sprite = anim_editor_sprite_pending;
+                        var _c2  = characters[anim_editor_char_idx];
+                        var _nm2 = variable_struct_exists(_c2, "sprite_name") ? _c2.sprite_name : _c2.name;
+                        ds_map_delete(char_sprites, "CANNED_" + _nm2 + "_" + anim_editor_sprite_pending);
+                    }
+                    anim_editor_dirty = true;
+                }
+                anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false;
+                anim_editor_sprite_picker_mode = 0; return;
+            }
+            // Cancel
+            if (_mx > _sp_cx && _mx < _sp_cx + _sp_cw && _my > _sp_btn_y && _my < _sp_btn_y + _sp_btn_h) {
+                anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false; anim_editor_sprite_picker_mode = 0; return;
+            }
+            // Start scrollbar drag
+            if (_max_spr > 0 && _mx > _sbx_s && _mx < _sbx_s + 10 && _my > _thumb_y_s && _my < _thumb_y_s + _thumb_h_s) {
+                anim_editor_sprite_sb_drag = true;
+                anim_editor_sprite_sb_drag_off = _my - _thumb_y_s;
+                return;
+            }
+            var _gx = _m_x + 10;
+            var _start = anim_editor_sprite_scroll * _cols;
+            for (var _pi = 0; _pi < array_length(anim_editor_sprite_list); _pi++) {
+                var _pidx = _pi - _start;
+                if (_pidx < 0 || _pidx >= _cols * _vis_rows) continue;
+                var _pr = floor(_pidx / _cols); var _pc = _pidx mod _cols;
+                var _px = _gx + _pc * 116; var _py = _gy + _pr * _th;
+                if (_mx > _px && _mx < _px + 112 && _my > _py && _my < _py + _th - 4) {
+                    anim_editor_sprite_pending = anim_editor_sprite_list[_pi]; return;
+                }
+            }
+            if (_my < _sp_btn_y) { anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false; anim_editor_sprite_picker_mode = 0; }
+        }
+
+        if (mouse_wheel_up())   anim_editor_sprite_scroll = max(0, anim_editor_sprite_scroll - 1);
+        if (mouse_wheel_down()) anim_editor_sprite_scroll = min(_max_spr, anim_editor_sprite_scroll + 1);
+
+        // PgUp/PgDn hold-to-repeat; Home/End instant
+        var _pgd = keyboard_check(vk_pagedown); var _pgu = keyboard_check(vk_pageup);
+        var _pgdir = _pgd ? 1 : (_pgu ? -1 : 0);
+        if (_pgdir != 0) {
+            if (_pgdir != anim_editor_pgud_dir) { anim_editor_pgud_dir = _pgdir; anim_editor_pgud_timer = 0; }
+            anim_editor_pgud_timer++;
+            if (anim_editor_pgud_timer == 1 || (anim_editor_pgud_timer > 20 && (anim_editor_pgud_timer - 20) mod 6 == 0))
+                anim_editor_sprite_scroll = clamp(anim_editor_sprite_scroll + _pgdir * _vis_rows, 0, _max_spr);
+        } else {
+            anim_editor_pgud_dir = 0; anim_editor_pgud_timer = 0;
+        }
+        if (keyboard_check_pressed(vk_home)) anim_editor_sprite_scroll = 0;
+        if (keyboard_check_pressed(vk_end))  anim_editor_sprite_scroll = _max_spr;
+        anim_editor_sprite_scroll = clamp(anim_editor_sprite_scroll, 0, _max_spr);
+        return;
+    }
+
+    // ── Main editor clicks ────────────────────────────────────────────────────
+    if (mouse_check_button_pressed(mb_left)) {
+        // Close — discard unsaved changes, evict cache so next open reloads from disk
+        if (_mx > _m_x + _m_w - 50 && _mx < _m_x + _m_w - 10 && _my > _m_y + 10 && _my < _m_y + 40) {
+            if (anim_editor_dirty) {
+                var _cc = characters[anim_editor_char_idx];
+                var _cn = variable_struct_exists(_cc, "sprite_name") ? _cc.sprite_name : _cc.name;
+                ds_map_delete(char_anim_cache, _cn);
+            }
+            anim_editor_open = false; anim_editor_playing = false; anim_editor_dirty = false; return;
+        }
+        // Save button — save without closing
+        if (_mx > _m_x + 460 && _mx < _m_x + 560 && _my > _m_y + 20 && _my < _m_y + 48) {
+            canned_anim_save(anim_editor_char_idx); anim_editor_dirty = false; return;
+        }
+        // Flip mode toggle
+        if (_mx > _m_x + 572 && _mx < _m_x + 642 && _my > _m_y + 20 && _my < _m_y + 48) {
+            anim_editor_flipped_mode = !anim_editor_flipped_mode; return;
+        }
+        // Animation list
+        for (var i = 0; i < array_length(_data); i++) {
+            var _lyl = _m_y + 60 + i * 30;
+            if (_mx > _m_x + 10 && _mx < _m_x + 220 && _my > _lyl && _my < _lyl + 28) {
+                anim_editor_anim_idx = i; anim_editor_frame_idx = 0;
+                anim_editor_selected_frame = -1; anim_editor_tick = 0; anim_editor_playing = false;
+                return;
+            }
+        }
+        // Play / Pause
+        if (_mx > _m_x + 230 && _mx < _m_x + 330 && _my > _m_y + 20 && _my < _m_y + 48) {
+            anim_editor_playing = !anim_editor_playing; anim_editor_tick = 0; return;
+        }
+        // Prev frame
+        if (_mx > _m_x + 340 && _mx < _m_x + 390 && _my > _m_y + 20 && _my < _m_y + 48) {
+            anim_editor_playing = false;
+            do { anim_editor_frame_idx = (anim_editor_frame_idx - 1 + array_length(_frames)) mod array_length(_frames); }
+            until (_frames[anim_editor_frame_idx].type == "sprite" || anim_editor_frame_idx == 0);
+            return;
+        }
+        // Next frame
+        if (_mx > _m_x + 400 && _mx < _m_x + 450 && _my > _m_y + 20 && _my < _m_y + 48) {
+            anim_editor_playing = false;
+            do { anim_editor_frame_idx = (anim_editor_frame_idx + 1) mod array_length(_frames); }
+            until (_frames[anim_editor_frame_idx].type == "sprite" || anim_editor_frame_idx == 0);
+            return;
+        }
+
+        // Frame strip — scroll arrows and frame selection
+        var _strip_fw = 54; var _arr_w = 28;
+        var _sx_base = _preview_x + 4 + _arr_w;
+        var _strip_inner_w = _preview_w - _arr_w * 2 - 8;
+        var _vis_s = floor(_strip_inner_w / _strip_fw);
+        var _max_ss = max(0, array_length(_frames) - _vis_s);
+        anim_editor_strip_scroll = clamp(anim_editor_strip_scroll, 0, _max_ss);
+        var _s_start = anim_editor_strip_scroll;
+        // Left arrow
+        if (_mx > _preview_x + 4 && _mx < _preview_x + 4 + _arr_w && _my > _strip_y + 2 && _my < _strip_y + 66) {
+            anim_editor_strip_scroll = max(0, anim_editor_strip_scroll - 1); return;
+        }
+        // Right arrow
+        var _rarr_x = _sx_base + _vis_s * _strip_fw + 4;
+        if (_mx > _rarr_x && _mx < _rarr_x + _arr_w && _my > _strip_y + 2 && _my < _strip_y + 66) {
+            anim_editor_strip_scroll = min(_max_ss, anim_editor_strip_scroll + 1); return;
+        }
+        for (var _si = _s_start; _si < min(array_length(_frames), _s_start + _vis_s); _si++) {
+            var _ssx = _sx_base + (_si - _s_start) * _strip_fw;
+            if (_mx > _ssx && _mx < _ssx + _strip_fw - 2 && _my > _strip_y + 2 && _my < _strip_y + 66) {
+                anim_editor_playing = false; anim_editor_frame_idx = _si; anim_editor_selected_frame = _si; return;
+            }
+        }
+
+        // ── Animation-level FEET buttons ──
+        {
+            var _feet_key = anim_editor_flipped_mode ? "feet_sprite_flipped" : "feet_sprite";
+            var _anim_fs2 = variable_struct_exists(_anim, _feet_key) ? _anim[$ _feet_key] : "";
+            // SET
+            if (_mx > _info_x && _mx < _info_x + 54 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+                anim_editor_sprite_picker_mode = 1;
+                if (array_length(anim_editor_sprite_list) == 0) anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
+                anim_editor_sprite_scroll = 0;
+                if (_anim_fs2 != "") {
+                    for (var _fli = 0; _fli < array_length(anim_editor_sprite_list); _fli++) {
+                        if (anim_editor_sprite_list[_fli] == _anim_fs2) {
+                            var _cols_fp = 7; var _vis_fp = floor((_m_h - 80) / 90);
+                            anim_editor_sprite_scroll = max(0, floor(_fli / _cols_fp) - floor(_vis_fp / 2));
+                            break;
+                        }
+                    }
+                }
+                anim_editor_sprite_picker = true; return;
+            }
+            // CLR
+            if (_mx > _info_x + 60 && _mx < _info_x + 114 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+                _anim[$ _feet_key] = ""; anim_editor_dirty = true; return;
+            }
+            // AUTO — detect lower body sprite (normal: range 06-10, flipped: range 56-60)
+            if (_mx > _info_x + 120 && _mx < _info_x + 192 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+                var _c_auto = characters[anim_editor_char_idx];
+                var _nm_auto = variable_struct_exists(_c_auto, "sprite_name") ? _c_auto.sprite_name : _c_auto.name;
+                var _ai_auto = variable_struct_exists(_c_auto, "act_index") ? _c_auto.act_index : 1;
+                var _folder_auto = datafiles_path + "actors/" + _nm_auto + "/";
+                var _pfx_auto = string(_ai_auto) + "1";
+                var _n_start = anim_editor_flipped_mode ? 56 : 6;
+                var _n_end   = anim_editor_flipped_mode ? 60 : 10;
+                var _best_f = ""; var _best_sz = 0;
+                for (var _n = _n_start; _n <= _n_end; _n++) {
+                    var _ns = (_n < 10 ? "0" : "") + string(_n);
+                    var _cf_auto = "pose_" + _pfx_auto + _ns + ".png";
+                    var _fb = file_bin_open(_folder_auto + _cf_auto, 0);
+                    var _sz = (_fb != -1) ? file_bin_size(_fb) : 0;
+                    if (_fb != -1) file_bin_close(_fb);
+                    if (_sz > _best_sz) { _best_sz = _sz; _best_f = _cf_auto; }
+                }
+                if (_best_f != "") { _anim[$ _feet_key] = _best_f; anim_editor_dirty = true; }
+                return;
+            }
+        }
+
+        // Edit controls — use selected_frame if set, otherwise fall back to current viewing frame
+        var _edit_idx = (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames))
+                        ? anim_editor_selected_frame : anim_editor_frame_idx;
+        if (_edit_idx >= 0 && _edit_idx < array_length(_frames)) {
+            var _sf2 = _frames[_edit_idx];
+
+            if (_sf2.type == "sprite") {
+                // Hold -
+                if (_mx > _info_x + 100 && _mx < _info_x + 126 && _my > _preview_y + 98 && _my < _preview_y + 116) {
+                    _sf2.hold = max(1, _sf2.hold - 1); anim_editor_dirty = true; return;
+                }
+                // Hold +
+                if (_mx > _info_x + 132 && _mx < _info_x + 158 && _my > _preview_y + 98 && _my < _preview_y + 116) {
+                    _sf2.hold++; anim_editor_dirty = true; return;
+                }
+                // Apply hold to all sprite frames
+                if (_mx > _info_x + 164 && _mx < _info_x + 232 && _my > _preview_y + 98 && _my < _preview_y + 116) {
+                    for (var _afi = 0; _afi < array_length(_frames); _afi++) {
+                        if (_frames[_afi].type == "sprite") _frames[_afi].hold = _sf2.hold;
+                    }
+                    anim_editor_dirty = true; return;
+                }
+                // Copy to flipped (default mode only)
+                if (!anim_editor_flipped_mode && _mx > _info_x && _mx < _info_x + 220 && _my > _preview_y + 158 && _my < _preview_y + 180) {
+                    for (var _cfi3 = 0; _cfi3 < array_length(_frames); _cfi3++) {
+                        if (_frames[_cfi3].type == "sprite") {
+                            _frames[_cfi3].sprite_flipped = canned_anim_flipped_name(_frames[_cfi3].sprite);
+                        }
+                    }
+                    anim_editor_dirty = true; return;
+                }
+                // Change sprite / change flipped sprite
+                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 128 && _my < _preview_y + 150) {
+                    anim_editor_selected_frame = _edit_idx;
+                    anim_editor_sprite_picker_mode = 0;
+                    if (array_length(anim_editor_sprite_list) == 0) anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
+                    anim_editor_sprite_scroll = 0;
+                    var _cur_spr = anim_editor_flipped_mode
+                        ? (variable_struct_exists(_sf2, "sprite_flipped") ? _sf2.sprite_flipped : "")
+                        : (variable_struct_exists(_sf2, "sprite") ? _sf2.sprite : "");
+                    if (_cur_spr != "") {
+                        for (var _sli = 0; _sli < array_length(anim_editor_sprite_list); _sli++) {
+                            if (anim_editor_sprite_list[_sli] == _cur_spr) {
+                                var _cols_sp = 7; var _vis_sp = floor((_m_h - 80) / 90);
+                                var _row_sp  = floor(_sli / _cols_sp);
+                                anim_editor_sprite_scroll = max(0, _row_sp - floor(_vis_sp / 2));
+                                break;
+                            }
+                        }
+                    }
+                    anim_editor_sprite_picker = true; return;
+                }
+            }
+
+            if (_sf2.type == "sound") {
+                // Change SFX button
+                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 72 && _my < _preview_y + 94) {
+                    anim_editor_selected_frame = _edit_idx;
+                    var _sc  = characters[anim_editor_char_idx];
+                    var _snm = variable_struct_exists(_sc, "sprite_name") ? _sc.sprite_name : _sc.name;
+                    anim_editor_sfx_root   = datafiles_path + "actors\\";
+                    anim_editor_sfx_path   = _snm + "\\audio";
+                    anim_editor_sfx_scroll = 0;
+                    _anim_sfx_refresh();
+                    anim_editor_sfx_picker = true; return;
+                }
+            }
+        }
+    }
+
+    // Click-and-hold repeat for hold +/-
+    if (mouse_check_button(mb_left) && !anim_editor_sprite_picker && !anim_editor_sfx_picker) {
+        var _ei2 = (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames))
+                   ? anim_editor_selected_frame : anim_editor_frame_idx;
+        if (_ei2 >= 0 && _ei2 < array_length(_frames) && _frames[_ei2].type == "sprite") {
+            var _hi = _info_x; var _py2 = _preview_y;
+            var _on_minus = (_mx > _hi + 100 && _mx < _hi + 126 && _my > _py2 + 98 && _my < _py2 + 116);
+            var _on_plus  = (_mx > _hi + 132 && _mx < _hi + 158 && _my > _py2 + 98 && _my < _py2 + 116);
+            if (_on_minus || _on_plus) {
+                anim_editor_hold_btn = _on_minus ? 1 : 2;
+                anim_editor_hold_repeat++;
+                // Wait 30 frames before repeating, then fire every 4 frames
+                if (anim_editor_hold_repeat >= 30 && anim_editor_hold_repeat mod 4 == 0) {
+                    if (anim_editor_hold_btn == 1) _frames[_ei2].hold = max(1, _frames[_ei2].hold - 1);
+                    else                           _frames[_ei2].hold++;
+                    anim_editor_dirty = true;
+                }
+            } else {
+                anim_editor_hold_btn = 0; anim_editor_hold_repeat = 0;
+            }
+        }
+    } else {
+        anim_editor_hold_btn = 0; anim_editor_hold_repeat = 0;
+    }
+
+    if (mouse_wheel_up()   && !anim_editor_sprite_picker && !anim_editor_sfx_picker) anim_editor_sprite_scroll = max(0, anim_editor_sprite_scroll - 1);
+    if (mouse_wheel_down() && !anim_editor_sprite_picker && !anim_editor_sfx_picker) anim_editor_sprite_scroll++;
+
+    // Arrow keys scroll the strip (and move selection) when a frame is selected
+    if (!anim_editor_sprite_picker && !anim_editor_sfx_picker && anim_editor_selected_frame >= 0) {
+        var _nf = array_length(_frames);
+        if (keyboard_check_pressed(vk_left) && anim_editor_selected_frame > 0) {
+            anim_editor_selected_frame--;
+            anim_editor_frame_idx = anim_editor_selected_frame;
+            // Scroll view to keep selection visible
+            var _arr_w2 = 28; var _strip_inner_w2 = _preview_w - _arr_w2 * 2 - 8; var _vis_s2 = floor(_strip_inner_w2 / 54);
+            if (anim_editor_selected_frame < anim_editor_strip_scroll)
+                anim_editor_strip_scroll = anim_editor_selected_frame;
+        }
+        if (keyboard_check_pressed(vk_right) && anim_editor_selected_frame < _nf - 1) {
+            anim_editor_selected_frame++;
+            anim_editor_frame_idx = anim_editor_selected_frame;
+            var _arr_w2 = 28; var _strip_inner_w2 = _preview_w - _arr_w2 * 2 - 8; var _vis_s2 = floor(_strip_inner_w2 / 54);
+            if (anim_editor_selected_frame >= anim_editor_strip_scroll + _vis_s2)
+                anim_editor_strip_scroll = anim_editor_selected_frame - _vis_s2 + 1;
+        }
+    }
+}
+
+// Refreshes the folder/file lists for the SFX picker at the current path.
+// anim_editor_sfx_root is an absolute path ending in \
+// anim_editor_sfx_path is a relative path using \ separators (may be empty = root)
+function _anim_sfx_refresh() {
+    var _abs = anim_editor_sfx_root;
+    if (anim_editor_sfx_path != "") _abs += anim_editor_sfx_path + "\\";
+
+    anim_editor_sfx_folders = [];
+    var _fd = file_find_first(_abs + "*", fa_directory);
+    while (_fd != "") {
+        if (_fd != "." && _fd != ".." && directory_exists(_abs + _fd)) {
+            array_push(anim_editor_sfx_folders, _fd);
+        }
+        _fd = file_find_next();
+    }
+    file_find_close();
+    array_sort(anim_editor_sfx_folders, true);
+
+    anim_editor_sfx_files = [];
+    var _ff = file_find_first(_abs + "*.wav", fa_readonly | fa_archive);
+    while (_ff != "") { array_push(anim_editor_sfx_files, _ff); _ff = file_find_next(); }
+    file_find_close();
+    array_sort(anim_editor_sfx_files, true);
+    anim_editor_sfx_scroll = 0;
+}
+
 function step_modal_dictionary() {
     var _mx = mouse_x; var _my = mouse_y;
     var _m_w = 700; var _m_h = 500;
@@ -424,13 +923,14 @@ function step_modal_action() {
                 else if (all_actions[i].name != "kill" && action_modal_char_is_dead) _disabled = true;
             }
             if (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40) {
-                action_modal_selected_idx = i; action_modal_locked = true;
+                action_modal_selected_idx = i; action_modal_locked = true; action_modal_selected_anim_idx = -1;
                 if (all_actions[i].name == "play sfx") { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; action_modal_sfx_search = ""; action_modal_sfx_search_results = []; action_modal_sfx_search_sel = -1; action_modal_sfx_search_focused = false; action_modal_sfx_search_scroll_y = 0; keyboard_string = ""; }
                 else if (all_actions[i].name == "display title") { action_modal_title_text = ""; action_modal_title_caret = 0; action_modal_title_sel_start = 0; action_modal_title_sel_end = 0; action_modal_wait_duration = 2.0; action_modal_dropdown_open = ""; keyboard_string = ""; }
                 else if (all_actions[i].name == "disappear") { action_modal_disappear_style = "pop"; action_modal_disappear_speed = 2; }
                 else if (all_actions[i].name == "jitter")    { action_modal_jitter_intensity = 3; action_modal_jitter_duration = 1.0; action_modal_jitter_direction = "omni"; }
                 else if (all_actions[i].name == "quake")     { action_modal_quake_intensity = 3; action_modal_quake_duration = 1.0; action_modal_quake_direction = "omni"; }
-                else if (all_actions[i].name == "kill")      { action_modal_kill_style = "sudden"; }
+                else if (all_actions[i].name == "kill")            { action_modal_kill_style = "sudden"; }
+                else if (all_actions[i].name == "special animation") { action_modal_sa_scroll = 0; }
                 return;
             }
         }
@@ -521,6 +1021,38 @@ function step_modal_action() {
                     var _rspy = _myo + 260 + _rspi * 36;
                     if (_mx > _mxo+290 && _mx < _mxo+540 && _my > _rspy && _my < _rspy+30) {
                         action_modal_resurrect_speed = _rspi; return;
+                    }
+                }
+            }
+        }
+
+        // Special animation right-panel list
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "special animation") {
+            var _sa_d3 = canned_anim_get_data(selected_character_index);
+            if (_sa_d3 != undefined) {
+                var _sa_rx = _mxo+290; var _sa_ry = _myo+115; var _sa_rh = 36; var _sa_rw = _mw-324;
+                var _sa_lh = _mh - 185; var _sa_stp = _sa_rh + 6;
+                var _sa_vis3 = floor(_sa_lh / _sa_stp);
+                var _sa_max3 = max(0, array_length(_sa_d3) - _sa_vis3);
+                action_modal_sa_scroll = clamp(action_modal_sa_scroll, 0, _sa_max3);
+                var _sa_scr3 = action_modal_sa_scroll;
+                // Scrollbar thumb press → start drag
+                if (_sa_max3 > 0) {
+                    var _sbx3 = _sa_rx + _sa_rw + 4; var _sby_t3 = _sa_ry; var _sbh3 = _sa_lh;
+                    var _th3 = max(20, _sbh3 * _sa_vis3 / array_length(_sa_d3));
+                    var _ty3 = _sby_t3 + (_sa_scr3 / _sa_max3) * (_sbh3 - _th3);
+                    if (_mx > _sbx3 && _mx < _sbx3 + 10 && _my > _ty3 && _my < _ty3 + _th3) {
+                        action_modal_sa_sb_drag = true; action_modal_sa_sb_drag_off = _my - _ty3; return;
+                    }
+                }
+                // List item clicks (only selectable when char eligible)
+                if (action_modal_char_onstage && !action_modal_char_is_dead && selected_character_index > 0) {
+                    for (var _si3 = 0; _si3 < array_length(_sa_d3); _si3++) {
+                        var _sby3 = _sa_ry + (_si3 - _sa_scr3) * _sa_stp;
+                        if (_sby3 < _sa_ry || _sby3 + _sa_rh > _sa_ry + _sa_lh) continue;
+                        if (_mx > _sa_rx && _mx < _sa_rx + _sa_rw && _my > _sby3 && _my < _sby3 + _sa_rh) {
+                            action_modal_selected_anim_idx = _si3; action_modal_locked = true; return;
+                        }
                     }
                 }
             }
@@ -735,6 +1267,13 @@ function step_modal_action() {
             } else if (_act_name == "resurrect") {
                 if (selected_character_index == 0 || !action_modal_char_is_dead) _can_proceed = false;
                 else _act_name = "resurrects";
+            } else if (_act_name == "special animation") {
+                if (action_modal_selected_anim_idx < 0 || !action_modal_char_onstage || action_modal_char_is_dead) { _can_proceed = false; }
+                else {
+                    var _sa_ok = canned_anim_get_data(selected_character_index);
+                    if (_sa_ok == undefined || action_modal_selected_anim_idx >= array_length(_sa_ok)) { _can_proceed = false; }
+                    else _act_name = _sa_ok[action_modal_selected_anim_idx].name;
+                }
             }
             if (_can_proceed) {
                 if (action_modal_edit_mode) {
@@ -1020,6 +1559,29 @@ function step_modal_action() {
                 }
                 action_modal_title_text = string_insert("\n", action_modal_title_text, action_modal_title_caret + 1);
                 action_modal_title_caret++; action_modal_title_sel_start = action_modal_title_caret; action_modal_title_sel_end = action_modal_title_caret;
+            }
+        }
+    }
+
+    // Special animation scrollbar drag + mouse wheel
+    if (action_modal_open && action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "special animation") {
+        var _sa_d4 = canned_anim_get_data(selected_character_index);
+        if (_sa_d4 != undefined) {
+            var _sa_rx4 = _mxo+290; var _sa_ry4 = _myo+115; var _sa_rw4 = _mw-324;
+            var _sa_lh4 = _mh - 185; var _sa_stp4 = 42;
+            var _sa_vis4 = floor(_sa_lh4 / _sa_stp4);
+            var _sa_max4 = max(0, array_length(_sa_d4) - _sa_vis4);
+
+            if (mouse_check_button(mb_left) && action_modal_sa_sb_drag) {
+                if (_sa_max4 > 0 && _sa_lh4 > 0) {
+                    var _th4 = max(20, _sa_lh4 * _sa_vis4 / array_length(_sa_d4));
+                    var _raw4 = clamp(mouse_y - action_modal_sa_sb_drag_off - _sa_ry4, 0, _sa_lh4 - _th4);
+                    action_modal_sa_scroll = clamp(round(_raw4 / (_sa_lh4 - _th4) * _sa_max4), 0, _sa_max4);
+                }
+            } else {
+                if (!mouse_check_button(mb_left)) action_modal_sa_sb_drag = false;
+                if (mouse_wheel_up())   action_modal_sa_scroll = max(0,        action_modal_sa_scroll - 1);
+                if (mouse_wheel_down()) action_modal_sa_scroll = min(_sa_max4, action_modal_sa_scroll + 1);
             }
         }
     }
