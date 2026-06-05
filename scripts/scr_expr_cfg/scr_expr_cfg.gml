@@ -29,12 +29,17 @@ function expr_cfg_auto_fill(_pose_num, _is_high) {
     for (var _n = _lo_s; _n <= _lo_e; _n++) {
         var _ns = (_n < 10 ? "0" : "") + string(_n);
         var _cf = "pose_" + _pfx_af + _ns + ".png";
-        if (file_exists(_folder_af + _cf)) {
+        var _sz = 0;
+        if (global.actors_pack_header != undefined) {
+            var _pk = string_lower(_c_af.name) + "/" + _cf;
+            if (!variable_struct_exists(global.actors_pack_header, _pk)) _pk = _c_af.name + "/" + _cf;
+            if (variable_struct_exists(global.actors_pack_header, _pk)) _sz = global.actors_pack_header[$ _pk].size;
+        } else if (file_exists(_folder_af + _cf)) {
             var _fb = file_bin_open(_folder_af + _cf, 0);
-            var _sz = (_fb != -1) ? file_bin_size(_fb) : 0;
+            _sz = (_fb != -1) ? file_bin_size(_fb) : 0;
             if (_fb != -1) file_bin_close(_fb);
-            if (_sz > _body_sz_af) { _body_sz_af = _sz; _body_file_af = _cf; }
         }
+        if (_sz > _body_sz_af) { _body_sz_af = _sz; _body_file_af = _cf; }
     }
     if (_off_af != undefined && _body_file_af != "") {
         var _bk2 = string_copy(_body_file_af, 1, string_length(_body_file_af) - 4);
@@ -44,7 +49,15 @@ function expr_cfg_auto_fill(_pose_num, _is_high) {
     var _face_n_af = 5 + _sfx_off_af;
     var _face_sfx_af = (_face_n_af < 10 ? "0" : "") + string(_face_n_af);
     var _face_file_af = "pose_" + _pfx_af + _face_sfx_af + ".png";
-    if (!file_exists(_folder_af + _face_file_af)) _face_file_af = "";
+    var _face_ok = false;
+    if (global.actors_pack_header != undefined) {
+        var _pk = string_lower(_c_af.name) + "/" + _face_file_af;
+        if (!variable_struct_exists(global.actors_pack_header, _pk)) _pk = _c_af.name + "/" + _face_file_af;
+        _face_ok = variable_struct_exists(global.actors_pack_header, _pk);
+    } else {
+        _face_ok = file_exists(_folder_af + _face_file_af);
+    }
+    if (!_face_ok) _face_file_af = "";
     var _fdx = 0; var _fdy = 0;
     if (_off_af != undefined) {
         var _fok = "pose_" + _pfx_af + _face_sfx_af;
@@ -189,8 +202,20 @@ function expr_cfg_apply_baseline(_all = false) {
             var _msf = (_mn < 10 ? "0" : "") + string(_mn);
             var _ef  = "pose_" + _pfx + _esf + ".png";
             var _mf  = "pose_" + _pfx + _msf + ".png";
-            var _ef_ok = file_exists(_folder + _ef);
-            var _mf_ok = file_exists(_folder + _mf);
+            var _ef_ok = false;
+            var _mf_ok = false;
+            if (global.actors_pack_header != undefined) {
+                var _epk = string_lower(_c.name) + "/" + _ef;
+                if (!variable_struct_exists(global.actors_pack_header, _epk)) _epk = _c.name + "/" + _ef;
+                _ef_ok = variable_struct_exists(global.actors_pack_header, _epk);
+                
+                var _mpk = string_lower(_c.name) + "/" + _mf;
+                if (!variable_struct_exists(global.actors_pack_header, _mpk)) _mpk = _c.name + "/" + _mf;
+                _mf_ok = variable_struct_exists(global.actors_pack_header, _mpk);
+            } else {
+                _ef_ok = file_exists(_folder + _ef);
+                _mf_ok = file_exists(_folder + _mf);
+            }
 
             var _cfg = expr_cfg_configs[_p][_d] ?? expr_cfg_auto_fill(_p, _d == 1);
 
@@ -255,9 +280,28 @@ function open_expr_configurator(_char_idx) {
     expr_cfg_file_scroll = 0;
     expr_cfg_preview_mood = 0;
     var _scan_folder = datafiles_path + "actors/" + characters[_char_idx].name + "/";
-    var _scan_f = file_find_first(_scan_folder + "*.png", 0);
-    while (_scan_f != "") { array_push(expr_cfg_file_list, _scan_f); _scan_f = file_find_next(); }
-    file_find_close();
+    if (global.actors_pack_header != undefined) {
+        var _keys = struct_get_names(global.actors_pack_header);
+        var _pfx = string_lower(characters[_char_idx].name) + "/";
+        var _plen = string_length(_pfx);
+        for (var i = 0; i < array_length(_keys); i++) {
+            var _k = string_lower(_keys[i]);
+            if (string_pos(_pfx, _k) == 1) {
+                var _fname = string_copy(_keys[i], _plen + 1, string_length(_keys[i]) - _plen);
+                if (string_pos(".png", string_lower(_fname)) > 0) {
+                    var _found = false;
+                    for (var l = 0; l < array_length(expr_cfg_file_list); l++) {
+                        if (string_lower(expr_cfg_file_list[l]) == string_lower(_fname)) { _found = true; break; }
+                    }
+                    if (!_found) array_push(expr_cfg_file_list, _fname);
+                }
+            }
+        }
+    } else {
+        var _scan_f = file_find_first(_scan_folder + "*.png", 0);
+        while (_scan_f != "") { array_push(expr_cfg_file_list, _scan_f); _scan_f = file_find_next(); }
+        file_find_close();
+    }
     array_sort(expr_cfg_file_list, function(a, b) { return (a < b) ? -1 : (a > b ? 1 : 0); });
     expr_cfg_open = true;
 }

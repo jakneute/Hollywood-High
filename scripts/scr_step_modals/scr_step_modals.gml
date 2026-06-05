@@ -99,7 +99,7 @@ function step_modal_anim_editor() {
                 var _sy = _ly_base + (_r - _scr) * (_lh + 4);
                 if (_sy >= _ly_base && _sy + _lh <= _m_y + _m_h - 54) {
                     if (_mx > _lx && _mx < _lx + _lw && _my > _sy && _my < _sy + _lh) {
-                        var _sep = string_last_pos("\\", anim_editor_sfx_path);
+                        var _sep = string_last_pos("/", anim_editor_sfx_path);
                         anim_editor_sfx_path = (_sep > 0) ? string_copy(anim_editor_sfx_path, 1, _sep - 1) : "";
                         anim_editor_sfx_pending = "";
                         _anim_sfx_refresh(); return;
@@ -112,7 +112,7 @@ function step_modal_anim_editor() {
                 var _sy = _ly_base + (_r - _scr) * (_lh + 4);
                 if (_sy >= _ly_base && _sy + _lh <= _m_y + _m_h - 54) {
                     if (_mx > _lx && _mx < _lx + _lw && _my > _sy && _my < _sy + _lh) {
-                        anim_editor_sfx_path = (anim_editor_sfx_path == "") ? anim_editor_sfx_folders[_fi] : (anim_editor_sfx_path + "\\" + anim_editor_sfx_folders[_fi]);
+                        anim_editor_sfx_path = (anim_editor_sfx_path == "") ? anim_editor_sfx_folders[_fi] : (anim_editor_sfx_path + "/" + anim_editor_sfx_folders[_fi]);
                         anim_editor_sfx_pending = "";
                         _anim_sfx_refresh(); return;
                     }
@@ -124,8 +124,8 @@ function step_modal_anim_editor() {
                 var _sy = _ly_base + (_r - _scr) * (_lh + 4);
                 if (_sy >= _ly_base && _sy + _lh <= _m_y + _m_h - 54) {
                     if (_mx > _lx && _mx < _lx + _lw && _my > _sy && _my < _sy + _lh) {
-                        var _rel = (anim_editor_sfx_path == "") ? anim_editor_sfx_files[_wfi] : (anim_editor_sfx_path + "\\" + anim_editor_sfx_files[_wfi]);
-                        canned_anim_play_abs(anim_editor_sfx_root + _rel);
+                        var _rel = (anim_editor_sfx_path == "") ? anim_editor_sfx_files[_wfi] : (anim_editor_sfx_path + "/" + anim_editor_sfx_files[_wfi]);
+                        play_sfx_preview(anim_editor_sfx_path, anim_editor_sfx_files[_wfi]);
                         anim_editor_sfx_pending = _rel;
                         return;
                     }
@@ -399,12 +399,12 @@ function step_modal_anim_editor() {
 
             if (_sf2.type == "sound") {
                 // Change SFX button
-                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 72 && _my < _preview_y + 94) {
+                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 128 && _my < _preview_y + 150) {
                     anim_editor_selected_frame = _edit_idx;
                     var _sc  = characters[anim_editor_char_idx];
                     var _snm = variable_struct_exists(_sc, "sprite_name") ? _sc.sprite_name : _sc.name;
-                    anim_editor_sfx_root   = datafiles_path + "actors\\";
-                    anim_editor_sfx_path   = _snm + "\\audio";
+                    anim_editor_sfx_root   = "";
+                    anim_editor_sfx_path   = "Actors - " + _snm;
                     anim_editor_sfx_scroll = 0;
                     _anim_sfx_refresh();
                     anim_editor_sfx_picker = true; return;
@@ -463,28 +463,50 @@ function step_modal_anim_editor() {
 }
 
 // Refreshes the folder/file lists for the SFX picker at the current path.
-// anim_editor_sfx_root is an absolute path ending in \
-// anim_editor_sfx_path is a relative path using \ separators (may be empty = root)
 function _anim_sfx_refresh() {
-    var _abs = anim_editor_sfx_root;
-    if (anim_editor_sfx_path != "") _abs += anim_editor_sfx_path + "\\";
-
     anim_editor_sfx_folders = [];
-    var _fd = file_find_first(_abs + "*", fa_directory);
-    while (_fd != "") {
-        if (_fd != "." && _fd != ".." && directory_exists(_abs + _fd)) {
-            array_push(anim_editor_sfx_folders, _fd);
-        }
-        _fd = file_find_next();
-    }
-    file_find_close();
-    array_sort(anim_editor_sfx_folders, true);
-
     anim_editor_sfx_files = [];
-    var _ff = file_find_first(_abs + "*.wav", fa_readonly | fa_archive);
-    while (_ff != "") { array_push(anim_editor_sfx_files, _ff); _ff = file_find_next(); }
-    file_find_close();
-    array_sort(anim_editor_sfx_files, true);
+    
+    var _path = anim_editor_sfx_path;
+    if (_path != "" && string_char_at(_path, string_length(_path)) != "/") {
+        _path += "/";
+    }
+    var _path_len = string_length(_path);
+
+    if (global.sounds_pack_header != undefined) {
+        var _keys = struct_get_names(global.sounds_pack_header);
+        for (var i = 0; i < array_length(_keys); i++) {
+            var _k = _keys[i];
+            if (_path == "" || string_lower(string_copy(_k, 1, _path_len)) == string_lower(_path)) {
+                var _rem = string_delete(_k, 1, _path_len);
+                var _slash = string_pos("/", _rem);
+                if (_slash > 0) {
+                    var _fld = string_copy(_rem, 1, _slash - 1);
+                    var _found = false;
+                    for (var f = 0; f < array_length(anim_editor_sfx_folders); f++) {
+                        if (string_lower(anim_editor_sfx_folders[f]) == string_lower(_fld)) { _found = true; break; }
+                    }
+                    if (!_found) array_push(anim_editor_sfx_folders, _fld);
+                } else {
+                    var _found = false;
+                    for (var f = 0; f < array_length(anim_editor_sfx_files); f++) {
+                        if (string_lower(anim_editor_sfx_files[f]) == string_lower(_rem)) { _found = true; break; }
+                    }
+                    if (!_found) array_push(anim_editor_sfx_files, _rem);
+                }
+            }
+        }
+    }
+
+    array_sort(anim_editor_sfx_folders, function(a, b) {
+        var _la = string_lower(a); var _lb = string_lower(b);
+        if (_la < _lb) return -1; if (_la > _lb) return 1; return 0;
+    });
+    array_sort(anim_editor_sfx_files, function(a, b) {
+        var _la = string_lower(a); var _lb = string_lower(b);
+        if (_la < _lb) return -1; if (_la > _lb) return 1; return 0;
+    });
+
     anim_editor_sfx_scroll = 0;
 }
 

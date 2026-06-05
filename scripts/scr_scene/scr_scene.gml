@@ -191,10 +191,21 @@ function refresh_sfx_files(_folder) {
 
 // Global buffer loading helpers for packed and custom sound effects
 function load_sfx_buffer(_folder, _file) {
-    var _pack_key = _folder + "/" + _file;
+    var _pack_key = (_folder == "") ? _file : (_folder + "/" + _file);
     if (global.sounds_pack_header != undefined) {
-        if (variable_struct_exists(global.sounds_pack_header, _pack_key)) {
-            var _info = global.sounds_pack_header[$ _pack_key];
+        var _real_key = _pack_key;
+        if (!variable_struct_exists(global.sounds_pack_header, _pack_key)) {
+            var _keys = struct_get_names(global.sounds_pack_header);
+            var _pk_lower = string_lower(_pack_key);
+            for (var i = 0; i < array_length(_keys); i++) {
+                if (string_lower(_keys[i]) == _pk_lower) {
+                    _real_key = _keys[i];
+                    break;
+                }
+            }
+        }
+        if (variable_struct_exists(global.sounds_pack_header, _real_key)) {
+            var _info = global.sounds_pack_header[$ _real_key];
             var _offset = _info.offset;
             var _size = _info.size;
             var _tmp = buffer_create(_size, buffer_fixed, 1);
@@ -208,7 +219,7 @@ function load_sfx_buffer(_folder, _file) {
         }
     }
     
-    var _path = sfx_base_path + _folder + "/" + _file;
+    var _path = sfx_base_path + ((_folder == "") ? "" : (_folder + "/")) + _file;
     if (file_exists(_path)) {
         return buffer_load(_path);
     }
@@ -220,8 +231,19 @@ function load_sfx_buffer_by_path(_sfx_path) {
     if (string_copy(_sfx_path_corr, 1, 7) == "sounds/") {
         var _rel = string_delete(_sfx_path_corr, 1, 7);
         if (global.sounds_pack_header != undefined) {
-            if (variable_struct_exists(global.sounds_pack_header, _rel)) {
-                var _info = global.sounds_pack_header[$ _rel];
+            var _real_rel = _rel;
+            if (!variable_struct_exists(global.sounds_pack_header, _rel)) {
+                var _keys = struct_get_names(global.sounds_pack_header);
+                var _rel_lower = string_lower(_rel);
+                for (var i = 0; i < array_length(_keys); i++) {
+                    if (string_lower(_keys[i]) == _rel_lower) {
+                        _real_rel = _keys[i];
+                        break;
+                    }
+                }
+            }
+            if (variable_struct_exists(global.sounds_pack_header, _real_rel)) {
+                var _info = global.sounds_pack_header[$ _real_rel];
                 var _offset = _info.offset;
                 var _size = _info.size;
                 var _tmp = buffer_create(_size, buffer_fixed, 1);

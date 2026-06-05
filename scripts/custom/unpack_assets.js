@@ -82,38 +82,56 @@ function unpackSounds() {
 // ── Actors ────────────────────────────────────────────────────────────────────
 function unpackActors(targetChar) {
     console.log('\n[ACTORS]');
+    const packPath  = path.join(datafilesDir, 'actors.pack');
     const actorsDir = path.join(datafilesDir, 'actors');
 
-    if (!fs.existsSync(actorsDir)) {
-        console.log('  datafiles/actors not found.');
+    if (!fs.existsSync(packPath)) {
+        console.log(`  actors.pack not found at ${packPath}`);
         return;
     }
 
-    let packs = fs.readdirSync(actorsDir).filter(f => path.extname(f) === '.pack').sort();
+    console.log(`  Reading actors.pack...`);
+    const buf        = fs.readFileSync(packPath);
+    const headerSize = buf.readUInt32LE(0);
 
-    if (targetChar) {
-        const match = targetChar + '.pack';
-        packs = packs.filter(f => f.toLowerCase() === match.toLowerCase());
-        if (packs.length === 0) {
-            console.error(`  No pack found for: ${targetChar}`);
-            return;
-        }
-    }
-
-    if (packs.length === 0) {
-        console.log('  No .pack files found in datafiles/actors/');
+    let toc;
+    try {
+        toc = JSON.parse(buf.toString('utf8', 4, 4 + headerSize));
+    } catch (e) {
+        console.error(`  Failed to parse actors.pack header: ${e.message}`);
         return;
     }
 
-    packs.forEach(packFile => {
-        const charName = path.basename(packFile, '.pack');
-        unpack(
-            path.join(actorsDir, packFile),
-            path.join(actorsDir, charName),
-            charName
-        );
-        console.log(`  NOTE: offsets.json / expressions_config.json are not in the pack — they stay loose.`);
+    const filter = targetChar ? targetChar.toLowerCase() : null;
+    let count = 0;
+    let skipped = 0;
+
+    Object.keys(toc).forEach(key => {
+        // key format: "charname/pose_XXXXX.png"
+        const slash = key.indexOf('/');
+        if (slash < 0) return;
+        const charDir  = key.slice(0, slash);
+        const filename = key.slice(slash + 1);
+
+        if (filter && charDir !== filter) { skipped++; return; }
+
+        const { offset, size } = toc[key];
+        // Reconstruct title-case dir name from the key prefix stored at pack time
+        const outDir = path.join(actorsDir, charDir);
+        if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+
+        const outPath = path.join(outDir, filename);
+        fs.writeFileSync(outPath, buf.subarray(offset, offset + size));
+        count++;
     });
+
+    const total = Object.keys(toc).length;
+    if (filter) {
+        console.log(`  Extracted ${count} file(s) for "${targetChar}" (${skipped} others skipped).`);
+    } else {
+        console.log(`  Extracted ${count}/${total} file(s) → datafiles/actors/`);
+    }
+    console.log(`  NOTE: offsets.json / expressions_config.json are not in the pack — they stay loose.`);
 }
 
 // ── CLI ───────────────────────────────────────────────────────────────────────

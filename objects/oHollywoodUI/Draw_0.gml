@@ -4206,14 +4206,15 @@ if (anim_editor_open) {
                 }
             } else if (_edit_frame.type == "sound") {
                 var _sfile = variable_struct_exists(_edit_frame, "file") && _edit_frame.file != undefined ? string(_edit_frame.file) : "unset";
+                if (string_length(_sfile) > 26) _sfile = ".." + string_copy(_sfile, string_length(_sfile) - 23, 24);
                 draw_set_color(make_color_rgb(160, 180, 160));
-                draw_text(_info_x, _preview_y + 30, _sfile);
+                draw_text(_info_x, _preview_y + 82, _sfile);
                 draw_set_color(make_color_rgb(130, 145, 130));
-                draw_text(_info_x, _preview_y + 50, "ID: " + string(_edit_frame[$ "_sound_id"]));
+                draw_text(_info_x, _preview_y + 102, "ID: " + string(_edit_frame[$ "_sound_id"]));
                 draw_set_color(make_color_rgb(120, 74, 18));
-                draw_roundrect_ext(_info_x, _preview_y + 72, _info_x + 160, _preview_y + 94, 4, 4, false);
+                draw_roundrect_ext(_info_x, _preview_y + 128, _info_x + 160, _preview_y + 150, 4, 4, false);
                 draw_set_color(c_white); draw_set_halign(fa_center);
-                draw_text(_info_x + 80, _preview_y + 77, "CHANGE SFX");
+                draw_text(_info_x + 80, _preview_y + 133, "CHANGE SFX");
                 draw_set_halign(fa_left);
             }
         }

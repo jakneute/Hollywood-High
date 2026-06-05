@@ -96,11 +96,15 @@ function canned_anim_load_sprite(_char_index, _filename) {
         }
         if (variable_struct_exists(global.actors_pack_header, _pk)) {
             var _entry = global.actors_pack_header[$ _pk];
-            var _buf   = buffer_create(_entry.size, buffer_fixed, 1);
-            buffer_seek(global.actors_pack_buffer, buffer_seek_start, _entry.offset);
-            buffer_copy(global.actors_pack_buffer, _entry.offset, _entry.size, _buf, 0);
-            _spr = sprite_add_from_buffer(_buf, _entry.size);
-            buffer_delete(_buf);
+            var _pack_path = working_directory + "actors.pack";
+            if (file_exists(_pack_path)) {
+                var _tmp = buffer_create(_entry.size, buffer_fixed, 1);
+                buffer_load_partial(_tmp, _pack_path, _entry.offset, _entry.size, 0);
+                buffer_save(_tmp, "__canned_tmp.png");
+                buffer_delete(_tmp);
+                _spr = sprite_add("__canned_tmp.png", 1, false, false, 0, 0);
+                file_delete("__canned_tmp.png");
+            }
         }
     }
 
@@ -146,9 +150,21 @@ function canned_anim_play_abs(_abs_path) {
 // Plays a sound frame's file during animation preview/playback.
 function canned_anim_fire_sound(_char_index, _sound_frame) {
     if (!variable_struct_exists(_sound_frame, "file") || _sound_frame.file == undefined || _sound_frame.file == "" || _sound_frame.file == "null") return;
-    var _c   = characters[_char_index];
-    var _nm  = variable_struct_exists(_c, "sprite_name") ? _c.sprite_name : _c.name;
-    // file stored as e.g. "GUS\audio\burp.wav" relative to actors root
+    
+    var _file_path = string_replace_all(_sound_frame.file, "\\", "/");
+    var _slash = string_last_pos("/", _file_path);
+    var _folder = (_slash > 0) ? string_copy(_file_path, 1, _slash - 1) : "";
+    var _fname = (_slash > 0) ? string_copy(_file_path, _slash + 1, string_length(_file_path) - _slash) : _file_path;
+    
+    // Check if it's in the sounds.pack or new sfx_base_path
+    var _buf = load_sfx_buffer(_folder, _fname);
+    if (_buf != -1) {
+        buffer_delete(_buf);
+        play_sfx_preview(_folder, _fname);
+        return;
+    }
+    
+    // Fallback for old loose files
     var _abs = datafiles_path + "actors\\" + _sound_frame.file;
     canned_anim_play_abs(_abs);
 }
@@ -170,16 +186,37 @@ function canned_anim_sprite_list(_char_index) {
     if (_char_index < 0 || _char_index >= array_length(characters)) return [];
     var _c    = characters[_char_index];
     var _name = variable_struct_exists(_c, "sprite_name") ? _c.sprite_name : _c.name;
-    var _dir  = string_lower(_name);
-    var _folder = datafiles_path + "actors/" + _name + "/";
-    if (!directory_exists(_folder)) _folder = datafiles_path + "actors/" + _dir + "/";
     var _list = [];
-    var _ff = file_find_first(_folder + "pose_*.png", fa_none | fa_readonly | fa_hidden | fa_sysfile | fa_archive);
-    while (_ff != "") {
-        array_push(_list, _ff);
-        _ff = file_find_next();
+    
+    if (global.actors_pack_header != undefined) {
+        var _keys = struct_get_names(global.actors_pack_header);
+        var _target_prefix = string_lower(_name) + "/";
+        var _plen = string_length(_target_prefix);
+        for (var i = 0; i < array_length(_keys); i++) {
+            var _k = string_lower(_keys[i]);
+            if (string_pos(_target_prefix, _k) == 1) {
+                var _fname = string_copy(_keys[i], _plen + 1, string_length(_keys[i]) - _plen);
+                if (string_pos("pose_", string_lower(_fname)) == 1 && string_pos(".png", string_lower(_fname)) > 0) {
+                    var _found = false;
+                    for (var l = 0; l < array_length(_list); l++) {
+                        if (string_lower(_list[l]) == string_lower(_fname)) { _found = true; break; }
+                    }
+                    if (!_found) array_push(_list, _fname);
+                }
+            }
+        }
+    } else {
+        var _dir  = string_lower(_name);
+        var _folder = datafiles_path + "actors/" + _name + "/";
+        if (!directory_exists(_folder)) _folder = datafiles_path + "actors/" + _dir + "/";
+        var _ff = file_find_first(_folder + "pose_*.png", fa_none | fa_readonly | fa_hidden | fa_sysfile | fa_archive);
+        while (_ff != "") {
+            array_push(_list, _ff);
+            _ff = file_find_next();
+        }
+        file_find_close();
     }
-    file_find_close();
+    
     array_sort(_list, true);
     return _list;
 }
