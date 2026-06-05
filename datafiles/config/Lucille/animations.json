@@ -1,0 +1,8 @@
+[
+  {"frames":[],"feet_sprite":"pose_10500.png","triggers":["stare","stares"],"name":"stares"},
+  {"frames":[],"feet_sprite":"pose_10500.png","triggers":["wink","winks"],"name":"winks"},
+  {"frames":[],"feet_sprite":"pose_10500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_10500.png","triggers":["file nails","files nails"],"name":"files nails"},
+  {"frames":[],"feet_sprite":"pose_10500.png","triggers":["drink","drinks"],"name":"drinks"},
+  {"frames":[],"feet_sprite":"pose_10500.png","triggers":["cry","cries"],"name":"cries"}
+]

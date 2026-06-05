@@ -1,0 +1,90 @@
+[
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "sulk",
+      "sulks"
+    ],
+    "name":"sulks"
+  },
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "get embarrassed",
+      "gets embarrassed"
+    ],
+    "name":"gets embarrassed"
+  },
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "laugh",
+      "laughs"
+    ],
+    "name":"laughs"
+  },
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "gag in disagreement",
+      "gags in disagreement"
+    ],
+    "name":"gags in disagreement"
+  },
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "act like a monster",
+      "acts like a monster"
+    ],
+    "name":"acts like a monster"
+  },
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "drink a soda",
+      "drinks a soda"
+    ],
+    "name":"drinks a soda"
+  },
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "spray hairspray",
+      "sprays hairspray"
+    ],
+    "name":"sprays hairspray"
+  },
+  {
+    "feet_sprite_flipped":"pose_13500.png",
+    "frames":[
+    ],
+    "feet_sprite":"pose_13500.png",
+    "triggers":[
+      "play guitar",
+      "plays guitar"
+    ],
+    "name":"plays guitar"
+  }
+]

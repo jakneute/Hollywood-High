@@ -683,6 +683,7 @@ anim_editor_sprite_picker    = false;
 anim_editor_sprite_list      = [];   // pose_*.png filenames for current char
 anim_editor_sprite_scroll    = 0;
 anim_editor_sprite_pending   = "";   // filename of clicked-but-not-confirmed sprite
+anim_editor_pose_clipboard   = "";   // copied pose filename — used as scroll target when picker opens
 anim_editor_sfx_picker       = false;
 anim_editor_sfx_root         = "";   // absolute path to sounds root (set on open)
 anim_editor_sfx_path         = "";   // current subfolder relative to root
@@ -690,6 +691,8 @@ anim_editor_sfx_folders      = [];
 anim_editor_sfx_files        = [];
 anim_editor_sfx_scroll       = 0;
 anim_editor_sfx_pending      = "";   // relative path of clicked-but-not-confirmed file
+anim_editor_sfx_insert_mode  = false; // true = insert new sound frame, false = change existing
+anim_editor_sfx_insert_after = true;  // true = insert after selected frame, false = before
 anim_editor_strip_scroll     = 0;   // leftmost visible frame index in the strip
 anim_editor_sprite_sb_drag   = false;
 anim_editor_sprite_sb_drag_off = 0;

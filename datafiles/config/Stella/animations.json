@@ -1,0 +1,11 @@
+[
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["brush teeth","brushes teeth"],"name":"brushes teeth"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["hug a dog","hugs a dog"],"name":"hugs a dog"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["eat","eats"],"name":"eats"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["put on hat","puts on hat"],"name":"puts on hat"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["wag finger","wags finger"],"name":"wags finger"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["put on lipstick","puts on lipstick"],"name":"puts on lipstick"},
+  {"frames":[],"feet_sprite":"pose_20500.png","triggers":["put on headphones","puts on headphones"],"name":"puts on headphones"}
+]

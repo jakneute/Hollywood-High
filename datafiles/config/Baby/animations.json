@@ -1,0 +1,10 @@
+[
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["throw a bottle","throws a bottle"],"name":"throws a bottle"},
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["throw food","throws food"],"name":"throws food"},
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["burp","burps"],"name":"burps"},
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["spit up","spits up"],"name":"spits up"},
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["throw a tantrum","throws a tantrum"],"name":"throws a tantrum"},
+  {"frames":[],"feet_sprite":"pose_19500.png","triggers":["suck a thumb","sucks a thumb"],"name":"sucks a thumb"}
+]

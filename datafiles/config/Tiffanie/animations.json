@@ -1,0 +1,11 @@
+[
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["drink coffee and jitter","drinks coffee and jitters"],"name":"drinks coffee and jitters"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["put on lipstick","puts on lipstick"],"name":"puts on lipstick"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["admire ring","admires ring"],"name":"admires ring"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["shout","shouts"],"name":"shouts"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["stare","stares"],"name":"stares"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["twirl glasses","twirls glasses"],"name":"twirls glasses"},
+  {"frames":[],"feet_sprite":"pose_3500.png","triggers":["drink coffee","drinks coffee"],"name":"drinks coffee"}
+]

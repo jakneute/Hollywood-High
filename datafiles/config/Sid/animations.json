@@ -1,0 +1,10 @@
+[
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["eat","eats"],"name":"eats"},
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["lick","licks"],"name":"licks"},
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["shout","shouts"],"name":"shouts"},
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["sniff","sniffs"],"name":"sniffs"},
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["stare","stares"],"name":"stares"},
+  {"frames":[],"feet_sprite":"pose_2500.png","triggers":["think","thinks"],"name":"thinks"}
+]

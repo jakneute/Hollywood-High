@@ -10,8 +10,8 @@ function canned_anim_get_data(_char_index) {
 
     var _path = datafiles_path + "config/" + _name + "/animations.json";
     if (!file_exists(_path)) {
-        ds_map_add(char_anim_cache, _name, undefined);
-        return undefined;
+        ds_map_add(char_anim_cache, _name, []);
+        return [];
     }
 
     var _str = ""; var _f = file_text_open_read(_path);

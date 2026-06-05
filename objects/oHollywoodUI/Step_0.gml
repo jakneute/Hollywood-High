@@ -1598,7 +1598,7 @@ if (mouse_check_button_pressed(mb_left)) {
 
     // EXPR CFG / ANIM EDITOR buttons — side by side in the header row
     if (!particle_panel_mode && !theater_mode && playing_block_index == -1) {
-        var _has_anims_b = SHOW_ANIM_EDITOR && canned_anim_get_data(selected_character_index) != undefined;
+        var _has_anims_b = SHOW_ANIM_EDITOR;
         var _btn_l2  = char_sel_x + 195;
         var _btn_r2  = char_sel_x + char_sel_w - 6;
         var _btn_mid2 = floor((_btn_l2 + _btn_r2) / 2) - 1;

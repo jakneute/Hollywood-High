@@ -1,0 +1,12 @@
+[
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["burp","burps"],"name":"burps"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["eat ice cream","eats ice cream"],"name":"eats ice cream"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["get upset","gets upset"],"name":"gets upset"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["sigh","sighs"],"name":"sighs"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["juggle","juggles"],"name":"juggles"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["stare","stares"],"name":"stares"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["get scared","gets scared"],"name":"gets scared"},
+  {"frames":[],"feet_sprite":"pose_17500.png","triggers":["put on makeup","puts on makeup"],"name":"puts on makeup"}
+]

@@ -1,0 +1,12 @@
+[
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["get angry","gets angry"],"name":"gets angry"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["wink","winks"],"name":"winks"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["rummage in handbag","rummages in handbag"],"name":"rummages in handbag"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["sneeze","sneezes"],"name":"sneezes"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["drink soda","drinks soda"],"name":"drinks soda"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["scream","screams"],"name":"screams"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["write in notebook","writes in notebook"],"name":"writes in notebook"},
+  {"frames":[],"feet_sprite":"pose_21500.png","triggers":["play trumpet","plays trumpet"],"name":"plays trumpet"}
+]

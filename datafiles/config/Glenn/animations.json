@@ -1,0 +1,11 @@
+[
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["fall asleep and snore","falls asleep and snores"],"name":"falls asleep and snores"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["stare","stares"],"name":"stares"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["play the violin","plays the violin"],"name":"plays the violin"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["eat a hotdog","eats a hotdog"],"name":"eats a hotdog"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["use a laptop","uses a laptop"],"name":"uses a laptop"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["get angry","gets angry"],"name":"gets angry"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_18500.png","triggers":["wave excitedly","waves excitedly"],"name":"waves excitedly"}
+]

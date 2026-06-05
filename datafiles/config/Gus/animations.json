@@ -1,1083 +1,1083 @@
 [
   {
-    "name":"rocks back and forth",
     "frames":[
       {
         "sprite":"pose_11501.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "file":"Actors - GUS\/rocks back_forth_11002.wav",
-        "_sound_id":11001.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11001.0
       },
       {
         "sprite":"pose_11502.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11503.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11504.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "file":"Actors - GUS\/rocks back_forth_11002.wav",
-        "_sound_id":11001.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11001.0
       },
       {
         "sprite":"pose_11508.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11501.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11502.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11503.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "file":"Actors - GUS\/rocks back_forth_11002.wav",
-        "_sound_id":11001.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11001.0
       },
       {
         "sprite":"pose_11504.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11508.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11501.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11502.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       },
       {
         "sprite":"pose_11503.png",
+        "composite_legs":true,
         "feet_sprite":"pose_11102.png",
-        "hold":13.0,
         "type":"sprite",
-        "composite_legs":true
+        "hold":13.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "rock back and forth",
       "rocks back and forth"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"rocks back and forth"
   },
   {
-    "name":"laughs",
     "frames":[
       {
         "sprite":"pose_11509.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
         "sprite":"pose_11510.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
         "file":"Actors - GUS\/laugh_11004.wav",
-        "_sound_id":15017.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":15017.0
       },
       {
-        "sprite":"pose_11511.png",
-        "hold":8.0,
-        "type":"sprite",
         "sprite_flipped":"pose_14002.png",
-        "composite_legs":true
+        "sprite":"pose_11511.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":8.0
       },
       {
         "sprite":"pose_11516.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
-        "sprite":"pose_11511.png",
-        "hold":8.0,
-        "type":"sprite",
         "sprite_flipped":"pose_14002.png",
-        "composite_legs":true
+        "sprite":"pose_11511.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":8.0
       },
       {
         "sprite":"pose_11516.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
-        "sprite":"pose_11511.png",
-        "hold":8.0,
-        "type":"sprite",
         "sprite_flipped":"pose_14002.png",
-        "composite_legs":true
+        "sprite":"pose_11511.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":8.0
       },
       {
         "sprite":"pose_11516.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
-        "sprite":"pose_11511.png",
-        "hold":8.0,
-        "type":"sprite",
         "sprite_flipped":"pose_14002.png",
-        "composite_legs":true
+        "sprite":"pose_11511.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":8.0
       },
       {
         "sprite":"pose_11516.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
-        "sprite":"pose_11511.png",
-        "hold":8.0,
-        "type":"sprite",
         "sprite_flipped":"pose_14002.png",
-        "composite_legs":true
+        "sprite":"pose_11511.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":8.0
       },
       {
         "sprite":"pose_11516.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
-        "sprite":"pose_11511.png",
-        "hold":8.0,
-        "type":"sprite",
         "sprite_flipped":"pose_14002.png",
-        "composite_legs":true
+        "sprite":"pose_11511.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":8.0
       },
       {
         "sprite":"pose_11516.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
         "sprite":"pose_11510.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       },
       {
         "sprite":"pose_11509.png",
-        "hold":8.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":8.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "laugh",
       "laughs"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"laughs"
   },
   {
-    "name":"plays the air guitar",
     "frames":[
       {
         "sprite":"pose_11517.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11518.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11519.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11518.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11519.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11518.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11519.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11518.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11519.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11518.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11519.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11517.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11520.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11521.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11522.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11526.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11522.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11526.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11522.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11526.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11521.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11520.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11517.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "play the air guitar",
       "plays the air guitar"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"plays the air guitar"
   },
   {
-    "name":"puts on earphones",
     "frames":[
       {
         "sprite":"pose_11527.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11528.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11529.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11530.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11531.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11532.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11535.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11532.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11535.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11532.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11532.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11535.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":30.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "put on earphones",
       "puts on earphones"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"puts on earphones"
   },
   {
-    "name":"eats and drinks",
     "frames":[
       {
         "sprite":"pose_11536.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11537.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "file":"Actors - GUS\/soda_burger out_11010.wav",
-        "_sound_id":11009.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11009.0
       },
       {
         "sprite":"pose_11538.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11539.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11540.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11541.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11542.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11543.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11544.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "file":"GUS\\audio\\bite burger_11007.wav",
-        "_sound_id":11006.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11006.0
       },
       {
         "sprite":"pose_11545.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11546.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11545.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "file":"Actors - GUS\/chew burger_11003.wav",
-        "_sound_id":11002.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11002.0
       },
       {
         "sprite":"pose_11546.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11545.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "file":"Actors - GUS\/chew burger_11003.wav",
-        "_sound_id":11002.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11002.0
       },
       {
         "sprite":"pose_11546.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11545.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "file":"Actors - GUS\/chew burger_11003.wav",
-        "_sound_id":11002.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11002.0
       },
       {
         "sprite":"pose_11540.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11551.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "file":"Actors - GUS\/sip soda_11005.wav",
-        "_sound_id":11004.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11004.0
       },
       {
         "sprite":"pose_11551.png",
-        "hold":30.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":30.0
       },
       {
         "sprite":"pose_11540.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11539.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11538.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11537.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       },
       {
         "sprite":"pose_11536.png",
-        "hold":10.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":10.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "eat and drink",
       "eats and drinks"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"eats and drinks"
   },
   {
-    "name":"munches a hamburger",
     "frames":[
       {
         "sprite":"pose_11552.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11553.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/soda_burger out_11010.wav",
-        "_sound_id":11009.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11009.0
       },
       {
         "sprite":"pose_11554.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11555.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11557.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11558.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11559.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11560.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/bite burger_11007.wav",
-        "_sound_id":11006.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11006.0
       },
       {
         "sprite":"pose_11561.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11567.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/chew burger_11003.wav",
-        "_sound_id":11002.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11002.0
       },
       {
         "sprite":"pose_11561.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11567.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/chew burger_11003.wav",
-        "_sound_id":11002.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11002.0
       },
       {
         "sprite":"pose_11561.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11567.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/chew burger_11003.wav",
-        "_sound_id":11002.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11002.0
       },
       {
         "sprite":"pose_11559.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11558.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11557.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11556.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11555.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11554.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11553.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11552.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "munch a hamburger",
       "munches a hamburger"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"munches a hamburger"
   },
   {
-    "name":"drinks fron a straw",
     "frames":[
       {
         "sprite":"pose_11568.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11569.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/soda_burger out_11010.wav",
-        "_sound_id":11009.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11009.0
       },
       {
         "sprite":"pose_11570.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11571.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11572.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/sip soda_11005.wav",
-        "_sound_id":11004.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11004.0
       },
       {
         "sprite":"pose_11577.png",
-        "hold":30.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":30.0
       },
       {
         "sprite":"pose_11571.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11570.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11569.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11568.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "drink from a straw",
       "drinks fron a straw"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"drinks fron a straw"
   },
   {
-    "name":"combs the 'do",
     "frames":[
       {
         "sprite":"pose_11578.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11579.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11580.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11581.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11582.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11583.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "file":"Actors - GUS\/comb hair_11009.wav",
-        "_sound_id":11008.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11008.0
       },
       {
         "sprite":"pose_11584.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11585.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11586.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11587.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11588.png",
-        "hold":12.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":12.0
       },
       {
         "sprite":"pose_11591.png",
-        "hold":30.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":30.0
       },
       {
         "file":"GUS\\audio\\hair pops up_11013.wav",
-        "_sound_id":11010.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11010.0
       },
       {
         "sprite":"pose_11578.png",
-        "hold":30.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":30.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "comb the 'do",
       "combs the 'do"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"combs the 'do"
   },
   {
-    "name":"burps",
     "frames":[
       {
         "file":"Actors - GUS\/burp_11008.wav",
-        "_sound_id":11007.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11007.0
       },
       {
         "sprite":"pose_11594.png",
-        "hold":60.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":60.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "burp",
       "burps"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"burps"
   },
   {
-    "name":"sneezes",
     "frames":[
       {
         "sprite":"pose_11595.png",
-        "hold":30.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":30.0
       },
       {
         "sprite":"pose_11596.png",
-        "hold":15.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":15.0
       },
       {
         "file":"Actors - Lilly\/ahh for sneeze_12001.wav",
-        "_sound_id":11013.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11013.0
       },
       {
         "sprite":"pose_11597.png",
-        "hold":20.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":20.0
       },
       {
         "sprite":"pose_11597.png",
-        "hold":20.0,
+        "composite_legs":true,
         "type":"sprite",
-        "composite_legs":true
+        "hold":20.0
       },
       {
         "file":"Actors - GUS\/choo for sneeze_11006.wav",
-        "_sound_id":11005.0,
-        "type":"sound"
+        "type":"sound",
+        "_sound_id":11005.0
       },
       {
-        "sprite":"pose_11750.png",
-        "hold":15.0,
-        "type":"sprite",
         "sprite_flipped":"pose_11850.png",
-        "composite_legs":true
+        "sprite":"pose_11750.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":15.0
       },
       {
-        "sprite":"pose_11750.png",
-        "hold":15.0,
-        "type":"sprite",
         "sprite_flipped":"pose_11850.png",
-        "composite_legs":true
+        "sprite":"pose_11750.png",
+        "composite_legs":true,
+        "type":"sprite",
+        "hold":15.0
       }
     ],
+    "feet_sprite_flipped":"pose_11102.png",
     "feet_sprite":"pose_11004.png",
     "triggers":[
       "sneeze",
       "sneezes"
     ],
-    "feet_sprite_flipped":"pose_11102.png"
+    "name":"sneezes"
   }
 ]

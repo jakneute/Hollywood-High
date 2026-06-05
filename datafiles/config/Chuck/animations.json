@@ -1,0 +1,7 @@
+[
+  {"frames":[],"feet_sprite":"pose_6500.png","triggers":["open laptop computer","opens laptop computer"],"name":"opens laptop computer"},
+  {"frames":[],"feet_sprite":"pose_6500.png","triggers":["cry","cries"],"name":"cries"},
+  {"frames":[],"feet_sprite":"pose_6500.png","triggers":["sip from coconut","sips from coconut"],"name":"sips from coconut"},
+  {"frames":[],"feet_sprite":"pose_6500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_6500.png","triggers":["stare","stares"],"name":"stares"}
+]

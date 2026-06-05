@@ -3139,10 +3139,11 @@ if (edit_mode) {
         // Effort radio buttons
         draw_set_color(c_white); draw_text(_mxo+50, _ctrl_y+143, "Effort:");
         var _s_labels = ["Normal", "Breathy", "Whispered"];
+        var _s_hov = false;
         for (var s = 0; s < 3; s++) {
             var _sx = _mxo+195+(s*105);
             var _s_sel = (modal_effort == s);
-            var _s_hov = (point_distance(_mx, _my, _sx, _ctrl_y+158) < 16);
+            _s_hov = (point_distance(_mx, _my, _sx, _ctrl_y+158) < 16);
             draw_set_color(_s_sel ? c_lime : (_s_hov ? make_color_rgb(180, 220, 180) : make_color_rgb(90, 90, 90)));
             draw_circle(_sx, _ctrl_y+158, 10, true);
             if (_s_sel) { draw_set_color(make_color_rgb(30, 80, 30)); draw_circle(_sx, _ctrl_y+158, 6, false); }
@@ -4022,7 +4023,7 @@ if (pose_expr_modal_open) {
 if (anim_editor_open) {
     var _data = canned_anim_get_data(anim_editor_char_idx);
     if (_data != undefined) {
-        var _m_w = 900; var _m_h = 620;
+        var _m_w = 1060; var _m_h = 620;
         var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
 
         draw_set_color(c_black); draw_set_alpha(0.78);
@@ -4067,6 +4068,15 @@ if (anim_editor_open) {
         draw_set_color(anim_editor_flipped_mode ? c_white : make_color_rgb(80, 120, 160));
         draw_text((_m_x + 572 + _m_x + 642) / 2, _m_y + 27, "FLIP");
         draw_set_halign(fa_left);
+        // Copy to flipped — next to FLIP, only in normal mode
+        if (!anim_editor_flipped_mode) {
+            var _ctf_hov2 = (_mx > _m_x + 650 && _mx < _m_x + 790 && _my > _m_y + 20 && _my < _m_y + 48);
+            draw_set_color(_ctf_hov2 ? make_color_rgb(44, 80, 148) : make_color_rgb(26, 52, 98));
+            draw_roundrect_ext(_m_x + 650, _m_y + 20, _m_x + 790, _m_y + 48, 4, 4, false);
+            draw_set_color(make_color_rgb(105, 165, 245)); draw_set_halign(fa_center);
+            draw_text((_m_x + 650 + _m_x + 790) / 2, _m_y + 27, "COPY TO FLIPPED");
+            draw_set_halign(fa_left);
+        }
 
         // Animation list (left panel)
         draw_set_color(make_color_rgb(8, 28, 12));
@@ -4080,14 +4090,27 @@ if (anim_editor_open) {
             draw_set_color(_is_sel ? c_white : c_ltgray);
             draw_text(_m_x + 18, _ly + 5, _anim_entry.name);
         }
+        // +ANIM button
+        var _add_anim_y = _m_y + 60 + array_length(_data) * 30;
+        var _add_hov = (_mx > _m_x + 12 && _mx < _m_x + 222 && _my > _add_anim_y && _my < _add_anim_y + 26);
+        draw_set_color(_add_hov ? make_color_rgb(20, 80, 40) : make_color_rgb(12, 44, 20));
+        draw_roundrect_ext(_m_x + 12, _add_anim_y, _m_x + 222, _add_anim_y + 26, 3, 3, false);
+        draw_set_color(make_color_rgb(60, 140, 80)); draw_set_halign(fa_center);
+        draw_text((_m_x + 12 + _m_x + 222) / 2, _add_anim_y + 5, "+ NEW ANIM");
+        draw_set_halign(fa_left);
 
         // Frame preview (right panel)
-        var _cur_anim = _data[clamp(anim_editor_anim_idx, 0, array_length(_data) - 1)];
-        var _frames   = _cur_anim.frames;
+        var _cur_anim = (array_length(_data) > 0) ? _data[clamp(anim_editor_anim_idx, 0, array_length(_data) - 1)] : undefined;
+        var _frames   = (_cur_anim != undefined) ? _cur_anim.frames : [];
         var _preview_x = _m_x + 235; var _preview_y = _m_y + 55;
         var _preview_w = _m_w - 245; var _preview_h = _m_h - 100;
 
-        // Current frame sprite
+        // Preview column: left 40% of the panel; info column: right 60% starting at _info_x
+        var _info_x     = _preview_x + floor(_preview_w * 0.40);
+        var _col_w      = _preview_x + _preview_w - _info_x - 8; // usable width for info buttons
+        var _prev_col_w = _info_x - _preview_x - 4;              // usable pixel width for the character
+
+        // Current frame sprite — composite with feet if assigned
         var _cf = (_frames != undefined && anim_editor_frame_idx < array_length(_frames)) ? _frames[anim_editor_frame_idx] : undefined;
         if (_cf != undefined && _cf.type == "sprite") {
             var _fspr_name = _cf.sprite;
@@ -4096,12 +4119,68 @@ if (anim_editor_open) {
                              ? _cf.sprite_flipped : canned_anim_flipped_name(_cf.sprite);
             }
             var _fspr = canned_anim_load_sprite(anim_editor_char_idx, _fspr_name);
+
+            // Resolve feet sprite (animation-level, respects flip mode)
+            var _feet_key_prev = anim_editor_flipped_mode ? "feet_sprite_flipped" : "feet_sprite";
+            var _feet_name_prev = (_cur_anim != undefined && variable_struct_exists(_cur_anim, _feet_key_prev)) ? _cur_anim[$ _feet_key_prev] : "";
+            if (_feet_name_prev == "" && anim_editor_flipped_mode && _cur_anim != undefined) {
+                var _fn0 = variable_struct_exists(_cur_anim, "feet_sprite") ? _cur_anim.feet_sprite : "";
+                if (_fn0 != "") _feet_name_prev = canned_anim_flipped_name(_fn0);
+            }
+            var _feet_spr_prev = (_feet_name_prev != "") ? canned_anim_load_sprite(anim_editor_char_idx, _feet_name_prev) : -1;
+
             if (_fspr != -1) {
                 var _fw = sprite_get_width(_fspr); var _fh = sprite_get_height(_fspr);
-                var _fsc = min((_preview_h * 0.85) / _fh, (_preview_w * 0.5) / _fw);
-                var _fdx = _preview_x + (_preview_w * 0.25) - (_fw * _fsc * 0.5);
-                var _fdy = _preview_y + (_preview_h * 0.85) - _fh * _fsc;
-                draw_sprite_ext(_fspr, 0, _fdx, _fdy, _fsc, _fsc, 0, c_white, 1);
+                // Available draw area: _prev_col_w wide, (_preview_h - 10) tall, with a small margin
+                var _avail_w = _prev_col_w - 8;
+                var _avail_h = _preview_h - 20;
+                var _center_x = _preview_x + _prev_col_w * 0.5;
+                var _floor_y  = _preview_y + _avail_h + 6;
+
+                if (_feet_spr_prev != -1) {
+                    // Composite: feet on bottom, body on top — use same math as theater runtime
+                    var _fsw2 = sprite_get_width(_feet_spr_prev); var _fsh2 = sprite_get_height(_feet_spr_prev);
+                    var _anim_bdy  = (_cur_anim != undefined && variable_struct_exists(_cur_anim, "body_dy")) ? _cur_anim.body_dy : 0;
+                    var _frame_fdy = (anim_editor_flipped_mode && variable_struct_exists(_cf, "frame_dy_flipped")) ? _cf.frame_dy_flipped
+                                   : (variable_struct_exists(_cf, "frame_dy") ? _cf.frame_dy : 0);
+                    var _frame_fdx = (anim_editor_flipped_mode && variable_struct_exists(_cf, "frame_dx_flipped")) ? _cf.frame_dx_flipped
+                                   : (variable_struct_exists(_cf, "frame_dx") ? _cf.frame_dx : 0);
+
+                    // Offset from offsets.json (same as runtime)
+                    var _c_prev = characters[anim_editor_char_idx];
+                    var _nm_prev = variable_struct_exists(_c_prev, "sprite_name") ? _c_prev.sprite_name : _c_prev.name;
+                    var _od_prev = ds_map_exists(char_offsets_cache, _nm_prev) ? char_offsets_cache[? _nm_prev] : undefined;
+                    var _body_ok_prev = string_replace(_fspr_name, ".png", "");
+                    var _feet_ok_prev = string_replace(_feet_name_prev, ".png", "");
+                    var _off_bdx = 0;
+                    if (_od_prev != undefined && variable_struct_exists(_od_prev, _body_ok_prev) && variable_struct_exists(_od_prev, _feet_ok_prev)) {
+                        _off_bdx = _od_prev[$ _body_ok_prev][0] - _od_prev[$ _feet_ok_prev][0];
+                    }
+
+                    // Body sits at (-body_h) relative to feet top, plus offsets
+                    // Virtual total height = feet_h + any body above the feet top
+                    var _body_dy_px = -_fh + _frame_fdy + _anim_bdy; // dy of body relative to feet top (negative = body starts above)
+                    var _virtual_top = min(0, _body_dy_px);           // topmost pixel relative to feet top
+                    var _total_h = _fsh2 - _virtual_top;              // feet_h + overhang above feet top
+                    var _max_w   = max(_fw, _fsw2);
+                    var _fsc2 = min(_avail_h / _total_h, _avail_w / _max_w);
+
+                    var _feet_draw_x = _center_x - (_fsw2 * _fsc2 * 0.5);
+                    var _feet_draw_y = _floor_y  - _fsh2 * _fsc2;
+                    var _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx) * _fsc2;
+                    var _body_draw_y = _feet_draw_y + _body_dy_px * _fsc2;
+                    draw_sprite_ext(_feet_spr_prev, 0, _feet_draw_x, _feet_draw_y, _fsc2, _fsc2, 0, c_white, 1);
+                    draw_sprite_ext(_fspr,          0, _body_draw_x, _body_draw_y, _fsc2, _fsc2, 0, c_white, 1);
+                    // Faint seam line at feet top
+                    draw_set_color(make_color_rgb(50, 130, 50)); draw_set_alpha(0.3);
+                    draw_line(_feet_draw_x, _feet_draw_y, _feet_draw_x + _fsw2 * _fsc2, _feet_draw_y);
+                    draw_set_alpha(1.0);
+                } else {
+                    var _fsc = min(_avail_h / _fh, _avail_w / _fw);
+                    var _fdx = _center_x - (_fw * _fsc * 0.5);
+                    var _fdy = _floor_y  - _fh * _fsc;
+                    draw_sprite_ext(_fspr, 0, _fdx, _fdy, _fsc, _fsc, 0, c_white, 1);
+                }
             }
         }
 
@@ -4110,12 +4189,11 @@ if (anim_editor_open) {
         for (var _fi2 = 0; _fi2 < array_length(_frames); _fi2++) {
             if (_frames[_fi2].type == "sprite") _sprite_count++;
         }
-        var _info_x = _preview_x + _preview_w * 0.55;
         var _edit_frame = (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames)) ? _frames[anim_editor_selected_frame] : _cf;
         // Compact header: frame position + sprite count on one line
         draw_set_color(c_ltgray);
         draw_text(_info_x, _preview_y + 10, "Frame " + string(anim_editor_frame_idx + 1) + " / " + string(array_length(_frames)) + "  (" + string(_sprite_count) + " spr)");
-        if (_edit_frame != undefined) {
+        if (_edit_frame != undefined && _cur_anim != undefined) {
             // ── Per-animation FEET row (shown regardless of frame type) ──
             var _anim_fs = variable_struct_exists(_cur_anim, "feet_sprite") ? _cur_anim.feet_sprite : "";
             if (!anim_editor_flipped_mode) {
@@ -4182,26 +4260,83 @@ if (anim_editor_open) {
                 draw_set_color(make_color_rgb(130, 180, 70)); draw_set_halign(fa_center);
                 draw_text(_info_x + 198, _preview_y + 101, "ALL");
                 draw_set_halign(fa_left);
+                // ── Per-frame offset (frame_dy / frame_dx) — when any feet sprite is assigned ──
+                {
+                    var _has_feet_ef = (_cur_anim != undefined && (
+                        (variable_struct_exists(_cur_anim, "feet_sprite") && _cur_anim.feet_sprite != "") ||
+                        (variable_struct_exists(_cur_anim, "feet_sprite_flipped") && _cur_anim.feet_sprite_flipped != "")
+                    ));
+                    var _is_composite_ef = variable_struct_exists(_edit_frame, "composite_legs") && _edit_frame.composite_legs;
+                    if (_has_feet_ef && _is_composite_ef) {
+                        var _fdy_key = anim_editor_flipped_mode ? "frame_dy_flipped" : "frame_dy";
+                        var _fdx_key = anim_editor_flipped_mode ? "frame_dx_flipped" : "frame_dx";
+                        var _fdy_val = variable_struct_exists(_edit_frame, _fdy_key) ? _edit_frame[$ _fdy_key] : 0;
+                        var _fdx_val = variable_struct_exists(_edit_frame, _fdx_key) ? _edit_frame[$ _fdx_key] : 0;
+                        var _has_override = anim_editor_flipped_mode && (variable_struct_exists(_edit_frame, "frame_dy_flipped") || variable_struct_exists(_edit_frame, "frame_dx_flipped"));
+                        var _off_row1 = _preview_y + 122; // Y row
+                        var _off_row2 = _preview_y + 142; // X row
+                        // Section label
+                        draw_set_color(_has_override ? make_color_rgb(80, 140, 200) : make_color_rgb(70, 100, 70));
+                        draw_text(_info_x, _off_row1 - 4, anim_editor_flipped_mode ? "FRAME OFFSET (FLIP)" : "FRAME OFFSET");
+                        // CLR button in flip mode (removes flipped override, falls back to standard)
+                        if (anim_editor_flipped_mode && _has_override) {
+                            draw_set_color(make_color_rgb(90, 32, 32));
+                            draw_roundrect_ext(_info_x + 138, _off_row1 - 6, _info_x + 168, _off_row1 + 8, 3, 3, false);
+                            draw_set_color(c_white); draw_set_halign(fa_center);
+                            draw_text(_info_x + 153, _off_row1 - 3, "CLR");
+                            draw_set_halign(fa_left);
+                        }
+                        // Y row
+                        draw_set_color(make_color_rgb(90, 140, 90));
+                        draw_text(_info_x, _off_row1 + 4, "Y");
+                        draw_set_color(make_color_rgb(200, 220, 200));
+                        draw_set_halign(fa_right);
+                        draw_text(_info_x + 68, _off_row1 + 4, string(_fdy_val));
+                        draw_set_halign(fa_left);
+                        draw_set_color(make_color_rgb(32, 70, 90));
+                        draw_roundrect_ext(_info_x + 74,  _off_row1, _info_x + 100, _off_row1 + 18, 3, 3, false);
+                        draw_roundrect_ext(_info_x + 104, _off_row1, _info_x + 130, _off_row1 + 18, 3, 3, false);
+                        draw_set_color(c_white); draw_set_halign(fa_center);
+                        draw_text(_info_x + 87,  _off_row1 + 4, "-");
+                        draw_text(_info_x + 117, _off_row1 + 4, "+");
+                        draw_set_halign(fa_left);
+                        // X row
+                        draw_set_color(make_color_rgb(90, 140, 90));
+                        draw_text(_info_x, _off_row2 + 4, "X");
+                        draw_set_color(make_color_rgb(200, 220, 200));
+                        draw_set_halign(fa_right);
+                        draw_text(_info_x + 68, _off_row2 + 4, string(_fdx_val));
+                        draw_set_halign(fa_left);
+                        draw_set_color(make_color_rgb(32, 70, 90));
+                        draw_roundrect_ext(_info_x + 74,  _off_row2, _info_x + 100, _off_row2 + 18, 3, 3, false);
+                        draw_roundrect_ext(_info_x + 104, _off_row2, _info_x + 130, _off_row2 + 18, 3, 3, false);
+                        draw_set_color(c_white); draw_set_halign(fa_center);
+                        draw_text(_info_x + 87,  _off_row2 + 4, "-");
+                        draw_text(_info_x + 117, _off_row2 + 4, "+");
+                        draw_set_halign(fa_left);
+                    }
+                }
                 // ── CHANGE SPRITE ──
                 draw_set_color(anim_editor_flipped_mode ? make_color_rgb(26, 60, 128) : make_color_rgb(32, 80, 144));
-                draw_roundrect_ext(_info_x, _preview_y + 128, _info_x + 160, _preview_y + 150, 4, 4, false);
+                draw_roundrect_ext(_info_x, _preview_y + 168, _info_x + 160, _preview_y + 190, 4, 4, false);
                 draw_set_color(c_white); draw_set_halign(fa_center);
-                draw_text(_info_x + 80, _preview_y + 133, anim_editor_flipped_mode ? "CHANGE FLIPPED" : "CHANGE SPRITE");
+                draw_text(_info_x + 80, _preview_y + 173, anim_editor_flipped_mode ? "CHANGE FLIPPED" : "CHANGE SPRITE");
                 draw_set_halign(fa_left);
-                // ── COPY TO FLIPPED / status ──
-                if (!anim_editor_flipped_mode) {
-                    var _ctf_hov = (_mx > _info_x && _mx < _info_x + 220 && _my > _preview_y + 158 && _my < _preview_y + 180);
-                    draw_set_color(_ctf_hov ? make_color_rgb(44, 80, 148) : make_color_rgb(26, 52, 98));
-                    draw_roundrect_ext(_info_x, _preview_y + 158, _info_x + 220, _preview_y + 180, 4, 4, false);
-                    draw_set_color(make_color_rgb(105, 165, 245)); draw_set_halign(fa_center);
-                    draw_text(_info_x + 110, _preview_y + 163, "COPY TO FLIPPED");
-                    draw_set_halign(fa_left);
-                } else {
+                // ── COPY POSE ──
+                var _cp_hov = (_mx > _info_x + 168 && _mx < _info_x + 248 && _my > _preview_y + 168 && _my < _preview_y + 190);
+                var _cp_active = (anim_editor_pose_clipboard == _edit_frame.sprite && _edit_frame.sprite != "");
+                draw_set_color(_cp_active ? make_color_rgb(30, 100, 50) : (_cp_hov ? make_color_rgb(50, 80, 40) : make_color_rgb(30, 55, 25)));
+                draw_roundrect_ext(_info_x + 168, _preview_y + 168, _info_x + 248, _preview_y + 190, 4, 4, false);
+                draw_set_color(_cp_active ? make_color_rgb(100, 220, 130) : c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 208, _preview_y + 173, _cp_active ? "COPIED" : "COPY POSE");
+                draw_set_halign(fa_left);
+                // flipped status indicator (read-only, in flip mode)
+                if (anim_editor_flipped_mode) {
                     var _has_flip = variable_struct_exists(_edit_frame, "sprite_flipped") && _edit_frame.sprite_flipped != "";
                     draw_set_color(make_color_rgb(26, 52, 98));
-                    draw_roundrect_ext(_info_x, _preview_y + 158, _info_x + 220, _preview_y + 180, 4, 4, false);
+                    draw_roundrect_ext(_info_x, _preview_y + 168, _info_x + 220, _preview_y + 190, 4, 4, false);
                     draw_set_color(_has_flip ? make_color_rgb(105, 185, 105) : make_color_rgb(185, 125, 50)); draw_set_halign(fa_center);
-                    draw_text(_info_x + 110, _preview_y + 163, _has_flip ? "OVERRIDE SET" : "USING +250 AUTO");
+                    draw_text(_info_x + 110, _preview_y + 173, _has_flip ? "OVERRIDE SET" : "USING +250 AUTO");
                     draw_set_halign(fa_left);
                 }
             } else if (_edit_frame.type == "sound") {
@@ -4211,12 +4346,41 @@ if (anim_editor_open) {
                 draw_text(_info_x, _preview_y + 82, _sfile);
                 draw_set_color(make_color_rgb(130, 145, 130));
                 draw_text(_info_x, _preview_y + 102, "ID: " + string(_edit_frame[$ "_sound_id"]));
-                draw_set_color(make_color_rgb(120, 74, 18));
-                draw_roundrect_ext(_info_x, _preview_y + 128, _info_x + 160, _preview_y + 150, 4, 4, false);
+                // CHANGE SFX
+                var _chov_sfx = (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 168 && _my < _preview_y + 190);
+                draw_set_color(_chov_sfx ? make_color_rgb(160, 94, 28) : make_color_rgb(120, 74, 18));
+                draw_roundrect_ext(_info_x, _preview_y + 168, _info_x + 160, _preview_y + 190, 4, 4, false);
                 draw_set_color(c_white); draw_set_halign(fa_center);
-                draw_text(_info_x + 80, _preview_y + 133, "CHANGE SFX");
+                draw_text(_info_x + 80, _preview_y + 173, "CHANGE SFX");
                 draw_set_halign(fa_left);
             }
+        }
+
+        // ── Unified bottom row: always visible when an animation is selected ──
+        if (_cur_anim != undefined) {
+            var _btn_y = _preview_y + 200;
+            var _has_sel = (_edit_frame != undefined);
+            // +SFX
+            var _sfx_hov = (_mx > _info_x && _mx < _info_x + 80 && _my > _btn_y && _my < _btn_y + 22);
+            draw_set_color(_sfx_hov ? make_color_rgb(60, 120, 60) : make_color_rgb(30, 80, 30));
+            draw_roundrect_ext(_info_x, _btn_y, _info_x + 80, _btn_y + 22, 4, 4, false);
+            draw_set_color(c_white); draw_set_halign(fa_center);
+            draw_text(_info_x + 40, _btn_y + 4, "+SFX");
+            draw_set_halign(fa_left);
+            // +SPRITE
+            var _spr_hov = (_mx > _info_x + 88 && _mx < _info_x + 168 && _my > _btn_y && _my < _btn_y + 22);
+            draw_set_color(_spr_hov ? make_color_rgb(40, 80, 160) : make_color_rgb(20, 50, 110));
+            draw_roundrect_ext(_info_x + 88, _btn_y, _info_x + 168, _btn_y + 22, 4, 4, false);
+            draw_set_color(c_white); draw_set_halign(fa_center);
+            draw_text(_info_x + 128, _btn_y + 4, "+SPRITE");
+            draw_set_halign(fa_left);
+            // DEL — dimmed when nothing selected
+            var _dsp_hov = _has_sel && (_mx > _info_x + 176 && _mx < _info_x + 236 && _my > _btn_y && _my < _btn_y + 22);
+            draw_set_color(_has_sel ? (_dsp_hov ? make_color_rgb(160, 40, 30) : make_color_rgb(100, 28, 20)) : make_color_rgb(50, 20, 18));
+            draw_roundrect_ext(_info_x + 176, _btn_y, _info_x + 236, _btn_y + 22, 4, 4, false);
+            draw_set_color(_has_sel ? c_white : make_color_rgb(80, 50, 50)); draw_set_halign(fa_center);
+            draw_text(_info_x + 206, _btn_y + 4, "DEL");
+            draw_set_halign(fa_left);
         }
 
         // Frame strip (two rows tall to accommodate selection highlight)
@@ -4228,12 +4392,13 @@ if (anim_editor_open) {
         var _strip_inner_w = _preview_w - _arr_w * 2 - 8;
         var _visible = floor(_strip_inner_w / _strip_frame_w);
         var _max_strip_scroll = max(0, array_length(_frames) - _visible);
-        // Auto-scroll during playback to keep current frame in view
-        if (anim_editor_playing) {
-            if (anim_editor_frame_idx < anim_editor_strip_scroll)
-                anim_editor_strip_scroll = anim_editor_frame_idx;
-            else if (anim_editor_frame_idx >= anim_editor_strip_scroll + _visible)
-                anim_editor_strip_scroll = anim_editor_frame_idx - _visible + 1;
+        // Auto-scroll to keep current/selected frame in view
+        var _focus_idx = (anim_editor_selected_frame >= 0) ? anim_editor_selected_frame : (anim_editor_playing ? anim_editor_frame_idx : -1);
+        if (_focus_idx >= 0) {
+            if (_focus_idx < anim_editor_strip_scroll)
+                anim_editor_strip_scroll = _focus_idx;
+            else if (_focus_idx >= anim_editor_strip_scroll + _visible)
+                anim_editor_strip_scroll = _focus_idx - _visible + 1;
         }
         anim_editor_strip_scroll = clamp(anim_editor_strip_scroll, 0, _max_strip_scroll);
         var _strip_start = anim_editor_strip_scroll;
@@ -4373,7 +4538,7 @@ if (anim_editor_open) {
             draw_set_color(c_white); draw_text(_m_x + 14, _m_y + 14, anim_editor_sprite_picker_mode == 1 ? "SELECT FEET SPRITE" : "SELECT SPRITE");
             var _sp_btn_y2 = _m_y + _m_h - 44; var _sp_btn_h2 = 32;
             var _grid_x = _m_x + 10; var _grid_y = _m_y + 60;
-            var _cols = 7; var _tw2 = 116; var _th2 = 90;
+            var _cols = 4; var _tw2 = 200; var _th2 = 160;
             var _visible_rows = floor((_sp_btn_y2 - 10 - _grid_y) / _th2);
             var _start = anim_editor_sprite_scroll * _cols;
             for (var _pi = _start; _pi < min(array_length(anim_editor_sprite_list), _start + _cols * _visible_rows); _pi++) {
@@ -4389,8 +4554,10 @@ if (anim_editor_open) {
                 if (_pspr != -1) {
                     var _pw = sprite_get_width(_pspr); var _ph = sprite_get_height(_pspr);
                     if (_pw > 5 && _ph > 5) {
-                        var _psc = min(80.0 / _ph, 100.0 / _pw);
+                        var _psc = min(140.0 / _ph, 180.0 / _pw);
+                        gpu_set_texfilter(true);
                         draw_sprite_ext(_pspr, 0, _px + (_tw2 - 4 - _pw * _psc) / 2, _py + (_th2 - 4 - _ph * _psc) / 2, _psc, _psc, 0, c_white, 1);
+                        gpu_set_texfilter(false);
                     }
                 }
                 draw_set_color(_is_pend ? make_color_rgb(140, 210, 255) : make_color_rgb(100, 130, 100)); draw_set_halign(fa_center);

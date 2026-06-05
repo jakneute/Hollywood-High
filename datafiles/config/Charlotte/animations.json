@@ -1,0 +1,9 @@
+[
+  {"frames":[],"feet_sprite":"pose_5500.png","triggers":["read a book","reads a book"],"name":"reads a book"},
+  {"frames":[],"feet_sprite":"pose_5500.png","triggers":["eat","eats"],"name":"eats"},
+  {"frames":[],"feet_sprite":"pose_5500.png","triggers":["laugh","laughs"],"name":"laughs"},
+  {"frames":[],"feet_sprite":"pose_5500.png","triggers":["shout","shouts"],"name":"shouts"},
+  {"frames":[],"feet_sprite":"pose_5500.png","triggers":["stare","stares"],"name":"stares"},
+  {"frames":[],"feet_sprite":"pose_5500.png","triggers":["write a ticket","writes a ticket"],"name":"writes a ticket"},
+  {"frames":[],"feet_sprite":"pose_5500.png","triggers":["blow a whistle","blows a whistle"],"name":"blows a whistle"}
+]
