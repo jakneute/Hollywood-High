@@ -214,7 +214,7 @@ if (dragging_particle_effect != "") {
                 && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
             var _pblk_x = _mx - scene_win_x;
             var _pblk_y = _my - scene_win_y;
-            var _pblk_i = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
+            var _pblk_i = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
             var _is_shot_drop = (dragging_particle_effect == "shot");
             array_insert(script_blocks, _pblk_i, {
                 type: "particle", effect: dragging_particle_effect,
@@ -230,7 +230,6 @@ if (dragging_particle_effect != "") {
             });
             update_all_block_heights();
             focused_block           = _pblk_i;
-            insertion_idx           = -1;
             particle_edit_mode      = true;
             particle_edit_block_idx = _pblk_i;
         }
@@ -1167,13 +1166,12 @@ if (!script_expanded && playing_block_index == -1 && current_scene_sprite != -1 
                 }
             } else {
                 // Script mode: insert "turns around" action block after focused block
-                var _ins = (insertion_idx != -1) ? insertion_idx + 1 : ((focused_block != -1) ? focused_block + 1 : array_length(script_blocks));
-                var _spliced = (insertion_idx != -1);
+                var _ins = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                var _spliced = (focused_block != -1 && focused_block < array_length(script_blocks) - 1);
                 array_insert(script_blocks, _ins, { type: "action", char_index: selected_character_index, action_name: "turns around", height: 85 });
                 update_all_block_heights();
                 focused_block = _ins;
                 if (_spliced) {
-                    insertion_idx = -1;
                     var _block_y = 0;
                     for (var k = 0; k < _ins; k++) _block_y += script_blocks[k].height + 20;
                     block_scroll_y = min(0, -(_block_y - box_h / 3));
@@ -1242,7 +1240,7 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
             // RELEASE: Create the "moves" or "exit" action ONLY if moved
             var _act = preview_actors[dragging_preview_idx];
             if (point_distance(_act.x, _act.y, drag_start_x, drag_start_y) > 5) {
-                var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
+                var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
                 
                 // Check if off-stage for exit (Standardized 25% V / 51% H)
                 var _spr = get_character_sprite(_act.char_index);
@@ -1296,7 +1294,6 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                     trick: move_trick
                 });
                 focused_block = _insert_idx;
-                insertion_idx = -1; // Reset after commit
             } else {
                 // Revert position cleanly if clicked without dragging to select
                 _act.x = drag_start_x;
@@ -1309,9 +1306,9 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
 
 // --- 2g. MODE DISMISSAL (Label Click) ---
 var _ind_x = max(scene_win_x, 110);
-if (insertion_idx != -1 && mouse_check_button_pressed(mb_left)) {
+if (focused_block != -1 && focused_block < array_length(script_blocks) - 1 && !scene_edit_mode && !particle_edit_mode && mouse_check_button_pressed(mb_left)) {
     if (_mx > _ind_x && _mx < _ind_x + 150 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
-        insertion_idx = -1;
+        focused_block = -1;
         return;
     }
 }
@@ -1343,6 +1340,7 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
     // --- STAGING label click → exit staging ---
     if (_mx > _ind_x && _mx < _ind_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         scene_edit_mode = false;
+        focused_block = -1;
         return;
     }
 
@@ -1447,14 +1445,15 @@ if (mouse_check_button_pressed(mb_left)) {
     if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_idx < array_length(script_blocks)) {
         var _peb2 = script_blocks[particle_edit_block_idx];
         // "PARTICLE EDIT" label click → exit
-        if (_mx >= scene_win_x && _mx <= scene_win_x + 140 && _my >= scene_win_y - 44 && _my <= scene_win_y - 10) {
-            particle_edit_mode = false; particle_drag_pos = false; particle_drag_dir = false; particle_drag_area_w = false; particle_drag_area_h = false; particle_drag_area_w = false; particle_drag_area_h = false; return;
+        var _pe_lx = max(scene_win_x, 98);
+        if (_mx >= _pe_lx && _mx <= _pe_lx + 140 && _my >= scene_win_y - 44 && _my <= scene_win_y - 10) {
+            particle_edit_mode = false; focused_block = -1; particle_drag_pos = false; particle_drag_dir = false; particle_drag_area_w = false; particle_drag_area_h = false; return;
         }
         var _on_right2 = (_peb2.x < scene_win_w * 0.35);
         var _pbase_x2  = _on_right2 ? (scene_win_x + scene_win_w - 210) : (scene_win_x + 5);
         var _ped_x = _on_right2 ? (scene_win_x + 10) : (scene_win_x + scene_win_w - 90); var _ped_y = scene_win_y + 8;
         if (_mx > _ped_x && _mx < _ped_x + 80 && _my > _ped_y && _my < _ped_y + 26) {
-            particle_edit_mode = false; particle_drag_pos = false; particle_drag_dir = false; particle_drag_area_w = false; particle_drag_area_h = false; particle_drag_area_w = false; particle_drag_area_h = false; return;
+            particle_edit_mode = false; focused_block = -1; particle_drag_pos = false; particle_drag_dir = false; particle_drag_area_w = false; particle_drag_area_h = false; return;
         }
         var _pep_x = _on_right2 ? (scene_win_x + 100) : (scene_win_x + scene_win_w - 185); var _pep_y = scene_win_y + 8;
         if (_mx > _pep_x && _mx < _pep_x + 86 && _my > _pep_y && _my < _pep_y + 26) {
@@ -1705,7 +1704,7 @@ if (mouse_check_button_pressed(mb_left)) {
         selection_start = 0; selection_end = 0;
         // Block voice creation for dead characters
         var _vdead = false;
-        var _vcheck_limit = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
+        var _vcheck_limit = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
         for (var _vk = 0; _vk < _vcheck_limit; _vk++) {
             var _vb = script_blocks[_vk];
             if (!variable_struct_exists(_vb, "type")) continue;
@@ -1718,14 +1717,14 @@ if (mouse_check_button_pressed(mb_left)) {
         }
         if (_vdead) return;
         var _c = characters[selected_character_index];
-        var _idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
+        var _idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
         array_insert(script_blocks, _idx, {
             type: "voice", char_index: selected_character_index, text: "", height: 115, caret_pos: 0, selection_anchor: 0, selection_active: false,
             voice_id: _c.voice_id, pitch: _c.pitch, speed: _c.speed, mode: _c.mode, style: _c.style, glottal: _c[$ "glottal"] ?? -1, tweaked: _c.tweaked, is_altered: false
         });
         script_dirty = true;
         update_block_height(_idx);
-        focused_block = _idx; insertion_idx = -1; keyboard_string = "";
+        focused_block = _idx; keyboard_string = "";
         scene_edit_mode = false;
 
         // Scroll to show the spliced block — place it ~1/3 down from the top of the viewport
@@ -1738,11 +1737,10 @@ if (mouse_check_button_pressed(mb_left)) {
 
     // ADD ACTION Button (Now also inserts at focused point)
     if (!is_speaking && playing_block_index == -1 && _mx > btn_add_action_x && _mx < btn_add_action_x + btn_add_action_w && _my > btn_add_action_y && _my < btn_add_action_y + btn_add_action_h) {
-        focused_block = -1;
         selection_start = 0; selection_end = 0;
         {
             action_modal_open = true;
-            action_modal_target_index = (insertion_idx != -1) ? insertion_idx + 1 : -1;
+            action_modal_target_index = (focused_block != -1) ? focused_block + 1 : -1;
             action_modal_selected_idx = -1;
             action_modal_locked = false;
             
@@ -1785,10 +1783,9 @@ if (mouse_check_button_pressed(mb_left)) {
 
     // ADD SCENE Button (Now also inserts at focused point)
     if (!is_speaking && playing_block_index == -1 && _mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h) {
-        focused_block = -1;
         selection_start = 0; selection_end = 0;
         scene_modal_open = true;
-        scene_modal_target_index = (insertion_idx != -1) ? insertion_idx + 1 : -1;
+        scene_modal_target_index = (focused_block != -1) ? focused_block + 1 : -1;
         scene_edit_mode = false;
         return;
     }
@@ -1829,6 +1826,87 @@ if (mouse_check_button_pressed(mb_left)) {
             var _is_particle = (variable_struct_exists(_block, "type") && _block.type == "particle");
             var _is_voice    = !_is_scene && !_is_action && !_is_particle;
             var _box_y = (_is_scene || _is_action || _is_particle) ? _cy + 5 : _cy + 20;
+
+            var _edit_lbl = "";
+            var _edit_w = 0;
+            var _show_edit_btn = false;
+
+            if (_is_scene) {
+                _edit_lbl = "CHANGE SCENE";
+                _edit_w = 110;
+                _show_edit_btn = true;
+            } else if (_is_particle) {
+                _show_edit_btn = false;
+            } else if (_is_voice) {
+                _edit_lbl = "ALTER VOICE";
+                _edit_w = 105;
+                _show_edit_btn = true;
+            } else if (_is_action) {
+                var _aname_u = string_upper(_block.action_name);
+                var _aname_lo = string_lower(_block.action_name);
+                
+                var _is_sfx = (string_pos("PLAY SFX", _aname_u) > 0);
+                var _is_title = (string_pos("DISPLAY TITLE", _aname_u) > 0);
+                var _is_wait = (string_pos("WAIT", _aname_u) > 0);
+                var _is_quake = variable_struct_exists(_block, "quake_intensity") || (string_pos("QUAKE", _aname_u) > 0);
+                var _is_disappear = (string_pos("DISAPPEARS", _aname_u) > 0);
+                var _is_jitter = (string_pos("JITTERS", _aname_u) > 0);
+                var _is_kill = variable_struct_exists(_block, "kill_style") || (string_pos("KILL", _aname_u) > 0);
+                var _is_resurrect = (string_pos("RESURRECTS", _aname_u) > 0);
+                var _is_turn_around = (string_pos("TURNS AROUND", _aname_u) > 0);
+                
+                var _is_canned = (variable_struct_exists(_block, "char_index") && _block.char_index > 0 && canned_anim_find(_block.char_index, _block.action_name) != undefined);
+                
+                var _is_move = (string_pos("MOVE", _aname_u) > 0 || string_pos("ENTER", _aname_u) > 0 || string_pos("EXIT", _aname_u) > 0);
+                var _has_looks = (string_pos("looks ", _aname_lo) > 0);
+                var _has_and_pose = (_has_looks && string_pos("and pose ", _aname_lo) > 0);
+                var _is_expr_only = (string_pos("expression:", _aname_lo) > 0) || (_has_looks && !_has_and_pose);
+                var _is_pose = (!_is_expr_only) && (string_pos("poses ", _aname_lo) > 0 || _has_and_pose
+                                    || (string_pos("pose ", _aname_lo) > 0 && string_pos("poses ", _aname_lo) == 0 && !_has_looks));
+                
+                if (_is_resurrect || _is_turn_around) {
+                    _show_edit_btn = false;
+                } else {
+                    _show_edit_btn = true;
+                    if (_is_sfx) {
+                        _edit_lbl = "CHANGE SOUND";
+                        _edit_w = 110;
+                    } else if (_is_title) {
+                        _edit_lbl = "CHANGE TITLE";
+                        _edit_w = 110;
+                    } else if (_is_wait) {
+                        _edit_lbl = "EDIT TIMER";
+                        _edit_w = 95;
+                    } else if (_is_quake) {
+                        _edit_lbl = "EDIT QUAKE";
+                        _edit_w = 95;
+                    } else if (_is_disappear) {
+                        _edit_lbl = "EDIT DISAPPEAR METHOD";
+                        _edit_w = 195;
+                    } else if (_is_jitter) {
+                        _edit_lbl = "EDIT JITTER";
+                        _edit_w = 105;
+                    } else if (_is_kill) {
+                        _edit_lbl = "EDIT KILL METHOD";
+                        _edit_w = 150;
+                    } else if (_is_canned) {
+                        _edit_lbl = "EDIT SPECIAL ANIMATION";
+                        _edit_w = 205;
+                    } else if (_is_move) {
+                        _edit_lbl = "EDIT MOVEMENT";
+                        _edit_w = 125;
+                    } else if (_is_pose || _is_expr_only) {
+                        _edit_lbl = "EDIT POSE/EXPR";
+                        _edit_w = 125;
+                    } else {
+                        _edit_lbl = "EDIT ACTION";
+                        _edit_w = 105;
+                    }
+                }
+            }
+            var _edit_btn_h = 22;
+            var _edit_btn_x = box_x + box_w - 45 - _edit_w;
+            var _edit_btn_y = (_is_voice) ? _cy - 4 : _box_y;
             
             // --- 4b. INLINE BUTTONS (RIGHT STACK - Management) ---
             var _bx = box_x + box_w - 35;
@@ -1861,9 +1939,9 @@ if (mouse_check_button_pressed(mb_left)) {
             }
 
             // --- 4c. RESEQUENCE BUTTONS (LEFT STACK) ---
-            var _lx = box_x + 15;
+            var _lx = box_x + 10;
             // UP
-            if (playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cy + 5 && _my < _cy + 5 + _btn_h) {
+            if (playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _box_y + 8 && _my < _box_y + 8 + _btn_h) {
                 if (i > 0) {
                     if (variable_struct_exists(script_blocks[i], "linked")) script_blocks[i].linked = false;
                     if (variable_struct_exists(script_blocks[i-1], "linked")) script_blocks[i-1].linked = false;
@@ -1876,8 +1954,8 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
                 return;
             }
-            // PENCIL (EDIT)
-            else if (playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cy + 35 && _my < _cy + 35 + _btn_h) {
+            // TOP-RIGHT EDIT BUTTON CLICK
+            else if (_show_edit_btn && playing_block_index == -1 && _mx > _edit_btn_x && _mx < _edit_btn_x + _edit_w && _my > _edit_btn_y && _my < _edit_btn_y + _edit_btn_h) {
                 if (variable_struct_exists(_block, "type") && _block.type == "particle") {
                     if (script_expanded) script_expanded = false;
                     particle_edit_mode = true; particle_edit_block_idx = i; return;
@@ -2092,7 +2170,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 return;
             }
             // DOWN
-            else if (playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cy + 65 && _my < _cy + 65 + _btn_h) {
+            else if (playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _box_y + 38 && _my < _box_y + 38 + _btn_h) {
                 if (i < array_length(script_blocks) - 1) {
                     if (variable_struct_exists(script_blocks[i], "linked")) script_blocks[i].linked = false;
                     if (variable_struct_exists(script_blocks[i+1], "linked")) script_blocks[i+1].linked = false;
@@ -2116,28 +2194,30 @@ if (mouse_check_button_pressed(mb_left)) {
             if (_is_particle) {
                 // Particle block click → toggle edit mode (auto-collapse if expanded)
                 if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _box_y && _my < _box_y + 80) {
-                    focused_block = i;
-                    if (particle_edit_mode && particle_edit_block_idx == i) {
+                    if (focused_block == i) {
+                        focused_block = -1;
                         particle_edit_mode = false;
                         particle_drag_pos  = false;
                         particle_drag_dir  = false;
                     } else {
+                        focused_block = i;
                         if (script_expanded) script_expanded = false;
                         particle_edit_mode      = true;
                         particle_edit_block_idx = i;
                         scene_edit_mode         = false;
-                        insertion_idx           = -1;
                     }
                     return;
                 }
             } else if (_is_scene) {
                 // Scene Box Click (Enable Staging)
-                if (playing_block_index == -1 && _mx > box_x + 55 && _mx < box_x + 55 + _wrap_w + 20 && _my > _box_y && _my < _box_y + 80) {
-                    focused_block = i;
-                    particle_edit_mode = false;
-                    scene_edit_mode = !scene_edit_mode; // Toggle
-                    insertion_idx = -1; // Turn off Splice Mode
-                    if (scene_edit_mode) {
+                if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _box_y && _my < _box_y + 80) {
+                    if (focused_block == i) {
+                        focused_block = -1;
+                        scene_edit_mode = false;
+                    } else {
+                        focused_block = i;
+                        particle_edit_mode = false;
+                        scene_edit_mode = true;
                         update_preview_actors_for_block(i, true);
                         if (active_scene_block_idx != -1) {
                             current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
@@ -2148,18 +2228,14 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
             } else if (_is_action || _is_voice) {
                 // Other Blocks (Dialogue/Action) - Disable Staging
-                if (playing_block_index == -1 && _mx > box_x + 55 && _mx < box_x + 55 + _wrap_w + 20 && _my > _box_y && _my < _cy + _bh) {
+                if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _box_y && _my < _cy + _bh) {
                     var _is_dbl = (block_last_click_idx == i && current_time - block_last_click_time < 380);
                     block_last_click_idx  = i;
                     block_last_click_time = current_time;
 
                     if (_is_dbl && playing_block_index == -1) {
                         // Double-click: mirror the pencil button — open the appropriate edit UI for this block
-                        if (_is_voice) {
-                            edit_mode = true; modal_is_local_edit = true; modal_target_block_idx = i;
-                            modal_voice_id = _block.voice_id; modal_pitch = _block.pitch; modal_speed = _block.speed;
-                            modal_effort = _block.mode; modal_quality = _block.style; modal_glottal = _block[$ "glottal"] ?? -1; modal_volume = _block[$ "volume"] ?? 50; tweak_enabled = _block.tweaked;
-                        } else if (_is_action) {
+                        if (_is_action) {
                             var _dbl_aname_u  = string_upper(_block.action_name);
                             var _dbl_aname_lo = string_lower(_block.action_name);
                             var _dbl_is_move  = (string_pos("MOVE", _dbl_aname_u) > 0 || string_pos("ENTER", _dbl_aname_u) > 0 || string_pos("EXIT", _dbl_aname_u) > 0);
@@ -2269,15 +2345,61 @@ if (mouse_check_button_pressed(mb_left)) {
                         return;
                     }
 
-                    focused_block = i;
-                    particle_edit_mode = false;
+                    if (focused_block == i) {
+                        focused_block = -1;
+                        scene_edit_mode = false;
+                        if (_is_voice) {
+                            is_selecting = false;
+                        }
+                    } else {
+                        focused_block = i;
+                        particle_edit_mode = false;
 
-                    update_preview_actors_for_block(i, true);
-                    if (active_scene_block_idx != -1) {
-                        current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
-                        set_scene_dimensions(current_scene_sprite);
+                        update_preview_actors_for_block(i, true);
+                        if (active_scene_block_idx != -1) {
+                            current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
+                            set_scene_dimensions(current_scene_sprite);
+                        }
+                        
+                        if (variable_struct_exists(_block, "char_index")) {
+                            selected_character_index = _block.char_index;
+                            var _row = floor(selected_character_index / 2);
+                            var _iy_scroll = _row * 135;
+                            if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
+                            else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
+                        }
+                        
+                        scene_edit_mode = false; // Always OFF
+                        
+                        if (_is_voice) {
+                            keyboard_string = "";
+                            var _rx = _mx - (box_x + 60); var _ry = _my - (_cy + 32);
+                            var _best_p = 0; var _min_d = 999999;
+                            for (var c = 0; c <= string_length(_block.text); c++) {
+                                var _pos = get_text_pos(_block.text, c, _wrap_w, 28);
+                                var _d = point_distance(_rx, _ry, _pos.x, _pos.y);
+                                if (_d < _min_d) { _min_d = _d; _best_p = c; }
+                            }
+                            _block.caret_pos = _best_p;
+                            selection_start = _best_p;
+                            selection_end = _best_p;
+                            is_selecting = true;
+                        }
                     }
-                    
+                    return;
+                }
+            }
+            
+            // Main Block Focus Click
+            if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _cy && _my < _cy + _bh) {
+                if (focused_block == i) {
+                    focused_block = -1;
+                    scene_edit_mode = false;
+                    particle_edit_mode = false;
+                } else {
+                    focused_block = i;
+                    if (!_is_particle) particle_edit_mode = false;
+
                     if (variable_struct_exists(_block, "char_index")) {
                         selected_character_index = _block.char_index;
                         var _row = floor(selected_character_index / 2);
@@ -2285,46 +2407,12 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
                         else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
                     }
-                    
-                    scene_edit_mode = false; // Always OFF
-                    insertion_idx = -1;
-                    
-                    if (_is_voice) {
+
+                    selection_start = 0; selection_end = 0;
+                    if (!_is_scene && !_is_action && !_is_particle) {
                         keyboard_string = "";
-                        var _rx = _mx - (box_x + 60); var _ry = _my - (_cy + 32);
-                        var _best_p = 0; var _min_d = 999999;
-                        for (var c = 0; c <= string_length(_block.text); c++) {
-                            var _pos = get_text_pos(_block.text, c, _wrap_w, 28);
-                            var _d = point_distance(_rx, _ry, _pos.x, _pos.y);
-                            if (_d < _min_d) { _min_d = _d; _best_p = c; }
-                        }
-                        _block.caret_pos = _best_p;
-                        selection_start = _best_p;
-                        selection_end = _best_p;
-                        is_selecting = true;
+                        _block.caret_pos = string_length(_block.text);
                     }
-                    return;
-                }
-            }
-            
-            // Main Block Focus Click
-            if (playing_block_index == -1 && _mx > box_x + 50 && _mx < box_x + box_w - 50 && _my > _cy && _my < _cy + _bh) {
-                focused_block = i;
-                if (!_is_particle) particle_edit_mode = false;
-
-                if (variable_struct_exists(_block, "char_index")) {
-                    selected_character_index = _block.char_index;
-                    var _row = floor(selected_character_index / 2);
-                    var _iy_scroll = _row * 135;
-                    if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
-                    else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
-                }
-
-                insertion_idx = -1;
-                selection_start = 0; selection_end = 0;
-                if (!_is_scene && !_is_action && !_is_particle) {
-                    keyboard_string = "";
-                    _block.caret_pos = string_length(_block.text);
                 }
                 return;
             }
@@ -2743,7 +2831,7 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                     if (moonwalk_enabled) _aname += " [MOONWALK]";
                     if (move_trick != "none") _aname += " [" + string_upper(move_trick) + "]";
 
-                    var _insert_idx = (insertion_idx != -1) ? insertion_idx + 1 : array_length(script_blocks);
+                    var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
                     var _ec = characters[dragging_char_index];
                     array_insert(script_blocks, _insert_idx, {
                         type: "action",
@@ -2760,7 +2848,6 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                         enter_pose:       variable_struct_exists(_ec, "pose")       ? _ec.pose       : 1
                     });
                     focused_block = _insert_idx;
-                    insertion_idx = -1;
                     update_all_block_heights();
                     
                     var _th = 0; for (var k = 0; k < _insert_idx; k++) _th += script_blocks[k].height + 20;
@@ -2903,8 +2990,6 @@ last_played_block_index = clamp(last_played_block_index, -1, _len - 1);
 var _ref_idx;
 if (playing_block_index != -1) {
     _ref_idx = playing_block_index;
-} else if (insertion_idx != -1) {
-    _ref_idx = insertion_idx;
 } else if (focused_block != -1) {
     _ref_idx = focused_block;
 } else if (_len > 0) {
@@ -2969,7 +3054,4 @@ if (dragging_preview_idx != -1) {
     }
 }
 
-// 4. Staging and Splicing Mutual Exclusion Safety Check
-if (scene_edit_mode && insertion_idx != -1) {
-    insertion_idx = -1;
-}
+// End of Step Event

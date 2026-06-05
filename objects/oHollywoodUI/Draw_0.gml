@@ -848,7 +848,7 @@ if (scene_edit_mode) {
     draw_set_color(make_color_rgb(255, 150, 0));
     draw_rectangle(scene_win_x - 4, scene_win_y - 4, scene_win_x + scene_win_w + 4, scene_win_y + scene_win_h + 4, true);
     draw_rectangle(scene_win_x - 5, scene_win_y - 5, scene_win_x + scene_win_w + 5, scene_win_y + scene_win_h + 5, true);
-} else if (insertion_idx != -1) {
+} else if (focused_block != -1 && focused_block < array_length(script_blocks) - 1) {
     draw_set_color(make_color_rgb(0, 150, 255));
     draw_rectangle(scene_win_x - 4, scene_win_y - 4, scene_win_x + scene_win_w + 4, scene_win_y + scene_win_h + 4, true);
     draw_rectangle(scene_win_x - 5, scene_win_y - 5, scene_win_x + scene_win_w + 5, scene_win_y + scene_win_h + 5, true);
@@ -1820,7 +1820,7 @@ if (scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < 
     // Picker dropdown drawn at end of event so it renders above script blocks
 }
 
-if (insertion_idx != -1 && !scene_edit_mode) {
+if (focused_block != -1 && focused_block < array_length(script_blocks) - 1 && !scene_edit_mode && !particle_edit_mode) {
     draw_set_color(make_color_rgb(0, 150, 255));
     draw_rectangle(_ind_x, scene_win_y - 45, _ind_x + 150, scene_win_y - 10, false);
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_ind_x + 75, scene_win_y - 37, "SPLICE MODE"); draw_set_halign(fa_left);
@@ -2358,6 +2358,88 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     var _is_scene    = variable_struct_exists(_block, "type") && _block.type == "scene";
     var _is_action   = variable_struct_exists(_block, "type") && _block.type == "action";
     var _is_particle = variable_struct_exists(_block, "type") && _block.type == "particle";
+    var _is_voice    = !_is_scene && !_is_action && !_is_particle;
+
+    var _edit_lbl = "";
+    var _edit_w = 0;
+    var _show_edit_btn = false;
+
+    if (_is_scene) {
+        _edit_lbl = "CHANGE SCENE";
+        _edit_w = 110;
+        _show_edit_btn = true;
+    } else if (_is_particle) {
+        _show_edit_btn = false;
+    } else if (_is_voice) {
+        _edit_lbl = "ALTER VOICE";
+        _edit_w = 105;
+        _show_edit_btn = true;
+    } else if (_is_action) {
+        var _aname_u = string_upper(_block.action_name);
+        var _aname_lo = string_lower(_block.action_name);
+        
+        var _is_sfx = (string_pos("PLAY SFX", _aname_u) > 0);
+        var _is_title = (string_pos("DISPLAY TITLE", _aname_u) > 0);
+        var _is_wait = (string_pos("WAIT", _aname_u) > 0);
+        var _is_quake = variable_struct_exists(_block, "quake_intensity") || (string_pos("QUAKE", _aname_u) > 0);
+        var _is_disappear = (string_pos("DISAPPEARS", _aname_u) > 0);
+        var _is_jitter = (string_pos("JITTERS", _aname_u) > 0);
+        var _is_kill = variable_struct_exists(_block, "kill_style") || (string_pos("KILL", _aname_u) > 0);
+        var _is_resurrect = (string_pos("RESURRECTS", _aname_u) > 0);
+        var _is_turn_around = (string_pos("TURNS AROUND", _aname_u) > 0);
+        
+        var _is_canned = (variable_struct_exists(_block, "char_index") && _block.char_index > 0 && canned_anim_find(_block.char_index, _block.action_name) != undefined);
+        
+        var _is_move = (string_pos("MOVE", _aname_u) > 0 || string_pos("ENTER", _aname_u) > 0 || string_pos("EXIT", _aname_u) > 0);
+        var _has_looks = (string_pos("looks ", _aname_lo) > 0);
+        var _has_and_pose = (_has_looks && string_pos("and pose ", _aname_lo) > 0);
+        var _is_expr_only = (string_pos("expression:", _aname_lo) > 0) || (_has_looks && !_has_and_pose);
+        var _is_pose = (!_is_expr_only) && (string_pos("poses ", _aname_lo) > 0 || _has_and_pose
+                            || (string_pos("pose ", _aname_lo) > 0 && string_pos("poses ", _aname_lo) == 0 && !_has_looks));
+        
+        if (_is_resurrect || _is_turn_around) {
+            _show_edit_btn = false;
+        } else {
+            _show_edit_btn = true;
+            if (_is_sfx) {
+                _edit_lbl = "CHANGE SOUND";
+                _edit_w = 110;
+            } else if (_is_title) {
+                _edit_lbl = "CHANGE TITLE";
+                _edit_w = 110;
+            } else if (_is_wait) {
+                _edit_lbl = "EDIT TIMER";
+                _edit_w = 95;
+            } else if (_is_quake) {
+                _edit_lbl = "EDIT QUAKE";
+                _edit_w = 95;
+            } else if (_is_disappear) {
+                _edit_lbl = "EDIT DISAPPEAR METHOD";
+                _edit_w = 195;
+            } else if (_is_jitter) {
+                _edit_lbl = "EDIT JITTER";
+                _edit_w = 105;
+            } else if (_is_kill) {
+                _edit_lbl = "EDIT KILL METHOD";
+                _edit_w = 150;
+            } else if (_is_canned) {
+                _edit_lbl = "EDIT SPECIAL ANIMATION";
+                _edit_w = 205;
+            } else if (_is_move) {
+                _edit_lbl = "EDIT MOVEMENT";
+                _edit_w = 125;
+            } else if (_is_pose || _is_expr_only) {
+                _edit_lbl = "EDIT POSE/EXPR";
+                _edit_w = 125;
+            } else {
+                _edit_lbl = "EDIT ACTION";
+                _edit_w = 105;
+            }
+        }
+    }
+    var _edit_btn_h = 22;
+    var _edit_btn_x = box_x + box_w - 45 - _edit_w;
+    var _edit_btn_y = (_is_voice) ? _cur_y - 4 : _cur_y + 5;
 
     if (_is_scene) {
     _onstage = [];
@@ -2369,8 +2451,24 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     }
     var _box_y = _cur_y + 5;
         var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
-        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : make_color_rgb(226, 240, 95));
+        var _is_focused = (focused_block == b);
+        var _bg_col;
+        if (_is_playing) {
+            _bg_col = make_color_rgb(255, 255, 180);
+        } else if (_is_focused) {
+            _bg_col = make_color_rgb(242, 250, 160);
+        } else {
+            _bg_col = make_color_rgb(226, 240, 95);
+        }
+        draw_set_color(_bg_col);
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
+        
+        draw_set_color(_is_focused ? make_color_rgb(25, 80, 185) : c_black);
+        draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, true);
+        if (_is_focused) {
+            draw_rectangle(box_x + 44, _box_y - 1, box_x + box_w - 44, _box_y + 81, true);
+        }
+        
         draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, "[SCENE: " + string_upper(_block.name) + "]");
     } else if (_is_action) {
         var _aname = string_lower(_block.action_name);
@@ -2385,8 +2483,17 @@ for (var b = 0; b < array_length(script_blocks); b++) {
 
         var _box_y = _cur_y + 5;
         var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
+        var _is_focused = (focused_block == b);
         var _is_disappear = (string_pos("DISAPPEARS", string_upper(_block.action_name)) > 0);
-        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : (_is_disappear ? make_color_rgb(210, 200, 240) : make_color_rgb(210, 225, 255)));
+        var _bg_col;
+        if (_is_playing) {
+            _bg_col = make_color_rgb(255, 255, 180);
+        } else if (_is_focused) {
+            _bg_col = _is_disappear ? make_color_rgb(230, 220, 255) : make_color_rgb(230, 240, 255);
+        } else {
+            _bg_col = _is_disappear ? make_color_rgb(210, 200, 240) : make_color_rgb(210, 225, 255);
+        }
+        draw_set_color(_bg_col);
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
 
         var _aname_up = string_upper(_block.action_name);
@@ -2395,9 +2502,16 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         var _is_title     = (string_pos("DISPLAY TITLE", _aname_up) > 0);
         var _is_expr_blk  = (string_pos("EXPRESSION:", _aname_up) > 0 || string_pos("LOOKS ", _aname_up) > 0 || (string_pos("POSE ", _aname_up) > 0 && string_pos("POSES ", _aname_up) == 0));
         if (_is_expr_blk && !_is_playing) {
-            draw_set_color(make_color_rgb(215, 228, 255));
+            draw_set_color(_is_focused ? make_color_rgb(235, 242, 255) : make_color_rgb(215, 228, 255));
             draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
         }
+        
+        draw_set_color(_is_focused ? make_color_rgb(25, 80, 185) : c_black);
+        draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, true);
+        if (_is_focused) {
+            draw_rectangle(box_x + 44, _box_y - 1, box_x + box_w - 44, _box_y + 81, true);
+        }
+        
         var _act_str = "ACTION: ";
         var _is_quake_blk = variable_struct_exists(_block, "quake_intensity");
         if (_is_wait || _is_sfx || _is_title || _is_quake_blk) {
@@ -2421,10 +2535,24 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     } else if (_is_particle) {
         var _box_y = _cur_y + 5;
         var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
-        draw_set_color(_is_playing ? make_color_rgb(255, 220, 220) : make_color_rgb(55, 10, 10));
+        var _is_focused = (focused_block == b);
+        var _bg_col;
+        if (_is_playing) {
+            _bg_col = make_color_rgb(255, 220, 220);
+        } else if (_is_focused) {
+            _bg_col = make_color_rgb(85, 30, 30);
+        } else {
+            _bg_col = make_color_rgb(55, 10, 10);
+        }
+        draw_set_color(_bg_col);
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, false);
-        draw_set_color(make_color_rgb(175, 28, 28));
+        
+        draw_set_color(_is_focused ? make_color_rgb(25, 80, 185) : make_color_rgb(175, 28, 28));
         draw_rectangle(box_x + 45, _box_y, box_x + box_w - 45, _box_y + 80, true);
+        if (_is_focused) {
+            draw_rectangle(box_x + 44, _box_y - 1, box_x + box_w - 44, _box_y + 81, true);
+        }
+        
         var _is_editing_this = (particle_edit_mode && particle_edit_block_idx == b);
         draw_set_color(_is_playing ? c_black : (_is_editing_this ? c_yellow : c_white));
         var _eff_lbl = string_upper(_block.effect);
@@ -2466,9 +2594,12 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         
         draw_set_color(make_color_rgb(55, 105, 62)); draw_text(box_x + 50, _cur_y, _char_name + ":");
         var _is_playing = (playing_block_index != -1 && b >= playing_block_index && b <= max(playing_block_index, playing_linked_index));
-        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : (_is_focused ? make_color_rgb(245, 250, 255) : c_white));
+        draw_set_color(_is_playing ? make_color_rgb(255, 255, 180) : (_is_focused ? make_color_rgb(230, 245, 255) : c_white));
         draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, false);
         draw_set_color(_is_focused ? make_color_rgb(25, 80, 185) : c_black); draw_rectangle(box_x + 45, _cur_y + 20, box_x + box_w - 45, _cur_y + 20 + _text_h, true);
+        if (_is_focused) {
+            draw_rectangle(box_x + 44, _cur_y + 19, box_x + box_w - 44, _cur_y + 20 + _text_h + 1, true);
+        }
 
         // Text Selection Highlight
         var _sel_s = min(selection_start, selection_end);
@@ -2506,32 +2637,44 @@ for (var b = 0; b < array_length(script_blocks); b++) {
 
     // Button Stacks
     var _lx = box_x + 10; var _rx = box_x + box_w - 35; var _bw = 28; var _bh = 22;
+    var _btn_base_y = (_is_scene || _is_action || _is_particle) ? _cur_y + 5 : _cur_y + 20;
     
     // Left Hover Checks
-    var _hov_up = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
-    var _hov_ed = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 35 && _my < _cur_y + 35 + _bh);
-    var _hov_dn = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _cur_y + 65 && _my < _cur_y + 65 + _bh);
+    var _hov_up = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _btn_base_y + 8 && _my < _btn_base_y + 8 + _bh);
+    var _hov_dn = (!_overlay_active && playing_block_index == -1 && _mx > _lx && _mx < _lx + _bw && _my > _btn_base_y + 38 && _my < _btn_base_y + 38 + _bh);
     
     // Right Hover Checks
     var _hov_del = (!_overlay_active && playing_block_index == -1 && _mx > _rx && _mx < _rx + _bw && _my > _cur_y + 5 && _my < _cur_y + 5 + _bh);
 
     // Render Left Stack
     draw_set_color((playing_block_index != -1) ? make_color_rgb(80, 80, 90) : (_hov_up ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120)));
-    draw_rectangle(_lx, _cur_y + 5, _lx + _bw, _cur_y + 5 + _bh, false); 
-    draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_lx+8, _cur_y + 5, "^");
-    
-    draw_set_color((playing_block_index != -1) ? make_color_rgb(150, 150, 150) : (_hov_ed ? make_color_rgb(255, 255, 150) : c_yellow));
-    draw_rectangle(_lx, _cur_y+35, _lx + _bw, _cur_y + 35 + _bh, false); 
-    draw_set_color(c_black); draw_text(_lx+8, _cur_y+35, "/");
+    draw_rectangle(_lx, _btn_base_y + 8, _lx + _bw, _btn_base_y + 8 + _bh, false); 
+    draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_lx+8, _btn_base_y + 8, "^");
     
     draw_set_color((playing_block_index != -1) ? make_color_rgb(80, 80, 90) : (_hov_dn ? make_color_rgb(140, 140, 170) : make_color_rgb(100, 100, 120)));
-    draw_rectangle(_lx, _cur_y+65, _lx + _bw, _cur_y + 65 + _bh, false); 
-    draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_lx+8, _cur_y+65, "v");
+    draw_rectangle(_lx, _btn_base_y + 38, _lx + _bw, _btn_base_y + 38 + _bh, false); 
+    draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_lx+8, _btn_base_y + 38, "v");
 
     // Render Right Stack
     draw_set_color((playing_block_index != -1) ? make_color_rgb(120, 60, 60) : (_hov_del ? make_color_rgb(230, 80, 80) : make_color_rgb(180, 50, 50)));
     draw_rectangle(_rx, _cur_y + 5, _rx + _bw, _cur_y + 5 + _bh, false); 
     draw_set_color((playing_block_index != -1) ? c_gray : c_white); draw_text(_rx+6, _cur_y + 5, "X");
+
+    // Render Top-Right Edit Button
+    if (_show_edit_btn) {
+        var _edit_hov = (!_overlay_active && playing_block_index == -1 && _mx > _edit_btn_x && _mx < _edit_btn_x + _edit_w && _my > _edit_btn_y && _my < _edit_btn_y + _edit_btn_h);
+        gpu_set_texfilter(true);
+        draw_set_color((playing_block_index != -1) ? make_color_rgb(45,35,20) : (_edit_hov ? make_color_rgb(145,75,10) : make_color_rgb(100,52,8)));
+        draw_roundrect_ext(_edit_btn_x, _edit_btn_y, _edit_btn_x + _edit_w, _edit_btn_y + _edit_btn_h, 5, 5, false);
+        draw_set_color((playing_block_index != -1) ? make_color_rgb(80,68,50) : (_edit_hov ? c_white : make_color_rgb(220,150,55)));
+        draw_roundrect_ext(_edit_btn_x, _edit_btn_y, _edit_btn_x + _edit_w, _edit_btn_y + _edit_btn_h, 5, 5, true);
+        draw_set_color((playing_block_index != -1) ? make_color_rgb(120,110,90) : c_white);
+        draw_set_halign(fa_center); draw_set_valign(fa_middle);
+        var _lbl_y_off = _is_voice ? -2 : -1;
+        draw_text_transformed(_edit_btn_x + _edit_w/2, _edit_btn_y + _edit_btn_h/2 + _lbl_y_off, _edit_lbl, 0.75, 0.75, 0);
+        draw_set_halign(fa_left); draw_set_valign(fa_top);
+        gpu_set_texfilter(false);
+    }
 
     // 4. Play From Here (Green Triangle) - Now in the GUTTER
     if (playing_block_index == -1) {
@@ -2542,7 +2685,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
     }
 
     var _gap_y = _cur_y + _block.height;
-    if (insertion_idx == b && !action_animating && playing_block_index == -1) {
+    if (focused_block == b && b < array_length(script_blocks) - 1 && !action_animating && playing_block_index == -1) {
         draw_set_color(c_yellow);
         draw_set_alpha(0.3);
         draw_rectangle(box_x + 10, _gap_y + 2, box_x + box_w - 10, _gap_y + 23, false);
@@ -2551,24 +2694,11 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         draw_line_width(box_x + 10, _gap_y + 12, box_x + box_w - 10, _gap_y + 12, 2);
     }
     
-    // 5. Draw "+" Splice Mode Button
+    // 5. Draw Splice Mode / Link Button Context
     if (b < array_length(script_blocks) - 1 && playing_block_index == -1) {
-        var _plus_center_x = box_x + (box_w / 2);
-        var _plus_hov = (!_overlay_active && _mx > _plus_center_x - 20 && _mx < _plus_center_x + 20 && _my > _gap_y && _my < _gap_y + 20);
-        
         // 6. Draw "LINK" Button
         var _b1 = script_blocks[b];
         var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
-        
-        if (!_is_linked) {
-            draw_set_color(_plus_hov ? c_green : make_color_rgb(150, 150, 170));
-            draw_set_halign(fa_center); draw_set_valign(fa_middle);
-            draw_text_transformed(_plus_center_x, _gap_y + 10, "+", 1.5, 1.5, 0);
-            draw_text_transformed(_plus_center_x + 1, _gap_y + 10, "+", 1.5, 1.5, 0); // Faux bolding
-            draw_text_transformed(_plus_center_x, _gap_y + 11, "+", 1.5, 1.5, 0);
-            draw_text_transformed(_plus_center_x + 1, _gap_y + 11, "+", 1.5, 1.5, 0);
-            draw_set_halign(fa_left); draw_set_valign(fa_top);
-        }
         
         var _b2 = script_blocks[b+1];
 
@@ -2796,7 +2926,7 @@ draw_line(char_sel_x + char_sel_w,  _fp_y, char_sel_x + char_sel_w,  _fp_y + _fp
 draw_line(char_sel_x, _fp_y + _fp_h, char_sel_x + char_sel_w, _fp_y + _fp_h);
 
 var _is_narrator = (characters[selected_character_index].name == "NARRATOR");
-var _foc_particle = (insertion_idx == -1 && focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
+var _foc_particle = (focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
 var _pe_btn_w = btn_expression_x + btn_expression_w - btn_pose_x;
 var _phov = (!_is_narrator && !_foc_particle && !_overlay_active && playing_block_index == -1 && _mx > btn_pose_x && _mx < btn_pose_x + _pe_btn_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h);
 var _evhov = (!_foc_particle && !_overlay_active && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h);

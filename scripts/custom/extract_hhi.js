@@ -30,6 +30,38 @@ const ACTOR_NAMES = {
     21: "Anna", 22: "Ed"
 };
 
+// Hardcoded per-ID overrides for poses that were misindexed on the original CD-ROM
+const ACTOR_ID_OVERRIDES = {
+    300:   "Charlotte",
+    1000:  "Artie",    1002:  "Artie",    1003:  "Charlotte", 1106:  "Lucille",  1410:  "Artie",
+    2000:  "Larry",    2002:  "Larry",    2003:  "Larry",     2101:  "Charlotte", 2103:  "Tiffanie",
+    2106:  "Larry",    2530:  "Larry",
+    3000:  "Sid",      3002:  "Sid",      3003:  "Sid",       3101:  "Sid",       3106:  "Charlotte",
+    3151:  "Larry",    3460:  "Larry",    3526:  "Artie",
+    4000:  "Tiffanie", 4002:  "Tiffanie", 4003:  "Tiffanie",  4101:  "Tiffanie",  4106:  "Tiffanie",
+    4151:  "Tiffanie", 4304:  "Sid",      4401:  "Sid",       4410:  "Tiffanie",  4460:  "Tiffanie",
+    4538:  "Charlotte",
+    5000:  "Artie",    5002:  "Artie",    5003:  "Artie",     5101:  "Artie",     5106:  "Sid",
+    5151:  "Artie",    5410:  "Artie",    5460:  "Artie",
+    6000:  "Unknown",
+    7000:  "Chuck",    7106:  "Charlotte",
+    8000:  "Billie",
+    9000:  "JJ",
+    10000: "Bev",
+    11000: "Jenny",    11002: "Matt",     11208: "Susan",
+    12000: "Gus",      12002: "Susan",    12102: "Susan",     12517: "Gus",
+    13000: "Lilly",
+    14000: "Matt",     14002: "Gus",      14206: "Susan",     14500: "Lilly",
+    15000: "Jenny",    15002: "Jenny",    15102: "Matt",      15109: "Jenny",
+    16000: "Ruth",     16102: "Glenn",
+    17000: "Gary",
+    18000: "Ruth",     18473: "Gary",
+    19002: "Anna",     19003: "Anna",     19004: "Stella",
+    20000: "Baby",     20002: "Ed",       20430: "Ed",
+    21000: "Stella",   21102: "Baby",     21495: "Stella",
+    22002: "Anna",     22723: "Anna",
+};
+
 // Hardcoded rerouting map to fix original CD-ROM compilation index misalignments
 const SCENE_REROUTES = {
     352: 52, // national park foreground
@@ -823,8 +855,7 @@ async function processImageExtraction(fd, types, filePath, mode, getString, tocO
             let groupName = '';
 
             if (isActorFile) {
-                const charRouteId = Math.floor(id / 1000);
-                const characterName = ACTOR_NAMES[charRouteId] || "Unknown";
+                const characterName = ACTOR_ID_OVERRIDES[id] || ACTOR_NAMES[Math.floor(id / 1000)] || "Unknown";
                 
                 const characterDir = path.join(actorsDir, characterName);
                 if (!fs.existsSync(characterDir)) {
@@ -928,8 +959,7 @@ async function processSoundExtraction(fd, types, filePath, mode, getString, tocO
             let targetDir = soundsDir;
 
             if (isActorFile) {
-                const charRouteId = Math.floor(id / 1000);
-                const characterName = ACTOR_NAMES[charRouteId] || "Unknown";
+                const characterName = ACTOR_ID_OVERRIDES[id] || ACTOR_NAMES[Math.floor(id / 1000)] || "Unknown";
                 targetDir = path.join(actorsDir, characterName, 'audio');
             } else if (isSceneFile) {
                 let groupName = SCENE_SOUND_MAPPING[id];
