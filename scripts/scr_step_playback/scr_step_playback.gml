@@ -225,7 +225,11 @@ function step_tts_playback() {
                         var _spr_ca = (_facing_ca != _def_ca && variable_struct_exists(_cur_frame, "sprite_flipped") && _cur_frame.sprite_flipped != "")
                                       ? _cur_frame.sprite_flipped
                                       : canned_anim_facing_sprite(_cur_frame.sprite, _anim.char_index, _facing_ca);
-                        _act.canned_spr      = canned_anim_load_sprite(_anim.char_index, _spr_ca);
+                        _act.canned_spr = canned_anim_load_sprite(_anim.char_index, _spr_ca);
+                        // If flipped variant is missing, fall back to original so we don't drop through to composite-legs rendering
+                        if (_act.canned_spr == -1 && _spr_ca != _cur_frame.sprite) {
+                            _act.canned_spr = canned_anim_load_sprite(_anim.char_index, _cur_frame.sprite);
+                        }
                         _act.canned_anchor_y = variable_struct_exists(_cur_frame, "anchor_y") ? _cur_frame.anchor_y : 0;
                         // Feet sprite is set per-animation, not per-frame
                         var _anim_feet_ca = "";
@@ -238,6 +242,27 @@ function step_tts_playback() {
                         }
                         _act.canned_composite = (_anim_feet_ca != "");
                         _act.canned_feet_spr  = (_anim_feet_ca != "") ? canned_anim_load_sprite(_anim.char_index, _anim_feet_ca) : -1;
+                        _act.canned_body_dy   = variable_struct_exists(_anim.anim_data, "body_dy") ? _anim.anim_data.body_dy : 0;
+                        // Horizontal alignment via offsets.json (same coordinate system as get_composite_character_sprite)
+                        var _c_ca  = characters[_anim.char_index];
+                        var _nm_ca = variable_struct_exists(_c_ca, "sprite_name") ? _c_ca.sprite_name : _c_ca.name;
+                        if (!ds_map_exists(char_offsets_cache, _nm_ca)) {
+                            var _op_ca = datafiles_path + "config/" + _nm_ca + "/offsets.json";
+                            if (file_exists(_op_ca)) {
+                                var _os_ca = ""; var _of_ca = file_text_open_read(_op_ca);
+                                while (!file_text_eof(_of_ca)) { _os_ca += file_text_readln(_of_ca); }
+                                file_text_close(_of_ca);
+                                ds_map_add(char_offsets_cache, _nm_ca, json_parse(_os_ca));
+                            } else { ds_map_add(char_offsets_cache, _nm_ca, undefined); }
+                        }
+                        var _od_ca = char_offsets_cache[? _nm_ca];
+                        var _body_ok_ca = string_replace(_spr_ca, ".png", "");
+                        if (_od_ca != undefined && !variable_struct_exists(_od_ca, _body_ok_ca))
+                            _body_ok_ca = string_replace(_cur_frame.sprite, ".png", "");
+                        var _feet_ok_ca = string_replace(_anim_feet_ca, ".png", "");
+                        var _has_bx_ca = (_od_ca != undefined && variable_struct_exists(_od_ca, _body_ok_ca));
+                        var _has_fx_ca = (_od_ca != undefined && _anim_feet_ca != "" && variable_struct_exists(_od_ca, _feet_ok_ca));
+                        _act.canned_body_dx = (_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][0] - _od_ca[$ _feet_ok_ca][0]) : 0;
                         _anim.tick++;
                         if (_anim.tick >= _hold) {
                             _anim.tick = 0;
@@ -753,7 +778,10 @@ function step_tts_playback() {
                                     var _spr0 = (_facing0 != _def0 && variable_struct_exists(_cf0, "sprite_flipped") && _cf0.sprite_flipped != "")
                                                 ? _cf0.sprite_flipped
                                                 : canned_anim_facing_sprite(_cf0.sprite, _b.char_index, _facing0);
-                                    preview_actors[_ca_aidx].canned_spr      = canned_anim_load_sprite(_b.char_index, _spr0);
+                                    preview_actors[_ca_aidx].canned_spr = canned_anim_load_sprite(_b.char_index, _spr0);
+                                    if (preview_actors[_ca_aidx].canned_spr == -1 && _spr0 != _cf0.sprite) {
+                                        preview_actors[_ca_aidx].canned_spr = canned_anim_load_sprite(_b.char_index, _cf0.sprite);
+                                    }
                                     preview_actors[_ca_aidx].canned_anchor_y  = variable_struct_exists(_cf0, "anchor_y") ? _cf0.anchor_y : 0;
                                     var _anim_feet0 = "";
                                     if (_facing0 != _def0) {
@@ -765,6 +793,26 @@ function step_tts_playback() {
                                     }
                                     preview_actors[_ca_aidx].canned_composite = (_anim_feet0 != "");
                                     preview_actors[_ca_aidx].canned_feet_spr  = (_anim_feet0 != "") ? canned_anim_load_sprite(_b.char_index, _anim_feet0) : -1;
+                                    preview_actors[_ca_aidx].canned_body_dy   = variable_struct_exists(_canim, "body_dy") ? _canim.body_dy : 0;
+                                    var _c0  = characters[_b.char_index];
+                                    var _nm0 = variable_struct_exists(_c0, "sprite_name") ? _c0.sprite_name : _c0.name;
+                                    if (!ds_map_exists(char_offsets_cache, _nm0)) {
+                                        var _op0 = datafiles_path + "config/" + _nm0 + "/offsets.json";
+                                        if (file_exists(_op0)) {
+                                            var _os0 = ""; var _of0 = file_text_open_read(_op0);
+                                            while (!file_text_eof(_of0)) { _os0 += file_text_readln(_of0); }
+                                            file_text_close(_of0);
+                                            ds_map_add(char_offsets_cache, _nm0, json_parse(_os0));
+                                        } else { ds_map_add(char_offsets_cache, _nm0, undefined); }
+                                    }
+                                    var _od0 = char_offsets_cache[? _nm0];
+                                    var _body_ok0 = string_replace(_spr0, ".png", "");
+                                    if (_od0 != undefined && !variable_struct_exists(_od0, _body_ok0))
+                                        _body_ok0 = string_replace(_cf0.sprite, ".png", "");
+                                    var _feet_ok0 = string_replace(_anim_feet0, ".png", "");
+                                    var _has_bx0 = (_od0 != undefined && variable_struct_exists(_od0, _body_ok0));
+                                    var _has_fx0 = (_od0 != undefined && _anim_feet0 != "" && variable_struct_exists(_od0, _feet_ok0));
+                                    preview_actors[_ca_aidx].canned_body_dx = (_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][0] - _od0[$ _feet_ok0][0]) : 0;
                                 }
                             }
                             action_animating = true;

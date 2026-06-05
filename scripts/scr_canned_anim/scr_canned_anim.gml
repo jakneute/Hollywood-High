@@ -174,7 +174,7 @@ function canned_anim_sprite_list(_char_index) {
     var _folder = datafiles_path + "actors/" + _name + "/";
     if (!directory_exists(_folder)) _folder = datafiles_path + "actors/" + _dir + "/";
     var _list = [];
-    var _ff = file_find_first(_folder + "pose_*.png", fa_readonly | fa_archive);
+    var _ff = file_find_first(_folder + "pose_*.png", fa_none | fa_readonly | fa_hidden | fa_sysfile | fa_archive);
     while (_ff != "") {
         array_push(_list, _ff);
         _ff = file_find_next();

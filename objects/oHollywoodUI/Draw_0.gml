@@ -123,12 +123,11 @@ if (theater_mode) {
 			                      && variable_struct_exists(_act, "canned_feet_spr") && _act.canned_feet_spr != -1)
 			                     ? _act.canned_feet_spr : -1;
 			    if (_feet_spr != -1) {
-			        // Animation sprite behind (layer 0), feet tile on top (layer 1) covering the legs.
-			        // Feet dy anchors its bottom to actor_y regardless of per-frame animation height.
-			        var _canned_h = sprite_get_height(_act.canned_spr);
-			        var _lower_h  = sprite_get_height(_feet_spr);
-			        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay },
-			                   { spr: _feet_spr, dx: 0, dy: _canned_h - _lower_h },
+			        var _canned_h  = sprite_get_height(_act.canned_spr);
+			        var _body_dy   = variable_struct_exists(_act, "canned_body_dy") ? _act.canned_body_dy : 0;
+			        var _body_dx   = variable_struct_exists(_act, "canned_body_dx") ? _act.canned_body_dx : 0;
+			        _layers = [{ spr: _feet_spr,       dx: 0,        dy: 0 },
+			                   { spr: _act.canned_spr, dx: _body_dx, dy: -_canned_h + _canned_ay + _body_dy },
 			                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
 			    } else {
 			        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay },
@@ -894,10 +893,11 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				                       && variable_struct_exists(_act, "canned_feet_spr") && _act.canned_feet_spr != -1)
 				                      ? _act.canned_feet_spr : -1;
 				    if (_feet_spr2 != -1) {
-				        var _canned_h2 = sprite_get_height(_act.canned_spr);
-				        var _lower_h2  = sprite_get_height(_feet_spr2);
-				        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay2 },
-				                   { spr: _feet_spr2, dx: 0, dy: _canned_h2 - _lower_h2 },
+				        var _canned_h2  = sprite_get_height(_act.canned_spr);
+				        var _body_dy2   = variable_struct_exists(_act, "canned_body_dy") ? _act.canned_body_dy : 0;
+				        var _body_dx2   = variable_struct_exists(_act, "canned_body_dx") ? _act.canned_body_dx : 0;
+				        _layers = [{ spr: _feet_spr2,      dx: 0,         dy: 0 },
+				                   { spr: _act.canned_spr, dx: _body_dx2, dy: -_canned_h2 + _canned_ay2 + _body_dy2 },
 				                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
 				    } else {
 				        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay2 },
@@ -4133,10 +4133,16 @@ if (anim_editor_open) {
                 draw_set_color(_anim_fs != "" ? c_white : make_color_rgb(65, 50, 50)); draw_set_halign(fa_center);
                 draw_text(_info_x + 87, _preview_y + 54, "CLR");
                 draw_set_halign(fa_left);
-                draw_set_color(make_color_rgb(28, 54, 82));
-                draw_roundrect_ext(_info_x + 120, _preview_y + 50, _info_x + 192, _preview_y + 68, 3, 3, false);
-                draw_set_color(make_color_rgb(75, 150, 220)); draw_set_halign(fa_center);
-                draw_text(_info_x + 156, _preview_y + 54, "AUTO");
+                // Body Y offset stepper (same row, right of CLR)
+                var _bdy_val = variable_struct_exists(_cur_anim, "body_dy") ? _cur_anim.body_dy : 0;
+                draw_set_color(make_color_rgb(80, 110, 80));
+                draw_text(_info_x + 122, _preview_y + 54, "Y " + string(_bdy_val));
+                draw_set_color(make_color_rgb(32, 70, 90));
+                draw_roundrect_ext(_info_x + 152, _preview_y + 50, _info_x + 174, _preview_y + 68, 3, 3, false);
+                draw_roundrect_ext(_info_x + 178, _preview_y + 50, _info_x + 200, _preview_y + 68, 3, 3, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 163, _preview_y + 54, "-");
+                draw_text(_info_x + 189, _preview_y + 54, "+");
                 draw_set_halign(fa_left);
             } else {
                 var _anim_fsf = variable_struct_exists(_cur_anim, "feet_sprite_flipped") ? _cur_anim.feet_sprite_flipped : "";
@@ -4153,11 +4159,6 @@ if (anim_editor_open) {
                 draw_roundrect_ext(_info_x + 60, _preview_y + 50, _info_x + 114, _preview_y + 68, 3, 3, false);
                 draw_set_color(_anim_fsf != "" ? c_white : make_color_rgb(65, 50, 50)); draw_set_halign(fa_center);
                 draw_text(_info_x + 87, _preview_y + 54, "CLR");
-                draw_set_halign(fa_left);
-                draw_set_color(make_color_rgb(28, 54, 82));
-                draw_roundrect_ext(_info_x + 120, _preview_y + 50, _info_x + 192, _preview_y + 68, 3, 3, false);
-                draw_set_color(make_color_rgb(75, 150, 220)); draw_set_halign(fa_center);
-                draw_text(_info_x + 156, _preview_y + 54, "AUTO");
                 draw_set_halign(fa_left);
             }
             if (_edit_frame.type == "sprite") {

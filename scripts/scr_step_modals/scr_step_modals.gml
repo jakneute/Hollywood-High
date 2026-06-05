@@ -144,7 +144,7 @@ function step_modal_anim_editor() {
     if (anim_editor_sprite_picker) {
         var _cols = 7; var _th = 90;
         var _gy = _m_y + 60;
-        var _vis_rows = floor((_m_h - 80) / _th);
+        var _vis_rows = floor((_m_h - 114) / _th); // 60px header + 54px button bar, matches draw
         var _total_spr_rows = ceil(array_length(anim_editor_sprite_list) / _cols);
         var _max_spr = max(0, _total_spr_rows - _vis_rows);
         var _sbx_s = _m_x + _m_w - 16; var _sby_s = _gy;
@@ -314,7 +314,7 @@ function step_modal_anim_editor() {
             // SET
             if (_mx > _info_x && _mx < _info_x + 54 && _my > _preview_y + 50 && _my < _preview_y + 68) {
                 anim_editor_sprite_picker_mode = 1;
-                if (array_length(anim_editor_sprite_list) == 0) anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
+                anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
                 anim_editor_sprite_scroll = 0;
                 if (_anim_fs2 != "") {
                     for (var _fli = 0; _fli < array_length(anim_editor_sprite_list); _fli++) {
@@ -331,26 +331,15 @@ function step_modal_anim_editor() {
             if (_mx > _info_x + 60 && _mx < _info_x + 114 && _my > _preview_y + 50 && _my < _preview_y + 68) {
                 _anim[$ _feet_key] = ""; anim_editor_dirty = true; return;
             }
-            // AUTO — detect lower body sprite (normal: range 06-10, flipped: range 56-60)
-            if (_mx > _info_x + 120 && _mx < _info_x + 192 && _my > _preview_y + 50 && _my < _preview_y + 68) {
-                var _c_auto = characters[anim_editor_char_idx];
-                var _nm_auto = variable_struct_exists(_c_auto, "sprite_name") ? _c_auto.sprite_name : _c_auto.name;
-                var _ai_auto = variable_struct_exists(_c_auto, "act_index") ? _c_auto.act_index : 1;
-                var _folder_auto = datafiles_path + "actors/" + _nm_auto + "/";
-                var _pfx_auto = string(_ai_auto) + "1";
-                var _n_start = anim_editor_flipped_mode ? 56 : 6;
-                var _n_end   = anim_editor_flipped_mode ? 60 : 10;
-                var _best_f = ""; var _best_sz = 0;
-                for (var _n = _n_start; _n <= _n_end; _n++) {
-                    var _ns = (_n < 10 ? "0" : "") + string(_n);
-                    var _cf_auto = "pose_" + _pfx_auto + _ns + ".png";
-                    var _fb = file_bin_open(_folder_auto + _cf_auto, 0);
-                    var _sz = (_fb != -1) ? file_bin_size(_fb) : 0;
-                    if (_fb != -1) file_bin_close(_fb);
-                    if (_sz > _best_sz) { _best_sz = _sz; _best_f = _cf_auto; }
+            // Body Y offset stepper (normal mode only — same row, right of CLR)
+            if (!anim_editor_flipped_mode) {
+                var _cur_bdy = variable_struct_exists(_anim, "body_dy") ? _anim.body_dy : 0;
+                if (_mx > _info_x + 152 && _mx < _info_x + 174 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+                    _anim.body_dy = _cur_bdy - 1; anim_editor_dirty = true; return;
                 }
-                if (_best_f != "") { _anim[$ _feet_key] = _best_f; anim_editor_dirty = true; }
-                return;
+                if (_mx > _info_x + 178 && _mx < _info_x + 200 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+                    _anim.body_dy = _cur_bdy + 1; anim_editor_dirty = true; return;
+                }
             }
         }
 
@@ -389,7 +378,7 @@ function step_modal_anim_editor() {
                 if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 128 && _my < _preview_y + 150) {
                     anim_editor_selected_frame = _edit_idx;
                     anim_editor_sprite_picker_mode = 0;
-                    if (array_length(anim_editor_sprite_list) == 0) anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
+                    anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
                     anim_editor_sprite_scroll = 0;
                     var _cur_spr = anim_editor_flipped_mode
                         ? (variable_struct_exists(_sf2, "sprite_flipped") ? _sf2.sprite_flipped : "")

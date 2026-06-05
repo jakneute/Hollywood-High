@@ -2461,7 +2461,8 @@ if (mouse_check_button_pressed(mb_left)) {
                 else if (_b1_type == "canned" || _b2_type == "canned") {
                     var _other_ca = (_b1_type == "canned") ? _b2_type : _b1_type;
                     if (_other_ca == "sfx" || _other_ca == "quake" || _other_ca == "particle") _base_valid = true;
-                    else if (_other_ca == "move" && _diff_char) _base_valid = true;
+                    else if (_other_ca == "move") _base_valid = true;
+                    else if (_other_ca == "voice" && _diff_char) _base_valid = true;
                 }
 
                 var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
@@ -2488,7 +2489,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_bk_type == "particle") _particle_in_chain++;
                         if (_bk_type == "quake")    _quake_in_chain++;
 
-                        if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction") {
+                        if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned") {
                             for (var j = k + 1; j <= _end_idx; j++) {
                                 var _bj = script_blocks[j];
                                 if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
@@ -2502,6 +2503,7 @@ if (mouse_check_button_pressed(mb_left)) {
                                     if (_bk_type == "move"   && _bj_type == "move")      { _chain_valid = false; break; }
                                     if (_bk_type == "charaction" && (_bj_type == "charaction" || _bj_type == "move")) { _chain_valid = false; break; }
                                     if (_bk_type == "move"   && _bj_type == "charaction") { _chain_valid = false; break; }
+                                    if (_bk_type == "canned" && _bj_type == "canned")    { _chain_valid = false; break; }
                                 }
                             }
                         }
