@@ -160,13 +160,13 @@ function canned_anim_fire_sound(_char_index, _sound_frame) {
     var _buf = load_sfx_buffer(_folder, _fname);
     if (_buf != -1) {
         buffer_delete(_buf);
-        play_sfx_preview(_folder, _fname);
+        play_animation_sfx(_folder, _fname);
         return;
     }
-    
+
     // Fallback for old loose files
     var _abs = datafiles_path + "actors\\" + _sound_frame.file;
-    canned_anim_play_abs(_abs);
+    play_animation_sfx_abs(_abs);
 }
 
 // Saves the in-memory animation data back to animations.json for a character.

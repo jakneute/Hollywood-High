@@ -460,6 +460,7 @@ action_modal_sfx_bksp_held = 0;
 action_modal_sfx_show_actors = false;
 test_sfx_sound = -1;
 test_sfx_buffer = -1;
+sfx_active_instances = [];
 sfx_base_path = datafiles_path + "sounds/";
 
 // refresh_sfx_folders = function() — defined in scr_scene/scr_utils/scr_expr_cfg

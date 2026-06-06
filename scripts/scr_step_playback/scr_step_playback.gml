@@ -206,6 +206,7 @@ function step_tts_playback() {
                         array_delete(active_animations, _ai, 1);
                     }
                 } else if (_anim.type == "canned") {
+                    cleanup_sfx_instances();
                     var _frames = _anim.anim_data.frames;
                     var _total  = array_length(_frames);
                     while (_anim.frame_idx < _total && _frames[_anim.frame_idx].type == "sound") {

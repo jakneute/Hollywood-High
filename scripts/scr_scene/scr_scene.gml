@@ -269,6 +269,55 @@ function load_sfx_buffer_by_path(_sfx_path) {
     return -1;
 }
 
+// Fires a sound as an independent overlapping instance for animation playback.
+// Each call gets its own buffer+sound — instances are cleaned up when finished.
+function play_animation_sfx(_folder, _file) {
+    var _tmp_buf = load_sfx_buffer(_folder, _file);
+    if (_tmp_buf == -1) return;
+    var _sz  = buffer_get_size(_tmp_buf);
+    var _buf = buffer_create(_sz, buffer_fixed, 1);
+    buffer_copy(_tmp_buf, 0, _sz, _buf, 0);
+    buffer_delete(_tmp_buf);
+    var _wav  = parse_wav_header(_buf);
+    var _fmt  = (_wav.bits == 16) ? buffer_s16 : buffer_u8;
+    var _cfmt = (_wav.chan == 2) ? audio_stereo : audio_mono;
+    var _snd  = audio_create_buffer_sound(_buf, _fmt, _wav.rate, _wav.data_offset, _wav.data_size, _cfmt);
+    if (_snd == -1) { buffer_delete(_buf); return; }
+    audio_play_sound(_snd, 1, false);
+    array_push(sfx_active_instances, { sound: _snd, buffer: _buf });
+}
+
+function play_animation_sfx_abs(_abs_path) {
+    if (!file_exists(_abs_path)) return;
+    var _tmp = buffer_load(_abs_path);
+    if (_tmp == -1) return;
+    var _sz  = buffer_get_size(_tmp);
+    var _buf = buffer_create(_sz, buffer_fixed, 1);
+    buffer_copy(_tmp, 0, _sz, _buf, 0);
+    buffer_delete(_tmp);
+    var _wav  = parse_wav_header(_buf);
+    var _fmt  = (_wav.bits == 16) ? buffer_s16 : buffer_u8;
+    var _cfmt = (_wav.chan == 2) ? audio_stereo : audio_mono;
+    var _snd  = audio_create_buffer_sound(_buf, _fmt, _wav.rate, _wav.data_offset, _wav.data_size, _cfmt);
+    if (_snd == -1) { buffer_delete(_buf); return; }
+    audio_play_sound(_snd, 1, false);
+    array_push(sfx_active_instances, { sound: _snd, buffer: _buf });
+}
+
+// Frees any animation SFX instances that have finished playing. Call once per step.
+function cleanup_sfx_instances() {
+    var _i = array_length(sfx_active_instances) - 1;
+    while (_i >= 0) {
+        var _inst = sfx_active_instances[_i];
+        if (!audio_is_playing(_inst.sound)) {
+            audio_free_buffer_sound(_inst.sound);
+            buffer_delete(_inst.buffer);
+            array_delete(sfx_active_instances, _i, 1);
+        }
+        _i--;
+    }
+}
+
 function play_sfx_preview(_folder, _file) {
     var _tmp_buf = load_sfx_buffer(_folder, _file);
     if (_tmp_buf == -1) return;

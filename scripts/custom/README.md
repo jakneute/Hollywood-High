@@ -1,47 +1,100 @@
-# Hollywood High CD-ROM Asset Extractor
+# Hollywood High — Custom Scripts
 
-This utility allows you to extract the original high-fidelity graphics and sound assets directly from the **Hollywood High CD-ROM** and convert them to modern, standard formats.
-
----
-
-## What It Extracts
-1. **Character Sprites (Actors)**: All 22 characters and their full pose sets, exported as transparent `.png` files with perfectly corrected character palette shading, outlines, and eye colors mapped from `character_color_mappings.json`.
-2. **Backgrounds (Scenes)**: Full-size backgrounds exported as `.png` files.
-3. **Dialogue & Sound Effects (Sounds)**: Original uncompressed Mac audio formats converted to standard mono 16-bit `.wav` files at their native sampling rates, with dynamic filename labeling matched from the CD-ROM's Table of Contents.
-4. **Generic Assets (Main)**: Extracts source code, text scripts, UI graphics, and any other untyped binary formats from `MAIN.RF` dynamically into folders based on their Mac resource tag (e.g. `TEXT`, `scpt`, `PICT`).
+This folder contains Node.js utilities for extracting, unpacking, and repacking
+the game's binary asset archives, as well as planning documents for the custom
+actor system.
 
 ---
 
-## Step-by-Step Instructions
+## Scripts
 
-### Step 1: Mount the CD-ROM
-To extract the assets, the original Hollywood High CD-ROM must be accessible to your computer.
-* **If you have a physical disc**: Insert it into your CD/DVD drive. Note down the drive letter (e.g., `D:`, `E:`, `J:`).
-* **If you have a digital disc image (ISO / BIN / CUE)**: 
-  * Right-click the `.iso` or disc image file in Windows Explorer and select **Mount**.
-  * Windows will assign a virtual CD-ROM drive letter to it. Note down this letter (e.g., `J:`).
+### `extract_hhi.js` — CD-ROM Asset Extractor
+Extracts original assets directly from the Hollywood High CD-ROM and converts
+them to modern formats. Outputs to `extracted_assets/` in this folder.
 
-### Step 2: Install Dependencies
-Open your terminal (PowerShell, Command Prompt, or bash) and navigate to this folder:
+**What it extracts:**
+- **Actors** — all 22 characters and their full pose sets as transparent `.png` files,
+  with palette corrections applied from `color_mappings.json`
+- **Scenes** — full-size background images as `.png` files
+- **Sounds** — original Mac audio converted to standard mono 16-bit `.wav` files
+- **Main** — source scripts, UI graphics, and other binary assets from `MAIN.RF`
+
+**Usage:**
 ```bash
-cd "scripts/custom"
-```
-
-Install the required extraction dependencies by running:
-```bash
-npm install
-```
-
-### Step 3: Run the Extractor
-Start the automated extraction process:
-```bash
+npm install        # first time only
 node extract_hhi.js
 ```
+Enter your CD-ROM drive letter when prompted. Choose what to extract from the menu.
+Output lands in `extracted_assets/` — review and move assets manually from there.
 
-### Step 4: Specify the CD Drive Letter
-When prompted, type the drive letter corresponding to your mounted CD-ROM (e.g., `J` or `D`) and press **Enter**:
-```text
-Please enter the drive letter for the Hollywood High CD-ROM (e.g., J): J
+---
+
+### `unpack_assets.js` — Pack File Extractor
+Extracts scenes, sounds, or actor sprites from the game's binary `.pack` archives.
+Reads `.pack` files from `datafiles/` and outputs loose files to `unpacked_assets/`
+in this folder, keeping them away from the live project until you're ready.
+
+**Usage:**
+```bash
+node unpack_assets.js
+```
+Choose what to unpack from the menu. Extracted files land in `unpacked_assets/`.
+Review and make edits there before moving anything into `datafiles/`.
+
+---
+
+### `pack_assets.js` — Pack File Builder
+Packs loose files from `unpacked_assets/` back into binary `.pack` archives.
+Writes the new `.pack` file to whatever directory you run the script from,
+so you can verify it before manually overwriting the one in `datafiles/`.
+
+**Usage:**
+```bash
+node pack_assets.js
+```
+Choose what to pack from the menu. Move the resulting `.pack` to `datafiles/` when ready.
+
+---
+
+## Workflow
+
+The intended pipeline for updating assets:
+
+```
+CD-ROM  →  extract_hhi.js  →  extracted_assets/   (review here)
+                                      ↓  move manually
+                              unpacked_assets/      (edit here)
+                                      ↓  pack_assets.js
+                              new .pack file        (verify here)
+                                      ↓  move manually
+                              datafiles/            (live)
 ```
 
-The script will automatically detect the resource files and process all actors, scenes, and audio tracks in one swift, seamless run! The outputs will be placed neatly inside a new `extracted_assets/` subfolder.
+Nothing moves forward automatically. Every handoff is intentional.
+
+---
+
+## Custom Assets
+
+Custom scenes, sounds, and actors can be added without touching the CD-ROM pipeline at all.
+
+- **Custom scenes** — drop a `.png` into `datafiles/scenes/`
+- **Custom sounds** — drop a `.wav` into the appropriate `datafiles/sounds/` category subfolder
+- **Custom actors** — see `custom_actor_plan.md` for the full system design
+
+Both scenes and sounds are picked up automatically with no additional configuration.
+
+---
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `extract_hhi.js` | CD-ROM extractor |
+| `unpack_assets.js` | Unpack `.pack` archives to loose files |
+| `pack_assets.js` | Repack loose files into `.pack` archives |
+| `extract_offsets.js` | Offset extraction utility |
+| `color_mappings.json` | Palette correction overrides for actor extraction |
+| `custom_actor_plan.md` | Design plan for the custom actor system |
+| `extracted_assets/` | Output folder for CD-ROM extraction |
+| `unpacked_assets/` | Staging folder for unpacked assets |

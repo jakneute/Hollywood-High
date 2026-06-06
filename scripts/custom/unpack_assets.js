@@ -20,6 +20,7 @@ const readline = require('readline');
 
 const projectDir   = path.join(__dirname, '..', '..');
 const datafilesDir = path.join(projectDir, 'datafiles');
+const unpackedDir  = path.join(__dirname, 'unpacked_assets');
 
 // ── Core unpacker ─────────────────────────────────────────────────────────────
 function unpack(packPath, destDir, label) {
@@ -63,7 +64,7 @@ function unpackScenes() {
     console.log('\n[SCENES]');
     unpack(
         path.join(datafilesDir, 'scenes.pack'),
-        path.join(datafilesDir, 'scenes'),
+        path.join(unpackedDir, 'scenes'),
         'scenes'
     );
 }
@@ -73,7 +74,7 @@ function unpackSounds() {
     console.log('\n[SOUNDS]');
     unpack(
         path.join(datafilesDir, 'sounds.pack'),
-        path.join(datafilesDir, 'sounds'),
+        path.join(unpackedDir, 'sounds'),
         'sounds'
     );
     console.log('  NOTE: sounds/ subdirectories (e.g. Animals/dog.wav) are restored automatically.');
@@ -83,7 +84,7 @@ function unpackSounds() {
 function unpackActors(targetChar) {
     console.log('\n[ACTORS]');
     const packPath  = path.join(datafilesDir, 'actors.pack');
-    const actorsDir = path.join(datafilesDir, 'actors');
+    const actorsDir = path.join(unpackedDir, 'actors');
 
     if (!fs.existsSync(packPath)) {
         console.log(`  actors.pack not found at ${packPath}`);
@@ -116,7 +117,6 @@ function unpackActors(targetChar) {
         if (filter && charDir !== filter) { skipped++; return; }
 
         const { offset, size } = toc[key];
-        // Reconstruct title-case dir name from the key prefix stored at pack time
         const outDir = path.join(actorsDir, charDir);
         if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
@@ -129,7 +129,7 @@ function unpackActors(targetChar) {
     if (filter) {
         console.log(`  Extracted ${count} file(s) for "${targetChar}" (${skipped} others skipped).`);
     } else {
-        console.log(`  Extracted ${count}/${total} file(s) → datafiles/actors/`);
+        console.log(`  Extracted ${count}/${total} file(s) → scripts/custom/unpacked_assets/actors/`);
     }
     console.log(`  NOTE: offsets.json / expressions_config.json are not in the pack — they stay loose.`);
 }
