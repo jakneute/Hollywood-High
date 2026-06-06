@@ -614,8 +614,35 @@ function step_modal_anim_editor() {
         anim_editor_hold_btn = 0; anim_editor_hold_repeat = 0;
     }
 
-    if (mouse_wheel_up()   && !anim_editor_sprite_picker && !anim_editor_sfx_picker) anim_editor_sprite_scroll = max(0, anim_editor_sprite_scroll - 1);
-    if (mouse_wheel_down() && !anim_editor_sprite_picker && !anim_editor_sfx_picker) anim_editor_sprite_scroll++;
+    if (!anim_editor_sprite_picker && !anim_editor_sfx_picker) {
+        // Scroll wheel zooms the preview
+        if (mouse_wheel_up())   anim_editor_zoom = min(anim_editor_zoom + 0.1, 8.0);
+        if (mouse_wheel_down()) anim_editor_zoom = max(anim_editor_zoom - 0.1, 0.2);
+
+        // Middle mouse: drag to pan; click in place to reset zoom and pan
+        if (mouse_check_button_pressed(mb_middle)) {
+            anim_editor_pan_drag = true;
+            anim_editor_pan_mx0 = _mx; anim_editor_pan_my0 = _my;
+            anim_editor_pan_ox  = anim_editor_pan_x; anim_editor_pan_oy = anim_editor_pan_y;
+        }
+        if (anim_editor_pan_drag) {
+            if (mouse_check_button(mb_middle)) {
+                anim_editor_pan_x = anim_editor_pan_ox + (_mx - anim_editor_pan_mx0);
+                anim_editor_pan_y = anim_editor_pan_oy + (_my - anim_editor_pan_my0);
+            } else {
+                if (abs(_mx - anim_editor_pan_mx0) < 4 && abs(_my - anim_editor_pan_my0) < 4) {
+                    anim_editor_zoom = 1.0; anim_editor_pan_x = 0; anim_editor_pan_y = 0;
+                }
+                anim_editor_pan_drag = false;
+            }
+        }
+    } else {
+        // Pass scroll through to the active picker's strip scroll
+        if (anim_editor_sprite_picker) {
+            if (mouse_wheel_up())   anim_editor_sprite_scroll = max(0, anim_editor_sprite_scroll - 1);
+            if (mouse_wheel_down()) anim_editor_sprite_scroll++;
+        }
+    }
 
     // Arrow keys scroll the strip (and move selection) when a frame is selected
     if (!anim_editor_sprite_picker && !anim_editor_sfx_picker && anim_editor_selected_frame >= 0) {

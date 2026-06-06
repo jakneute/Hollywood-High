@@ -4162,17 +4162,25 @@ if (anim_editor_open) {
                     var _feet_draw_y = _floor_y  - _fsh2 * _fsc2;
                     var _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx) * _fsc2;
                     var _body_draw_y = _feet_draw_y + _body_dy_px * _fsc2;
-                    draw_sprite_ext(_feet_spr_prev, 0, _feet_draw_x, _feet_draw_y, _fsc2, _fsc2, 0, c_white, 1);
-                    draw_sprite_ext(_fspr,          0, _body_draw_x, _body_draw_y, _fsc2, _fsc2, 0, c_white, 1);
+                    var _zsc2 = _fsc2 * anim_editor_zoom;
+                    var _zpx2 = (_feet_draw_x - _center_x) * anim_editor_zoom + _center_x + anim_editor_pan_x;
+                    var _zpy2 = (_feet_draw_y - _floor_y)  * anim_editor_zoom + _floor_y  + anim_editor_pan_y;
+                    var _zbpx = (_body_draw_x - _center_x) * anim_editor_zoom + _center_x + anim_editor_pan_x;
+                    var _zbpy = (_body_draw_y - _floor_y)  * anim_editor_zoom + _floor_y  + anim_editor_pan_y;
+                    draw_sprite_ext(_feet_spr_prev, 0, _zpx2, _zpy2, _zsc2, _zsc2, 0, c_white, 1);
+                    draw_sprite_ext(_fspr,          0, _zbpx, _zbpy, _zsc2, _zsc2, 0, c_white, 1);
                     // Faint seam line at feet top
                     draw_set_color(make_color_rgb(50, 130, 50)); draw_set_alpha(0.3);
-                    draw_line(_feet_draw_x, _feet_draw_y, _feet_draw_x + _fsw2 * _fsc2, _feet_draw_y);
+                    draw_line(_zpx2, _zpy2, _zpx2 + _fsw2 * _zsc2, _zpy2);
                     draw_set_alpha(1.0);
                 } else {
                     var _fsc = min(_avail_h / _fh, _avail_w / _fw);
                     var _fdx = _center_x - (_fw * _fsc * 0.5);
                     var _fdy = _floor_y  - _fh * _fsc;
-                    draw_sprite_ext(_fspr, 0, _fdx, _fdy, _fsc, _fsc, 0, c_white, 1);
+                    var _zsc  = _fsc * anim_editor_zoom;
+                    var _zfdx = (_fdx - _center_x) * anim_editor_zoom + _center_x + anim_editor_pan_x;
+                    var _zfdy = (_fdy - _floor_y)  * anim_editor_zoom + _floor_y  + anim_editor_pan_y;
+                    draw_sprite_ext(_fspr, 0, _zfdx, _zfdy, _zsc, _zsc, 0, c_white, 1);
                 }
             }
         }

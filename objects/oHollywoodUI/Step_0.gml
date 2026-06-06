@@ -1619,6 +1619,7 @@ if (mouse_check_button_pressed(mb_left)) {
             anim_editor_tick          = 0;
             anim_editor_sprite_list   = [];
             anim_editor_flipped_mode  = false;
+            anim_editor_pan_x = 0; anim_editor_pan_y = 0; anim_editor_pan_drag = false; anim_editor_zoom = 1.0;
             return;
         }
     }

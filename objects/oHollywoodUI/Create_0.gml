@@ -707,6 +707,14 @@ anim_editor_anchor_btn       = 0;
 anim_editor_anchor_repeat    = 0;
 anim_editor_flipped_mode     = false;
 anim_editor_sprite_picker_mode = 0;  // 0 = main anim sprite, 1 = feet sprite
+anim_editor_pan_x    = 0;
+anim_editor_pan_y    = 0;
+anim_editor_pan_drag = false;
+anim_editor_pan_mx0  = 0;
+anim_editor_pan_my0  = 0;
+anim_editor_pan_ox   = 0;
+anim_editor_pan_oy   = 0;
+anim_editor_zoom     = 1.0;
 
 char_rename_active = false;  // true while the inline name editor is open
 char_rename_target = -1;    // index into characters[] being renamed
