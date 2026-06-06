@@ -198,6 +198,7 @@ function step_modal_anim_editor() {
                         var _nm2 = variable_struct_exists(_c2, "sprite_name") ? _c2.sprite_name : _c2.name;
                         ds_map_delete(char_sprites, "CANNED_" + _nm2 + "_" + anim_editor_sprite_pending);
                     }
+                    anim_editor_frame_idx = anim_editor_selected_frame;
                     anim_editor_dirty = true;
                 }
                 anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false;
@@ -266,15 +267,6 @@ function step_modal_anim_editor() {
         if (_mx > _m_x + 572 && _mx < _m_x + 642 && _my > _m_y + 20 && _my < _m_y + 48) {
             anim_editor_flipped_mode = !anim_editor_flipped_mode; return;
         }
-        // Copy to flipped — next to FLIP button, normal mode only
-        if (!anim_editor_flipped_mode && _mx > _m_x + 650 && _mx < _m_x + 790 && _my > _m_y + 20 && _my < _m_y + 48) {
-            for (var _cfi4 = 0; _cfi4 < array_length(_frames); _cfi4++) {
-                if (_frames[_cfi4].type == "sprite") {
-                    _frames[_cfi4].sprite_flipped = canned_anim_flipped_name(_frames[_cfi4].sprite);
-                }
-            }
-            anim_editor_dirty = true; return;
-        }
         // Animation list
         for (var i = 0; i < array_length(_data); i++) {
             var _lyl = _m_y + 60 + i * 30;
@@ -342,7 +334,7 @@ function step_modal_anim_editor() {
             var _feet_key = anim_editor_flipped_mode ? "feet_sprite_flipped" : "feet_sprite";
             var _anim_fs2 = variable_struct_exists(_anim, _feet_key) ? _anim[$ _feet_key] : "";
             // SET
-            if (_mx > _info_x && _mx < _info_x + 54 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+            if (_mx > _info_x && _mx < _info_x + 54 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                 anim_editor_sprite_picker_mode = 1;
                 anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
                 anim_editor_sprite_scroll = 0;
@@ -383,16 +375,16 @@ function step_modal_anim_editor() {
                 anim_editor_sprite_picker = true; return;
             }
             // CLR
-            if (_mx > _info_x + 60 && _mx < _info_x + 114 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+            if (_mx > _info_x + 60 && _mx < _info_x + 114 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                 _anim[$ _feet_key] = ""; anim_editor_dirty = true; return;
             }
-            // Body Y offset stepper (normal mode only — same row, right of CLR)
-            if (!anim_editor_flipped_mode) {
+            // Body Y offset stepper (both modes — body_dy is animation-level, not per-facing)
+            {
                 var _cur_bdy = variable_struct_exists(_anim, "body_dy") ? _anim.body_dy : 0;
-                if (_mx > _info_x + 152 && _mx < _info_x + 174 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+                if (_mx > _info_x + 152 && _mx < _info_x + 174 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                     _anim.body_dy = _cur_bdy - 1; anim_editor_dirty = true; return;
                 }
-                if (_mx > _info_x + 178 && _mx < _info_x + 200 && _my > _preview_y + 50 && _my < _preview_y + 68) {
+                if (_mx > _info_x + 178 && _mx < _info_x + 200 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                     _anim.body_dy = _cur_bdy + 1; anim_editor_dirty = true; return;
                 }
             }
@@ -406,26 +398,22 @@ function step_modal_anim_editor() {
 
             if (_sf2.type == "sprite") {
                 // Hold -
-                if (_mx > _info_x + 100 && _mx < _info_x + 126 && _my > _preview_y + 98 && _my < _preview_y + 116) {
+                if (_mx > _info_x + 100 && _mx < _info_x + 126 && _my > _preview_y + 92 && _my < _preview_y + 110) {
                     _sf2.hold = max(1, _sf2.hold - 1); anim_editor_dirty = true; return;
                 }
                 // Hold +
-                if (_mx > _info_x + 132 && _mx < _info_x + 158 && _my > _preview_y + 98 && _my < _preview_y + 116) {
+                if (_mx > _info_x + 132 && _mx < _info_x + 158 && _my > _preview_y + 92 && _my < _preview_y + 110) {
                     _sf2.hold++; anim_editor_dirty = true; return;
                 }
                 // Apply hold to all sprite frames
-                if (_mx > _info_x + 164 && _mx < _info_x + 232 && _my > _preview_y + 98 && _my < _preview_y + 116) {
+                if (_mx > _info_x + 164 && _mx < _info_x + 232 && _my > _preview_y + 92 && _my < _preview_y + 110) {
                     for (var _afi = 0; _afi < array_length(_frames); _afi++) {
                         if (_frames[_afi].type == "sprite") _frames[_afi].hold = _sf2.hold;
                     }
                     anim_editor_dirty = true; return;
                 }
-                // Copy pose to clipboard
-                if (_mx > _info_x + 168 && _mx < _info_x + 248 && _my > _preview_y + 168 && _my < _preview_y + 190) {
-                    anim_editor_pose_clipboard = _sf2.sprite; return;
-                }
                 // Change sprite / change flipped sprite
-                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 168 && _my < _preview_y + 190) {
+                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 190 && _my < _preview_y + 212) {
                     anim_editor_selected_frame = _edit_idx;
                     anim_editor_sprite_picker_mode = 0;
                     anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
@@ -482,29 +470,29 @@ function step_modal_anim_editor() {
                 if (_has_feet_sf2 && _is_comp_sf2) {
                     var _fdy_key2 = anim_editor_flipped_mode ? "frame_dy_flipped" : "frame_dy";
                     var _fdx_key2 = anim_editor_flipped_mode ? "frame_dx_flipped" : "frame_dx";
-                    // CLR flipped override (label row: _preview_y+116 to _preview_y+130)
-                    if (anim_editor_flipped_mode && _mx > _info_x + 138 && _mx < _info_x + 168 && _my > _preview_y + 116 && _my < _preview_y + 130) {
+                    // CLR flipped override (label row: _preview_y+126 to _preview_y+140)
+                    if (anim_editor_flipped_mode && _mx > _info_x + 138 && _mx < _info_x + 168 && _my > _preview_y + 126 && _my < _preview_y + 140) {
                         variable_struct_remove(_sf2, "frame_dy_flipped");
                         variable_struct_remove(_sf2, "frame_dx_flipped");
                         anim_editor_dirty = true; return;
                     }
-                    // Y - (row1: _preview_y+122 to _preview_y+140)
-                    if (_mx > _info_x + 74 && _mx < _info_x + 100 && _my > _preview_y + 122 && _my < _preview_y + 140) {
+                    // Y - (row1: _preview_y+144 to _preview_y+162)
+                    if (_mx > _info_x + 74 && _mx < _info_x + 100 && _my > _preview_y + 144 && _my < _preview_y + 162) {
                         _sf2[$ _fdy_key2] = (variable_struct_exists(_sf2, _fdy_key2) ? _sf2[$ _fdy_key2] : 0) - 1;
                         anim_editor_dirty = true; return;
                     }
                     // Y +
-                    if (_mx > _info_x + 104 && _mx < _info_x + 130 && _my > _preview_y + 122 && _my < _preview_y + 140) {
+                    if (_mx > _info_x + 104 && _mx < _info_x + 130 && _my > _preview_y + 144 && _my < _preview_y + 162) {
                         _sf2[$ _fdy_key2] = (variable_struct_exists(_sf2, _fdy_key2) ? _sf2[$ _fdy_key2] : 0) + 1;
                         anim_editor_dirty = true; return;
                     }
-                    // X - (row2: _preview_y+142 to _preview_y+160)
-                    if (_mx > _info_x + 74 && _mx < _info_x + 100 && _my > _preview_y + 142 && _my < _preview_y + 160) {
+                    // X - (row2: _preview_y+164 to _preview_y+182)
+                    if (_mx > _info_x + 74 && _mx < _info_x + 100 && _my > _preview_y + 164 && _my < _preview_y + 182) {
                         _sf2[$ _fdx_key2] = (variable_struct_exists(_sf2, _fdx_key2) ? _sf2[$ _fdx_key2] : 0) - 1;
                         anim_editor_dirty = true; return;
                     }
                     // X +
-                    if (_mx > _info_x + 104 && _mx < _info_x + 130 && _my > _preview_y + 142 && _my < _preview_y + 160) {
+                    if (_mx > _info_x + 104 && _mx < _info_x + 130 && _my > _preview_y + 164 && _my < _preview_y + 182) {
                         _sf2[$ _fdx_key2] = (variable_struct_exists(_sf2, _fdx_key2) ? _sf2[$ _fdx_key2] : 0) + 1;
                         anim_editor_dirty = true; return;
                     }
@@ -513,7 +501,7 @@ function step_modal_anim_editor() {
 
             if (_sf2.type == "sound") {
                 // Change SFX button
-                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 168 && _my < _preview_y + 190) {
+                if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 190 && _my < _preview_y + 212) {
                     anim_editor_selected_frame = _edit_idx;
                     var _sc  = characters[anim_editor_char_idx];
                     var _snm = variable_struct_exists(_sc, "sprite_name") ? _sc.sprite_name : _sc.name;
@@ -525,7 +513,7 @@ function step_modal_anim_editor() {
                     anim_editor_sfx_picker = true; return;
                 }
                 // DEL button — remove this sound frame
-                if (_mx > _info_x + 168 && _mx < _info_x + 228 && _my > _preview_y + 168 && _my < _preview_y + 190) {
+                if (_mx > _info_x + 168 && _mx < _info_x + 228 && _my > _preview_y + 190 && _my < _preview_y + 212) {
                     array_delete(_frames, _edit_idx, 1);
                     anim_editor_selected_frame = -1;
                     anim_editor_dirty = true; return;
@@ -535,7 +523,7 @@ function step_modal_anim_editor() {
 
         // ── Unified bottom row: +SFX, +SPRITE, DEL — always active when anim selected ──
         if (_has_anims && _anim != undefined) {
-            var _btn_y = _preview_y + 200;
+            var _btn_y = _preview_y + 224;
             var _edit_idx2 = (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames))
                              ? anim_editor_selected_frame : anim_editor_frame_idx;
             var _has_sel = (_edit_idx2 >= 0 && _edit_idx2 < array_length(_frames));
@@ -554,13 +542,29 @@ function step_modal_anim_editor() {
                 _anim_sfx_refresh();
                 anim_editor_sfx_picker = true; return;
             }
-            // +SPRITE — duplicate selection and insert after, or append blank if empty
+            // +SPRITE — duplicate selection and insert after, or append blank if empty; auto-open sprite picker
             if (_mx > _info_x + 88 && _mx < _info_x + 168 && _my > _btn_y && _my < _btn_y + 22) {
                 var _new_sp2 = { type: "sprite", sprite: (_sf3 != undefined && _sf3.type == "sprite") ? _sf3.sprite : "", composite_legs: true, hold: (_sf3 != undefined && _sf3.type == "sprite") ? _sf3.hold : 10 };
                 var _ins2 = _has_sel ? _edit_idx2 + 1 : array_length(_frames);
                 array_insert(_frames, _ins2, _new_sp2);
                 anim_editor_selected_frame = _ins2;
-                anim_editor_dirty = true; return;
+                anim_editor_dirty = true;
+                // Auto-open sprite picker for the new frame
+                anim_editor_sprite_picker_mode = 0;
+                anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
+                anim_editor_sprite_scroll = 0;
+                var _cur_spr2 = _new_sp2.sprite;
+                if (_cur_spr2 != "") {
+                    for (var _sli2 = 0; _sli2 < array_length(anim_editor_sprite_list); _sli2++) {
+                        if (anim_editor_sprite_list[_sli2] == _cur_spr2) {
+                            var _cols_sp2 = 4; var _vis_sp2 = floor((_m_h - 80) / 160);
+                            anim_editor_sprite_scroll = max(0, floor(_sli2 / _cols_sp2) - floor(_vis_sp2 / 2));
+                            break;
+                        }
+                    }
+                }
+                anim_editor_sprite_pending = _cur_spr2;
+                anim_editor_sprite_picker = true; return;
             }
             // DEL — remove selected frame (sprite or sound)
             if (_has_sel && _mx > _info_x + 176 && _mx < _info_x + 236 && _my > _btn_y && _my < _btn_y + 22) {
@@ -577,12 +581,12 @@ function step_modal_anim_editor() {
                    ? anim_editor_selected_frame : anim_editor_frame_idx;
         if (_ei2 >= 0 && _ei2 < array_length(_frames) && _frames[_ei2].type == "sprite") {
             var _hi = _info_x; var _py2 = _preview_y;
-            var _on_minus   = (_mx > _hi + 100 && _mx < _hi + 126 && _my > _py2 + 98  && _my < _py2 + 116);
-            var _on_plus    = (_mx > _hi + 132 && _mx < _hi + 158 && _my > _py2 + 98  && _my < _py2 + 116);
-            var _on_fdy_min = (_mx > _hi + 74  && _mx < _hi + 100 && _my > _py2 + 122 && _my < _py2 + 140);
-            var _on_fdy_pls = (_mx > _hi + 104 && _mx < _hi + 130 && _my > _py2 + 122 && _my < _py2 + 140);
-            var _on_fdx_min = (_mx > _hi + 74  && _mx < _hi + 100 && _my > _py2 + 142 && _my < _py2 + 160);
-            var _on_fdx_pls = (_mx > _hi + 104 && _mx < _hi + 130 && _my > _py2 + 142 && _my < _py2 + 160);
+            var _on_minus   = (_mx > _hi + 100 && _mx < _hi + 126 && _my > _py2 + 92  && _my < _py2 + 110);
+            var _on_plus    = (_mx > _hi + 132 && _mx < _hi + 158 && _my > _py2 + 92  && _my < _py2 + 110);
+            var _on_fdy_min = (_mx > _hi + 74  && _mx < _hi + 100 && _my > _py2 + 144 && _my < _py2 + 162);
+            var _on_fdy_pls = (_mx > _hi + 104 && _mx < _hi + 130 && _my > _py2 + 144 && _my < _py2 + 162);
+            var _on_fdx_min = (_mx > _hi + 74  && _mx < _hi + 100 && _my > _py2 + 164 && _my < _py2 + 182);
+            var _on_fdx_pls = (_mx > _hi + 104 && _mx < _hi + 130 && _my > _py2 + 164 && _my < _py2 + 182);
             if (_on_minus || _on_plus || _on_fdy_min || _on_fdy_pls || _on_fdx_min || _on_fdx_pls) {
                 if (_on_minus)        anim_editor_hold_btn = 1;
                 else if (_on_plus)    anim_editor_hold_btn = 2;

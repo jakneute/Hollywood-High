@@ -523,13 +523,16 @@ function play_from_index(_idx) {
     }
 
     // Exit all special modes before playback begins
+    focused_block              = -1;
+    insertion_idx              = -1;
+    is_selecting               = false;
     scene_edit_mode            = false;
     particle_edit_mode         = false;
     particle_drag_pos          = false;
     particle_drag_dir          = false;
     particle_drag_area_w       = false;
     particle_drag_area_h       = false;
-    edit_mode                  = false;   // voice config modal
+    edit_mode                  = false;
     dictionary_open            = false;
     pose_modal_open            = false;
     pose_modal_edit_mode       = false;
@@ -542,7 +545,6 @@ function play_from_index(_idx) {
     action_modal_edit_mode     = false;
     scene_modal_open           = false;
     scene_modal_edit_mode      = false;
-    insertion_idx              = -1;
     update_preview_actors_for_block(_idx, false);
     playing_block_index  = _idx;
     playing_linked_index = -1;
@@ -559,6 +561,41 @@ function play_from_index(_idx) {
     active_decap_heads = [];
     active_shots      = [];
     waiting_for_shots = false;
+    quake_x = 0; quake_y = 0; quake_frames = 0; quake_tied_to_chain = false;
+    for (var _pai = 0; _pai < array_length(preview_actors); _pai++) {
+        preview_actors[_pai].jitter_x = 0;
+        preview_actors[_pai].jitter_y = 0;
+    }
+}
+
+function stop_playback() {
+    audio_stop_all();
+    tts_stop();
+    for (var _si = 0; _si < array_length(script_blocks); _si++) {
+        var _sb = script_blocks[_si];
+        if (variable_struct_exists(_sb, "last_sound") && _sb.last_sound != -1) {
+            if (audio_exists(_sb.last_sound)) audio_free_buffer_sound(_sb.last_sound);
+            _sb.last_sound = -1;
+        }
+        if (variable_struct_exists(_sb, "last_buffer") && _sb.last_buffer != -1) {
+            if (buffer_exists(_sb.last_buffer)) buffer_delete(_sb.last_buffer);
+            _sb.last_buffer = -1;
+        }
+    }
+    playing_block_index  = -1;
+    playing_linked_index = -1;
+    is_speaking          = false;
+    speaking_pause_timer = -1;
+    active_requests      = [];
+    action_animating     = false;
+    active_animations    = [];
+    active_particles     = [];
+    active_emitters      = [];
+    active_beams         = [];
+    active_explosions    = [];
+    active_decap_heads   = [];
+    active_shots         = [];
+    waiting_for_shots    = false;
     quake_x = 0; quake_y = 0; quake_frames = 0; quake_tied_to_chain = false;
     for (var _pai = 0; _pai < array_length(preview_actors); _pai++) {
         preview_actors[_pai].jitter_x = 0;

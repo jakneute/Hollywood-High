@@ -1007,8 +1007,8 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
     // Block interaction if any modal is open
     _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open);
 
-    if (!_overlay_active && !particle_panel_mode && !particle_edit_mode && playing_block_index == -1 && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
-        if (!scene_edit_mode) focused_block = -1;
+    if (!_overlay_active && !particle_panel_mode && playing_block_index == -1 && _mx > char_sel_x && _mx < char_sel_x + char_sel_w && _my > char_sel_y && _my < char_sel_y + char_sel_h) {
+
         selection_start = 0; selection_end = 0;
         var _grid_x = char_sel_x + 10;
         var _grid_y = char_sel_y + 35;
@@ -1028,16 +1028,18 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
                     char_rename_text = characters[i].name; keyboard_string = "";
                     return;
                 }
-                dragging_char_index = i; // Unified drag start
+                if (!particle_edit_mode) {
+                    dragging_char_index = i; // Unified drag start — not available in particle edit mode
 
-                // Sync staging selection: focus character if they are in the scene, otherwise clear focus
-                if (scene_edit_mode && active_scene_block_idx != -1) {
-                    _scene = script_blocks[active_scene_block_idx];
-                    var _found = -1;
-                    for (var a = 0; a < array_length(_scene.actors); a++) {
-                        if (_scene.actors[a].char_index == i) { _found = a; break; }
+                    // Sync staging selection: focus character if they are in the scene, otherwise clear focus
+                    if (scene_edit_mode && active_scene_block_idx != -1) {
+                        _scene = script_blocks[active_scene_block_idx];
+                        var _found = -1;
+                        for (var a = 0; a < array_length(_scene.actors); a++) {
+                            if (_scene.actors[a].char_index == i) { _found = a; break; }
+                        }
+                        scene_edit_selected_actor_idx = _found;
                     }
-                    scene_edit_selected_actor_idx = _found;
                 }
                 return;
             }
@@ -1127,7 +1129,7 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
                 var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
                 var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
                 
-                var _in_live = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _cw * 0.51);
 
                 if (!_in_live) {
                     array_delete(_scene.actors, dragging_actor_idx, 1);
@@ -1269,7 +1271,7 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                 var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
                 var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
                 
-                var _in_live = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _cw * 0.51);
 
                 var _aname = "moves";
                 if (!_in_live) {
@@ -1340,7 +1342,7 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
     // --- STAGING label click → exit staging ---
     if (_mx > _ind_x && _mx < _ind_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         scene_edit_mode = false;
-        focused_block = -1;
+        focused_block = -1; // deselect block too
         return;
     }
 
@@ -1410,9 +1412,8 @@ if (mouse_check_button_pressed(mb_left)) {
         focused_block = -1; block_last_click_idx = -1;
         selection_start = 0; selection_end = 0;
         if (playing_block_index != -1) {
-            playing_block_index = -1; is_speaking = false; audio_stop_all(); tts_stop();
+            stop_playback();
             theater_mode = false; theater_paused = false; theater_subtitles = "";
-            waiting_for_shots = false;
         } else if (array_length(script_blocks) > 0) {
             play_from_index(0);
         }
@@ -1608,7 +1609,7 @@ if (mouse_check_button_pressed(mb_left)) {
             if (characters[selected_character_index].name != "NARRATOR") open_expr_configurator(selected_character_index);
             return;
         }
-        if (_has_anims_b && _mx > _an_l2 && _mx < _btn_r2 && _my > char_sel_y + 2 && _my < char_sel_y + 26) {
+        if (_has_anims_b && characters[selected_character_index].name != "NARRATOR" && _mx > _an_l2 && _mx < _btn_r2 && _my > char_sel_y + 2 && _my < char_sel_y + 26) {
             anim_editor_open          = true;
             anim_editor_char_idx      = selected_character_index;
             anim_editor_anim_idx      = 0;
@@ -1638,7 +1639,7 @@ if (mouse_check_button_pressed(mb_left)) {
 
         // POSE / EXPR Combined Button Click (disabled for Narrator and particle blocks)
         var _is_narrator = (characters[selected_character_index].name == "NARRATOR");
-        var _foc_is_particle = (insertion_idx == -1 && focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
+        var _foc_is_particle = particle_edit_mode || (insertion_idx == -1 && focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
         if (_mx > btn_pose_x && _mx < btn_expression_x + btn_expression_w && _my > btn_pose_y && _my < btn_pose_y + btn_pose_h) {
             if (_is_narrator || _foc_is_particle) return;
             var _active_pose = selected_pose;
@@ -1668,10 +1669,9 @@ if (mouse_check_button_pressed(mb_left)) {
             selection_start = 0; selection_end = 0;
             // EXIT Button (Bottom Right) — only when visible
             if (_theater_ui_vis && _mx > 1280 - 200 && _mx < 1280 - 20 && _my > 860 && _my < 910) {
+                stop_playback();
                 theater_mode = false;
                 theater_paused = false;
-                playing_block_index = -1; // Clear playback on exit
-                is_speaking = false; audio_stop_all(); tts_stop();
                 return;
             }
             // PLAY/PAUSE Button (Bottom Left) — only when visible
@@ -1792,7 +1792,7 @@ if (mouse_check_button_pressed(mb_left)) {
 
     // EDIT VOICE Button
     _overlay_active = (scene_modal_open || action_modal_open || theater_mode || move_modal_open || pose_modal_open || expression_modal_open || pose_expr_modal_open);
-    var _voice_foc_particle = (insertion_idx == -1 && focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
+    var _voice_foc_particle = particle_edit_mode || (insertion_idx == -1 && focused_block != -1 && focused_block < array_length(script_blocks) && variable_struct_exists(script_blocks[focused_block], "type") && script_blocks[focused_block].type == "particle");
     if (!script_expanded && !_overlay_active && !is_speaking && !_voice_foc_particle && playing_block_index == -1 && _mx > btn_edit_x && _mx < btn_edit_x + btn_edit_w && _my > btn_edit_y && _my < btn_edit_y + btn_edit_h) {
         focused_block = -1;
         selection_start = 0; selection_end = 0;
@@ -2192,9 +2192,9 @@ if (mouse_check_button_pressed(mb_left)) {
             }
 
             if (_is_particle) {
-                // Particle block click → toggle edit mode (auto-collapse if expanded)
+                // Particle block click → toggle edit mode; splice point is AFTER the particle block
                 if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _box_y && _my < _box_y + 80) {
-                    if (focused_block == i) {
+                    if (focused_block == i && particle_edit_mode) {
                         focused_block = -1;
                         particle_edit_mode = false;
                         particle_drag_pos  = false;
@@ -2209,11 +2209,11 @@ if (mouse_check_button_pressed(mb_left)) {
                     return;
                 }
             } else if (_is_scene) {
-                // Scene Box Click (Enable Staging)
+                // Scene Box Click — toggles staging; splice point is AFTER the scene block
                 if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _box_y && _my < _box_y + 80) {
-                    if (focused_block == i) {
-                        focused_block = -1;
+                    if (focused_block == i && scene_edit_mode) {
                         scene_edit_mode = false;
+                        focused_block = -1;
                     } else {
                         focused_block = i;
                         particle_edit_mode = false;
@@ -2345,33 +2345,33 @@ if (mouse_check_button_pressed(mb_left)) {
                         return;
                     }
 
-                    if (focused_block == i) {
-                        focused_block = -1;
-                        scene_edit_mode = false;
-                        if (_is_voice) {
+                    if (_is_voice) {
+                        // Voice block: clicking only handles text editing — does NOT change splice position
+                        // (splice position for voice blocks set by clicking the gap below them)
+                        if (focused_block == i) {
+                            focused_block = -1;
+                            scene_edit_mode = false;
                             is_selecting = false;
-                        }
-                    } else {
-                        focused_block = i;
-                        particle_edit_mode = false;
+                        } else {
+                            focused_block = i;
+                            particle_edit_mode = false;
 
-                        update_preview_actors_for_block(i, true);
-                        if (active_scene_block_idx != -1) {
-                            current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
-                            set_scene_dimensions(current_scene_sprite);
-                        }
-                        
-                        if (variable_struct_exists(_block, "char_index")) {
-                            selected_character_index = _block.char_index;
-                            var _row = floor(selected_character_index / 2);
-                            var _iy_scroll = _row * 135;
-                            if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
-                            else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
-                        }
-                        
-                        scene_edit_mode = false; // Always OFF
-                        
-                        if (_is_voice) {
+                            update_preview_actors_for_block(i, true);
+                            if (active_scene_block_idx != -1) {
+                                current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
+                                set_scene_dimensions(current_scene_sprite);
+                            }
+
+                            if (variable_struct_exists(_block, "char_index")) {
+                                selected_character_index = _block.char_index;
+                                var _row = floor(selected_character_index / 2);
+                                var _iy_scroll = _row * 135;
+                                if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
+                                else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
+                            }
+
+                            scene_edit_mode = false;
+
                             keyboard_string = "";
                             var _rx = _mx - (box_x + 60); var _ry = _my - (_cy + 32);
                             var _best_p = 0; var _min_d = 999999;
@@ -2385,19 +2385,45 @@ if (mouse_check_button_pressed(mb_left)) {
                             selection_end = _best_p;
                             is_selecting = true;
                         }
+                    } else {
+                        // Action block: clicking sets splice point AFTER block i
+                        if (focused_block == i) {
+                            focused_block = -1;
+                            scene_edit_mode = false;
+                        } else {
+                            focused_block = i;
+                            particle_edit_mode = false;
+
+                            update_preview_actors_for_block(i, true);
+                            if (active_scene_block_idx != -1) {
+                                current_scene_sprite = get_scene_sprite(script_blocks[active_scene_block_idx].internal_name);
+                                set_scene_dimensions(current_scene_sprite);
+                            }
+
+                            if (variable_struct_exists(_block, "char_index")) {
+                                selected_character_index = _block.char_index;
+                                var _row = floor(selected_character_index / 2);
+                                var _iy_scroll = _row * 135;
+                                if (_iy_scroll + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy_scroll;
+                                else if (_iy_scroll + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy_scroll - (char_sel_h - 170) );
+                            }
+
+                            scene_edit_mode = false;
+                        }
                     }
                     return;
                 }
             }
             
-            // Main Block Focus Click
+            // Main Block Focus Click (fallback — most blocks handled above)
             if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _cy && _my < _cy + _bh) {
-                if (focused_block == i) {
+                var _splice_idx = i;
+                if (focused_block == _splice_idx) {
                     focused_block = -1;
                     scene_edit_mode = false;
                     particle_edit_mode = false;
                 } else {
-                    focused_block = i;
+                    focused_block = _splice_idx;
                     if (!_is_particle) particle_edit_mode = false;
 
                     if (variable_struct_exists(_block, "char_index")) {
@@ -2536,6 +2562,14 @@ if (mouse_check_button_pressed(mb_left)) {
                         scene_edit_mode = false; // Turn off Staging
                         particle_edit_mode = false; particle_drag_pos = false; particle_drag_dir = false; particle_drag_area_w = false; particle_drag_area_h = false;
                     }
+                    return;
+                }
+
+                // Gap click (outside the + button) sets the splice point after block i for all block types
+                // This is the primary way to set splice position for voice blocks
+                if (_my > _gap_y && _my < _gap_y + 20) {
+                    focused_block = i;
+                    scene_edit_mode = false;
                     return;
                 }
             }
@@ -2752,7 +2786,6 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
         // Proposed Position (relative to window, with offsets and clamps)
         var _px = _mx - scene_win_x - drag_off_x;
         var _py = _my - scene_win_y - drag_off_y;
-        if (_py < scene_win_h * 0.25) _py = scene_win_h * 0.25;
 
         // Vertical intersection (using Proposed Position)
         var _ay_abs = scene_win_y + _py;
@@ -2773,7 +2806,7 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
         var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
         var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
         
-        var _in_live = (current_scene_sprite != -1) && (_v_visible >= _ch * 0.25) && (_h_visible >= _cw * 0.51);
+        var _in_live = (current_scene_sprite != -1) && (_h_visible >= _cw * 0.51);
         
         if (_in_live) {
             if (scene_edit_mode) {

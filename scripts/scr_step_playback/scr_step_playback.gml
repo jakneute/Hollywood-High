@@ -353,7 +353,7 @@ function step_tts_playback() {
                 if (theater_mode) {
                     theater_subtitles = ""; theater_active_char = -1;
                     theater_paused = true; play_from_index(0); playing_block_index = -1;
-                } else { playing_block_index = -1; }
+                } else { stop_playback(); }
             }
         }
     }
@@ -385,7 +385,7 @@ function step_tts_playback() {
                 if (theater_mode) {
                     theater_subtitles = ""; theater_active_char = -1;
                     theater_paused = true; play_from_index(0); playing_block_index = -1;
-                } else { playing_block_index = -1; }
+                } else { stop_playback(); }
             }
         }
     }
@@ -401,7 +401,7 @@ function step_tts_playback() {
                     if (theater_mode) {
                         theater_subtitles = ""; theater_active_char = -1;
                         theater_paused = true; play_from_index(0); playing_block_index = -1; playing_linked_index = -1;
-                    } else { playing_block_index = -1; playing_linked_index = -1; theater_paused = false; }
+                    } else { stop_playback(); theater_paused = false; }
                     return;
                 }
             }
