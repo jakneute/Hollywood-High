@@ -415,13 +415,7 @@ function step_modal_anim_editor() {
                 if (_mx > _info_x + 132 && _mx < _info_x + 158 && _my > _preview_y + 92 && _my < _preview_y + 110) {
                     _sf2.hold++; anim_editor_dirty = true; return;
                 }
-                // Apply hold to all sprite frames
-                if (_mx > _info_x + 164 && _mx < _info_x + 232 && _my > _preview_y + 92 && _my < _preview_y + 110) {
-                    for (var _afi = 0; _afi < array_length(_frames); _afi++) {
-                        if (_frames[_afi].type == "sprite") _frames[_afi].hold = _sf2.hold;
-                    }
-                    anim_editor_dirty = true; return;
-                }
+
                 // Change sprite / change flipped sprite
                 if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 190 && _my < _preview_y + 212) {
                     anim_editor_selected_frame = _edit_idx;

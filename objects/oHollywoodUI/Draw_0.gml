@@ -4331,11 +4331,7 @@ if (anim_editor_open) {
                 draw_text(_info_x + 113, _preview_y + 95, "-");
                 draw_text(_info_x + 145, _preview_y + 95, "+");
                 draw_set_halign(fa_left);
-                draw_set_color(make_color_rgb(48, 66, 30));
-                draw_roundrect_ext(_info_x + 164, _preview_y + 92, _info_x + 232, _preview_y + 110, 3, 3, false);
-                draw_set_color(make_color_rgb(130, 180, 70)); draw_set_halign(fa_center);
-                draw_text(_info_x + 198, _preview_y + 95, "ALL");
-                draw_set_halign(fa_left);
+
                 // ── Per-frame offset (frame_dy / frame_dx) — when any feet sprite is assigned ──
                 {
                     var _has_feet_ef = (_cur_anim != undefined && (

@@ -472,11 +472,11 @@ all_actions = [
     { name: "play sfx",      desc: "Plays a sound effect from the library.",                                   category: "general"   },
     { name: "display title", desc: "Displays a text title on screen for a set duration.",                      category: "general"   },
     { name: "quake",         desc: "Shakes the entire scene for a set duration.\nChoose intensity and direction.",                 category: "general"   },
+    { name: "special animation",  desc: "Plays one of this character's custom animations.",                          category: "character" },
     { name: "disappear",     desc: "Instantly removes the character from the scene.\nChoose a vanish style.",  category: "character" },
     { name: "jitter",        desc: "Shakes the character in place for a set duration.\nChoose intensity, duration, and direction.", category: "character" },
     { name: "kill",          desc: "Kills the character. They stay on screen but are locked from all future actions.\nChoose a death style.", category: "character" },
     { name: "resurrect",          desc: "Brings a dead character back to life, restoring them to a standing pose.", category: "character" },
-    { name: "special animation",  desc: "Plays one of this character's custom animations.",                          category: "character" },
 ];
 action_modal_disappear_style  = "pop";
 action_modal_disappear_speed  = 2;
