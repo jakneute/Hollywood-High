@@ -458,16 +458,31 @@ function step_modal_anim_editor() {
                     }
                     anim_editor_sprite_picker = true; return;
                 }
+                // FEET toggle
+                var _has_ft_tog = (_anim != undefined && (
+                    (variable_struct_exists(_anim, "feet_sprite") && _anim.feet_sprite != "") ||
+                    (variable_struct_exists(_anim, "feet_sprite_flipped") && _anim.feet_sprite_flipped != "")
+                ));
+                if (_has_ft_tog && _mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 216 && _my < _preview_y + 236) {
+                    if (anim_editor_flipped_mode) {
+                        var _was_on = variable_struct_exists(_sf2, "composite_legs_flipped") ? _sf2.composite_legs_flipped
+                                    : !(variable_struct_exists(_sf2, "composite_legs") && !_sf2.composite_legs);
+                        _sf2.composite_legs_flipped = !_was_on;
+                    } else {
+                        var _was_on = !(variable_struct_exists(_sf2, "composite_legs") && !_sf2.composite_legs);
+                        _sf2.composite_legs = !_was_on;
+                    }
+                    anim_editor_dirty = true; return;
+                }
             }
 
             if (_sf2.type == "sprite") {
-                // Per-frame offset steppers (when any feet sprite assigned and composite_legs)
+                // Per-frame offset steppers (when any feet sprite assigned)
                 var _has_feet_sf2 = (_anim != undefined && (
                     (variable_struct_exists(_anim, "feet_sprite") && _anim.feet_sprite != "") ||
                     (variable_struct_exists(_anim, "feet_sprite_flipped") && _anim.feet_sprite_flipped != "")
                 ));
-                var _is_comp_sf2  = variable_struct_exists(_sf2, "composite_legs") && _sf2.composite_legs;
-                if (_has_feet_sf2 && _is_comp_sf2) {
+                if (_has_feet_sf2) {
                     var _fdy_key2 = anim_editor_flipped_mode ? "frame_dy_flipped" : "frame_dy";
                     var _fdx_key2 = anim_editor_flipped_mode ? "frame_dx_flipped" : "frame_dx";
                     // CLR flipped override (label row: _preview_y+126 to _preview_y+140)
@@ -523,7 +538,7 @@ function step_modal_anim_editor() {
 
         // ── Unified bottom row: +SFX, +SPRITE, DEL — always active when anim selected ──
         if (_has_anims && _anim != undefined) {
-            var _btn_y = _preview_y + 224;
+            var _btn_y = _preview_y + 248;
             var _edit_idx2 = (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames))
                              ? anim_editor_selected_frame : anim_editor_frame_idx;
             var _has_sel = (_edit_idx2 >= 0 && _edit_idx2 < array_length(_frames));

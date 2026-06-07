@@ -126,11 +126,19 @@ if (theater_mode) {
 			        var _canned_h  = sprite_get_height(_act.canned_spr);
 			        var _body_dy   = variable_struct_exists(_act, "canned_body_dy") ? _act.canned_body_dy : 0;
 			        var _body_dx   = variable_struct_exists(_act, "canned_body_dx") ? _act.canned_body_dx : 0;
+			        var _composite_legs = !variable_struct_exists(_act, "canned_composite_legs") || _act.canned_composite_legs;
+			        var _dy_val = -_canned_h + _canned_ay + _body_dy;
+			        if (!_composite_legs) {
+			            var _feet_h = sprite_get_height(_feet_spr);
+			            _dy_val = _feet_h - _canned_h + _canned_ay + _body_dy;
+			        }
 			        _layers = [{ spr: _feet_spr,       dx: 0,        dy: 0 },
-			                   { spr: _act.canned_spr, dx: _body_dx, dy: -_canned_h + _canned_ay + _body_dy },
+			                   { spr: _act.canned_spr, dx: _body_dx, dy: _dy_val },
 			                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
 			    } else {
-			        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay },
+			        var _body_dy   = variable_struct_exists(_act, "canned_body_dy") ? _act.canned_body_dy : 0;
+			        var _body_dx   = variable_struct_exists(_act, "canned_body_dx") ? _act.canned_body_dx : 0;
+			        _layers = [{ spr: _act.canned_spr, dx: _body_dx, dy: _canned_ay + _body_dy },
 			                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
 			    }
 			} else {
@@ -240,6 +248,9 @@ if (theater_mode) {
 					var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open && !_is_dead_dr;
 					var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
 					var _lspr    = _is_anim ? _ae.spr : _l.spr;
+					if (_li == 0 && (variable_struct_exists(_act, "canned_composite_legs") && !_act.canned_composite_legs)) {
+						_lspr = -1;
+					}
 					var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
 					var _ldy     = _l.dy + (_is_anim ? _ae.dy : 0);
 					array_push(_final_layers, { spr: _lspr, dx: _ldx, dy: _ldy });
@@ -896,11 +907,19 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				        var _canned_h2  = sprite_get_height(_act.canned_spr);
 				        var _body_dy2   = variable_struct_exists(_act, "canned_body_dy") ? _act.canned_body_dy : 0;
 				        var _body_dx2   = variable_struct_exists(_act, "canned_body_dx") ? _act.canned_body_dx : 0;
+				        var _composite_legs2 = !variable_struct_exists(_act, "canned_composite_legs") || _act.canned_composite_legs;
+				        var _dy_val2 = -_canned_h2 + _canned_ay2 + _body_dy2;
+				        if (!_composite_legs2) {
+				            var _feet_h2 = sprite_get_height(_feet_spr2);
+				            _dy_val2 = _feet_h2 - _canned_h2 + _canned_ay2 + _body_dy2;
+				        }
 				        _layers = [{ spr: _feet_spr2,      dx: 0,         dy: 0 },
-				                   { spr: _act.canned_spr, dx: _body_dx2, dy: -_canned_h2 + _canned_ay2 + _body_dy2 },
+				                   { spr: _act.canned_spr, dx: _body_dx2, dy: _dy_val2 },
 				                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
 				    } else {
-				        _layers = [{ spr: _act.canned_spr, dx: 0, dy: _canned_ay2 },
+				        var _body_dy2   = variable_struct_exists(_act, "canned_body_dy") ? _act.canned_body_dy : 0;
+				        var _body_dx2   = variable_struct_exists(_act, "canned_body_dx") ? _act.canned_body_dx : 0;
+				        _layers = [{ spr: _act.canned_spr, dx: _body_dx2, dy: _canned_ay2 + _body_dy2 },
 				                   { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
 				    }
 				} else {
@@ -1001,6 +1020,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 						var _is_anim = variable_struct_exists(_l, "is_mouth") && _has_manim && _mouth_open && !_is_dead_ed;
 						var _ae      = _is_anim ? _mouth_anim[_manim_fi] : undefined;
 						var _lspr    = _is_anim ? _ae.spr : _l.spr;
+						if (_li == 0 && (variable_struct_exists(_act, "canned_composite_legs") && !_act.canned_composite_legs)) {
+							_lspr = -1;
+						}
 						var _ldx     = _l.dx + (_is_anim ? _ae.dx : 0);
 						var _ldy     = _l.dy + (_is_anim ? _ae.dy : 0);
 						array_push(_final_layers, { spr: _lspr, dx: _ldx, dy: _ldy });
@@ -4121,6 +4143,12 @@ if (anim_editor_open) {
                 if (_fn0 != "") _feet_name_prev = canned_anim_flipped_name(_fn0);
             }
             var _feet_spr_prev = (_feet_name_prev != "") ? canned_anim_load_sprite(anim_editor_char_idx, _feet_name_prev) : -1;
+            var _draw_feet_prev = (_feet_spr_prev != -1);
+            var _cl_off_prev = anim_editor_flipped_mode
+                ? (variable_struct_exists(_cf, "composite_legs_flipped") ? !_cf.composite_legs_flipped
+                   : (variable_struct_exists(_cf, "composite_legs") && !_cf.composite_legs))
+                : (variable_struct_exists(_cf, "composite_legs") && !_cf.composite_legs);
+            if (_cl_off_prev) { _draw_feet_prev = false; }
 
             if (_fspr != -1) {
                 var _fw = sprite_get_width(_fspr); var _fh = sprite_get_height(_fspr);
@@ -4162,17 +4190,30 @@ if (anim_editor_open) {
                     var _feet_draw_y = _floor_y  - _fsh2 * _fsc2;
                     var _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx) * _fsc2;
                     var _body_draw_y = _feet_draw_y + _body_dy_px * _fsc2;
+                    var _cl_off_body = anim_editor_flipped_mode
+                        ? (variable_struct_exists(_cf, "composite_legs_flipped") ? !_cf.composite_legs_flipped
+                           : (variable_struct_exists(_cf, "composite_legs") && !_cf.composite_legs))
+                        : (variable_struct_exists(_cf, "composite_legs") && !_cf.composite_legs);
+                    if (_cl_off_body) {
+                        _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx) * _fsc2;
+                        _body_dy_px = _fsh2 - _fh + _frame_fdy + _anim_bdy;
+                        _body_draw_y = _feet_draw_y + _body_dy_px * _fsc2;
+                    }
                     var _zsc2 = _fsc2 * anim_editor_zoom;
                     var _zpx2 = (_feet_draw_x - _center_x) * anim_editor_zoom + _center_x + anim_editor_pan_x;
                     var _zpy2 = (_feet_draw_y - _floor_y)  * anim_editor_zoom + _floor_y  + anim_editor_pan_y;
                     var _zbpx = (_body_draw_x - _center_x) * anim_editor_zoom + _center_x + anim_editor_pan_x;
                     var _zbpy = (_body_draw_y - _floor_y)  * anim_editor_zoom + _floor_y  + anim_editor_pan_y;
-                    draw_sprite_ext(_feet_spr_prev, 0, _zpx2, _zpy2, _zsc2, _zsc2, 0, c_white, 1);
+                    if (_draw_feet_prev) {
+                        draw_sprite_ext(_feet_spr_prev, 0, _zpx2, _zpy2, _zsc2, _zsc2, 0, c_white, 1);
+                    }
                     draw_sprite_ext(_fspr,          0, _zbpx, _zbpy, _zsc2, _zsc2, 0, c_white, 1);
                     // Faint seam line at feet top
-                    draw_set_color(make_color_rgb(50, 130, 50)); draw_set_alpha(0.3);
-                    draw_line(_zpx2, _zpy2, _zpx2 + _fsw2 * _zsc2, _zpy2);
-                    draw_set_alpha(1.0);
+                    if (_draw_feet_prev) {
+                        draw_set_color(make_color_rgb(50, 130, 50)); draw_set_alpha(0.3);
+                        draw_line(_zpx2, _zpy2, _zpx2 + _fsw2 * _zsc2, _zpy2);
+                        draw_set_alpha(1.0);
+                    }
                 } else {
                     var _fsc = min(_avail_h / _fh, _avail_w / _fw);
                     var _fdx = _center_x - (_fw * _fsc * 0.5);
@@ -4278,8 +4319,7 @@ if (anim_editor_open) {
                         (variable_struct_exists(_cur_anim, "feet_sprite") && _cur_anim.feet_sprite != "") ||
                         (variable_struct_exists(_cur_anim, "feet_sprite_flipped") && _cur_anim.feet_sprite_flipped != "")
                     ));
-                    var _is_composite_ef = variable_struct_exists(_edit_frame, "composite_legs") && _edit_frame.composite_legs;
-                    if (_has_feet_ef && _is_composite_ef) {
+                    if (_has_feet_ef) {
                         var _fdy_key = anim_editor_flipped_mode ? "frame_dy_flipped" : "frame_dy";
                         var _fdx_key = anim_editor_flipped_mode ? "frame_dx_flipped" : "frame_dx";
                         var _fdy_val = variable_struct_exists(_edit_frame, _fdy_key) ? _edit_frame[$ _fdy_key] : 0;
@@ -4343,6 +4383,20 @@ if (anim_editor_open) {
                     draw_text(_info_x + 110, _preview_y + 195, _has_flip ? "OVERRIDE SET" : "USING +250 AUTO");
                     draw_set_halign(fa_left);
                 }
+                // ── FEET toggle (only when animation has feet sprite) ──
+                if (_has_feet_ef) {
+                    var _feet_on = anim_editor_flipped_mode
+                        ? (variable_struct_exists(_edit_frame, "composite_legs_flipped") ? _edit_frame.composite_legs_flipped
+                           : !(variable_struct_exists(_edit_frame, "composite_legs") && !_edit_frame.composite_legs))
+                        : !(variable_struct_exists(_edit_frame, "composite_legs") && !_edit_frame.composite_legs);
+                    var _ft_hov  = (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 216 && _my < _preview_y + 236);
+                    draw_set_color(_feet_on ? (_ft_hov ? make_color_rgb(20, 100, 40) : make_color_rgb(14, 65, 28))
+                                           : (_ft_hov ? make_color_rgb(200, 100, 20) : make_color_rgb(130, 60, 10)));
+                    draw_roundrect_ext(_info_x, _preview_y + 216, _info_x + 160, _preview_y + 236, 4, 4, false);
+                    draw_set_color(c_white); draw_set_halign(fa_center);
+                    draw_text(_info_x + 80, _preview_y + 220, _feet_on ? "FEET ON" : "FEET OFF");
+                    draw_set_halign(fa_left);
+                }
             } else if (_edit_frame.type == "sound") {
                 var _sfile = variable_struct_exists(_edit_frame, "file") && _edit_frame.file != undefined ? string(_edit_frame.file) : "unset";
                 if (string_length(_sfile) > 26) _sfile = ".." + string_copy(_sfile, string_length(_sfile) - 23, 24);
@@ -4362,7 +4416,7 @@ if (anim_editor_open) {
 
         // ── Unified bottom row: always visible when an animation is selected ──
         if (_cur_anim != undefined) {
-            var _btn_y = _preview_y + 224;
+            var _btn_y = _preview_y + 248;
             var _has_sel = (_edit_frame != undefined);
             // +SFX
             var _sfx_hov = (_mx > _info_x && _mx < _info_x + 80 && _my > _btn_y && _my < _btn_y + 22);

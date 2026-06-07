@@ -244,6 +244,12 @@ function step_tts_playback() {
                         _act.canned_composite = (_anim_feet_ca != "");
                         _act.canned_feet_spr  = (_anim_feet_ca != "") ? canned_anim_load_sprite(_anim.char_index, _anim_feet_ca) : -1;
                         var _is_flipped_ca = (_facing_ca != _def_ca);
+                        _act.canned_composite_legs = true;
+                        if (_is_flipped_ca && variable_struct_exists(_cur_frame, "composite_legs_flipped")) {
+                            _act.canned_composite_legs = _cur_frame.composite_legs_flipped;
+                        } else if (variable_struct_exists(_cur_frame, "composite_legs") && !_cur_frame.composite_legs) {
+                            _act.canned_composite_legs = false;
+                        }
                         var _fdy_ca = (_is_flipped_ca && variable_struct_exists(_cur_frame, "frame_dy_flipped")) ? _cur_frame.frame_dy_flipped
                                     : (variable_struct_exists(_cur_frame, "frame_dy") ? _cur_frame.frame_dy : 0);
                         var _fdx_ca = (_is_flipped_ca && variable_struct_exists(_cur_frame, "frame_dx_flipped")) ? _cur_frame.frame_dx_flipped
@@ -269,6 +275,7 @@ function step_tts_playback() {
                         var _has_bx_ca = (_od_ca != undefined && variable_struct_exists(_od_ca, _body_ok_ca));
                         var _has_fx_ca = (_od_ca != undefined && _anim_feet_ca != "" && variable_struct_exists(_od_ca, _feet_ok_ca));
                         _act.canned_body_dx = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][0] - _od_ca[$ _feet_ok_ca][0]) : 0) + _fdx_ca;
+                        _act.canned_body_off_y = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][1] - _od_ca[$ _feet_ok_ca][1]) : 0);
                         _anim.tick++;
                         if (_anim.tick >= _hold) {
                             _anim.tick = 0;
@@ -800,6 +807,12 @@ function step_tts_playback() {
                                     preview_actors[_ca_aidx].canned_composite = (_anim_feet0 != "");
                                     preview_actors[_ca_aidx].canned_feet_spr  = (_anim_feet0 != "") ? canned_anim_load_sprite(_b.char_index, _anim_feet0) : -1;
                                     var _is_flipped0 = (_facing0 != _def0);
+                                    preview_actors[_ca_aidx].canned_composite_legs = true;
+                                    if (_is_flipped0 && variable_struct_exists(_cf0, "composite_legs_flipped")) {
+                                        preview_actors[_ca_aidx].canned_composite_legs = _cf0.composite_legs_flipped;
+                                    } else if (variable_struct_exists(_cf0, "composite_legs") && !_cf0.composite_legs) {
+                                        preview_actors[_ca_aidx].canned_composite_legs = false;
+                                    }
                                     var _fdy0 = (_is_flipped0 && variable_struct_exists(_cf0, "frame_dy_flipped")) ? _cf0.frame_dy_flipped
                                               : (variable_struct_exists(_cf0, "frame_dy") ? _cf0.frame_dy : 0);
                                     var _fdx0 = (_is_flipped0 && variable_struct_exists(_cf0, "frame_dx_flipped")) ? _cf0.frame_dx_flipped
@@ -824,6 +837,7 @@ function step_tts_playback() {
                                     var _has_bx0 = (_od0 != undefined && variable_struct_exists(_od0, _body_ok0));
                                     var _has_fx0 = (_od0 != undefined && _anim_feet0 != "" && variable_struct_exists(_od0, _feet_ok0));
                                     preview_actors[_ca_aidx].canned_body_dx = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][0] - _od0[$ _feet_ok0][0]) : 0) + _fdx0;
+                                    preview_actors[_ca_aidx].canned_body_off_y = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][1] - _od0[$ _feet_ok0][1]) : 0);
                                 }
                             }
                             action_animating = true;

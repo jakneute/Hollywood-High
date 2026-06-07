@@ -2,10 +2,10 @@
   {
     "frames":[
       {
-        "hold":13.0,
+        "hold":10.0,
         "feet_sprite":"pose_11102.png",
-        "sprite":"pose_11501.png",
         "type":"sprite",
+        "sprite":"pose_11501.png",
         "composite_legs":true
       },
       {
@@ -14,97 +14,97 @@
         "type":"sound"
       },
       {
-        "hold":13.0,
+        "hold":10.0,
         "feet_sprite":"pose_11102.png",
+        "type":"sprite",
         "sprite":"pose_11502.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":13.0,
+        "hold":20.0,
         "feet_sprite":"pose_11102.png",
+        "type":"sprite",
         "sprite":"pose_11503.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":13.0,
+        "hold":10.0,
         "feet_sprite":"pose_11102.png",
+        "type":"sprite",
+        "sprite":"pose_11502.png",
+        "composite_legs":true
+      },
+      {
+        "_sound_id":11001.0,
+        "file":"Actors - GUS\/rocks back_forth_11002.wav",
+        "type":"sound"
+      },
+      {
+        "hold":10.0,
+        "feet_sprite":"pose_11102.png",
+        "type":"sprite",
+        "sprite":"pose_11501.png",
+        "composite_legs":true
+      },
+      {
+        "hold":10.0,
+        "feet_sprite":"pose_11102.png",
+        "type":"sprite",
         "sprite":"pose_11504.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "_sound_id":11001.0,
-        "file":"Actors - GUS\/rocks back_forth_11002.wav",
-        "type":"sound"
-      },
-      {
-        "hold":13.0,
+        "hold":20.0,
         "feet_sprite":"pose_11102.png",
+        "type":"sprite",
         "sprite":"pose_11508.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":13.0,
+        "hold":10.0,
         "feet_sprite":"pose_11102.png",
-        "sprite":"pose_11501.png",
         "type":"sprite",
-        "composite_legs":true
-      },
-      {
-        "hold":13.0,
-        "feet_sprite":"pose_11102.png",
-        "sprite":"pose_11502.png",
-        "type":"sprite",
-        "composite_legs":true
-      },
-      {
-        "hold":13.0,
-        "feet_sprite":"pose_11102.png",
-        "sprite":"pose_11503.png",
-        "type":"sprite",
-        "composite_legs":true
-      },
-      {
-        "_sound_id":11001.0,
-        "file":"Actors - GUS\/rocks back_forth_11002.wav",
-        "type":"sound"
-      },
-      {
-        "hold":13.0,
-        "feet_sprite":"pose_11102.png",
         "sprite":"pose_11504.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":13.0,
-        "feet_sprite":"pose_11102.png",
-        "sprite":"pose_11508.png",
-        "type":"sprite",
-        "composite_legs":true
+        "_sound_id":11001.0,
+        "file":"Actors - GUS\/rocks back_forth_11002.wav",
+        "type":"sound"
       },
       {
-        "hold":13.0,
+        "hold":10.0,
         "feet_sprite":"pose_11102.png",
+        "type":"sprite",
         "sprite":"pose_11501.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":13.0,
+        "hold":10.0,
         "feet_sprite":"pose_11102.png",
+        "type":"sprite",
         "sprite":"pose_11502.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":13.0,
+        "hold":20.0,
         "feet_sprite":"pose_11102.png",
-        "sprite":"pose_11503.png",
         "type":"sprite",
+        "sprite":"pose_11503.png",
+        "composite_legs":true
+      },
+      {
+        "hold":10.0,
+        "feet_sprite":"pose_11102.png",
+        "type":"sprite",
+        "sprite":"pose_11502.png",
+        "composite_legs":true
+      },
+      {
+        "hold":10.0,
+        "feet_sprite":"pose_11102.png",
+        "type":"sprite",
+        "sprite":"pose_11501.png",
         "composite_legs":true
       }
     ],
@@ -119,15 +119,15 @@
   {
     "frames":[
       {
-        "hold":8.0,
-        "sprite":"pose_11509.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11509.png",
         "composite_legs":true
       },
       {
-        "hold":8.0,
-        "sprite":"pose_11510.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11510.png",
         "composite_legs":true
       },
       {
@@ -136,93 +136,93 @@
         "type":"sound"
       },
       {
-        "hold":8.0,
+        "hold":10.0,
         "sprite_flipped":"pose_14002.png",
+        "type":"sprite",
         "sprite":"pose_11511.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11516.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
         "sprite_flipped":"pose_14002.png",
+        "type":"sprite",
         "sprite":"pose_11511.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11516.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
         "sprite_flipped":"pose_14002.png",
+        "type":"sprite",
         "sprite":"pose_11511.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11516.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
         "sprite_flipped":"pose_14002.png",
+        "type":"sprite",
         "sprite":"pose_11511.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11516.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
         "sprite_flipped":"pose_14002.png",
+        "type":"sprite",
         "sprite":"pose_11511.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11516.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
         "sprite_flipped":"pose_14002.png",
+        "type":"sprite",
         "sprite":"pose_11511.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11516.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11510.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":8.0,
-        "sprite":"pose_11509.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11509.png",
         "composite_legs":true
       }
     ],
@@ -238,140 +238,140 @@
     "frames":[
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11517.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11518.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11519.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11518.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11519.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11518.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11519.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11518.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11519.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11518.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11519.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11517.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11520.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11521.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11522.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11526.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11522.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11526.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11522.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11526.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11521.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11520.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11517.png",
         "type":"sprite",
+        "sprite":"pose_11517.png",
         "composite_legs":true
       }
     ],
@@ -386,75 +386,75 @@
   {
     "frames":[
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11527.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11528.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11529.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11530.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11531.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11532.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11535.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11532.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11535.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11532.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11532.png",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11532.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11532.png",
         "composite_legs":true
       },
       {
         "hold":30.0,
-        "sprite":"pose_11535.png",
         "type":"sprite",
+        "sprite":"pose_11535.png",
         "composite_legs":true
       }
     ],
@@ -470,14 +470,14 @@
     "frames":[
       {
         "hold":10.0,
-        "sprite":"pose_11536.png",
         "type":"sprite",
+        "sprite":"pose_11536.png",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11537.png",
         "type":"sprite",
+        "sprite":"pose_11537.png",
         "composite_legs":true
       },
       {
@@ -487,44 +487,44 @@
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11538.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11539.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11540.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11541.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11542.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11543.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11544.png",
         "type":"sprite",
+        "sprite":"pose_11544.png",
         "composite_legs":true
       },
       {
@@ -534,20 +534,20 @@
       },
       {
         "hold":10.0,
-        "sprite":"pose_11545.png",
         "type":"sprite",
+        "sprite":"pose_11545.png",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11546.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11545.png",
         "type":"sprite",
+        "sprite":"pose_11545.png",
         "composite_legs":true
       },
       {
@@ -557,14 +557,14 @@
       },
       {
         "hold":10.0,
-        "sprite":"pose_11546.png",
         "type":"sprite",
+        "sprite":"pose_11546.png",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11545.png",
         "type":"sprite",
+        "sprite":"pose_11545.png",
         "composite_legs":true
       },
       {
@@ -574,14 +574,14 @@
       },
       {
         "hold":10.0,
-        "sprite":"pose_11546.png",
         "type":"sprite",
+        "sprite":"pose_11546.png",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11545.png",
         "type":"sprite",
+        "sprite":"pose_11545.png",
         "composite_legs":true
       },
       {
@@ -591,14 +591,14 @@
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11540.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11551.png",
         "type":"sprite",
+        "sprite":"pose_11551.png",
         "composite_legs":true
       },
       {
@@ -608,38 +608,38 @@
       },
       {
         "hold":30.0,
+        "type":"sprite",
         "sprite":"pose_11551.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11540.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11539.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11538.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11537.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
         "hold":10.0,
-        "sprite":"pose_11536.png",
         "type":"sprite",
+        "sprite":"pose_11536.png",
         "composite_legs":true
       }
     ],
@@ -654,15 +654,15 @@
   {
     "frames":[
       {
-        "hold":12.0,
-        "sprite":"pose_11552.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11552.png",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11553.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11553.png",
         "composite_legs":true
       },
       {
@@ -671,39 +671,39 @@
         "type":"sound"
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11554.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11555.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11557.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11558.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11559.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11560.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11560.png",
         "composite_legs":true
       },
       {
@@ -712,15 +712,15 @@
         "type":"sound"
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11561.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11561.png",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11567.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11567.png",
         "composite_legs":true
       },
       {
@@ -729,15 +729,15 @@
         "type":"sound"
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11561.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11561.png",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11567.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11567.png",
         "composite_legs":true
       },
       {
@@ -746,15 +746,15 @@
         "type":"sound"
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11561.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11561.png",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11567.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11567.png",
         "composite_legs":true
       },
       {
@@ -763,51 +763,51 @@
         "type":"sound"
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11559.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11558.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11557.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11556.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11555.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11554.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11553.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11552.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11552.png",
         "composite_legs":true
       }
     ],
@@ -822,15 +822,15 @@
   {
     "frames":[
       {
-        "hold":12.0,
-        "sprite":"pose_11568.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11568.png",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11569.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11569.png",
         "composite_legs":true
       },
       {
@@ -839,21 +839,21 @@
         "type":"sound"
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11570.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11571.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11572.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11572.png",
         "composite_legs":true
       },
       {
@@ -863,32 +863,32 @@
       },
       {
         "hold":30.0,
+        "type":"sprite",
         "sprite":"pose_11577.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11571.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11570.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11569.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11568.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11568.png",
         "composite_legs":true
       }
     ],
@@ -903,39 +903,39 @@
   {
     "frames":[
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11578.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11579.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11580.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11581.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11582.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11583.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11583.png",
         "composite_legs":true
       },
       {
@@ -944,39 +944,39 @@
         "type":"sound"
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11584.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11585.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11586.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
+        "hold":10.0,
+        "type":"sprite",
         "sprite":"pose_11587.png",
-        "type":"sprite",
         "composite_legs":true
       },
       {
-        "hold":12.0,
-        "sprite":"pose_11588.png",
+        "hold":10.0,
         "type":"sprite",
+        "sprite":"pose_11588.png",
         "composite_legs":true
       },
       {
         "hold":30.0,
-        "sprite":"pose_11591.png",
         "type":"sprite",
+        "sprite":"pose_11591.png",
         "composite_legs":true
       },
       {
@@ -986,8 +986,8 @@
       },
       {
         "hold":30.0,
-        "sprite":"pose_11578.png",
         "type":"sprite",
+        "sprite":"pose_11578.png",
         "composite_legs":true
       }
     ],
@@ -1008,8 +1008,8 @@
       },
       {
         "hold":60.0,
-        "sprite":"pose_11594.png",
         "type":"sprite",
+        "sprite":"pose_11594.png",
         "composite_legs":true
       }
     ],
@@ -1025,14 +1025,14 @@
     "frames":[
       {
         "hold":30.0,
-        "sprite":"pose_11595.png",
         "type":"sprite",
+        "sprite":"pose_11595.png",
         "composite_legs":true
       },
       {
-        "hold":15.0,
-        "sprite":"pose_11596.png",
+        "hold":20.0,
         "type":"sprite",
+        "sprite":"pose_11596.png",
         "composite_legs":true
       },
       {
@@ -1042,14 +1042,14 @@
       },
       {
         "hold":20.0,
-        "sprite":"pose_11597.png",
         "type":"sprite",
+        "sprite":"pose_11597.png",
         "composite_legs":true
       },
       {
         "hold":20.0,
-        "sprite":"pose_11597.png",
         "type":"sprite",
+        "sprite":"pose_11597.png",
         "composite_legs":true
       },
       {
@@ -1058,17 +1058,17 @@
         "type":"sound"
       },
       {
-        "hold":15.0,
+        "hold":20.0,
         "sprite_flipped":"pose_11850.png",
-        "sprite":"pose_11750.png",
         "type":"sprite",
+        "sprite":"pose_11750.png",
         "composite_legs":true
       },
       {
-        "hold":15.0,
+        "hold":20.0,
         "sprite_flipped":"pose_11850.png",
-        "sprite":"pose_11750.png",
         "type":"sprite",
+        "sprite":"pose_11750.png",
         "composite_legs":true
       }
     ],

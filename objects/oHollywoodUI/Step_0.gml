@@ -2487,9 +2487,12 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
                 else if (_b1_type == "canned" || _b2_type == "canned") {
                     var _other_ca = (_b1_type == "canned") ? _b2_type : _b1_type;
-                    if (_other_ca == "sfx" || _other_ca == "quake" || _other_ca == "particle") _base_valid = true;
-                    else if (_other_ca == "move") _base_valid = true;
-                    else if (_other_ca == "voice" && _diff_char) _base_valid = true;
+                    // Same-char: only movement is allowed alongside a special animation
+                    if (_other_ca == "move" && !_diff_char) _base_valid = true;
+                    // General actions are always fine
+                    else if (_other_ca == "sfx" || _other_ca == "quake" || _other_ca == "particle" || _other_ca == "title") _base_valid = true;
+                    // Different-character blocks are fine
+                    else if (_diff_char && (_other_ca == "voice" || _other_ca == "move" || _other_ca == "charaction" || _other_ca == "canned")) _base_valid = true;
                 }
 
                 var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
@@ -2530,7 +2533,9 @@ if (mouse_check_button_pressed(mb_left)) {
                                     if (_bk_type == "move"   && _bj_type == "move")      { _chain_valid = false; break; }
                                     if (_bk_type == "charaction" && (_bj_type == "charaction" || _bj_type == "move")) { _chain_valid = false; break; }
                                     if (_bk_type == "move"   && _bj_type == "charaction") { _chain_valid = false; break; }
-                                    if (_bk_type == "canned" && _bj_type == "canned")    { _chain_valid = false; break; }
+                                    // Canned animation: same character cannot also talk, do other char-actions, or run another canned anim
+                                    if (_bk_type == "canned" && (_bj_type == "voice" || _bj_type == "charaction" || _bj_type == "canned")) { _chain_valid = false; break; }
+                                    if (_bj_type == "canned" && (_bk_type == "voice" || _bk_type == "charaction")) { _chain_valid = false; break; }
                                 }
                             }
                         }
