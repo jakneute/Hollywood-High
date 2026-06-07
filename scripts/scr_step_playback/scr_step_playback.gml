@@ -274,7 +274,7 @@ function step_tts_playback() {
                         var _feet_ok_ca = string_replace(_anim_feet_ca, ".png", "");
                         var _has_bx_ca = (_od_ca != undefined && variable_struct_exists(_od_ca, _body_ok_ca));
                         var _has_fx_ca = (_od_ca != undefined && _anim_feet_ca != "" && variable_struct_exists(_od_ca, _feet_ok_ca));
-                        _act.canned_body_dx = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][0] - _od_ca[$ _feet_ok_ca][0]) : 0) + _fdx_ca;
+                        _act.canned_body_dx = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][0] - _od_ca[$ _feet_ok_ca][0]) : 0) + _fdx_ca + (variable_struct_exists(_anim.anim_data, "body_dx") ? _anim.anim_data.body_dx : 0);
                         _act.canned_body_off_y = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][1] - _od_ca[$ _feet_ok_ca][1]) : 0);
                         _anim.tick++;
                         if (_anim.tick >= _hold) {
@@ -836,7 +836,7 @@ function step_tts_playback() {
                                     var _feet_ok0 = string_replace(_anim_feet0, ".png", "");
                                     var _has_bx0 = (_od0 != undefined && variable_struct_exists(_od0, _body_ok0));
                                     var _has_fx0 = (_od0 != undefined && _anim_feet0 != "" && variable_struct_exists(_od0, _feet_ok0));
-                                    preview_actors[_ca_aidx].canned_body_dx = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][0] - _od0[$ _feet_ok0][0]) : 0) + _fdx0;
+                                    preview_actors[_ca_aidx].canned_body_dx = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][0] - _od0[$ _feet_ok0][0]) : 0) + _fdx0 + (variable_struct_exists(_canim, "body_dx") ? _canim.body_dx : 0);
                                     preview_actors[_ca_aidx].canned_body_off_y = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][1] - _od0[$ _feet_ok0][1]) : 0);
                                 }
                             }

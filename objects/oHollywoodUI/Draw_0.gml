@@ -4162,6 +4162,7 @@ if (anim_editor_open) {
                     // Composite: feet on bottom, body on top — use same math as theater runtime
                     var _fsw2 = sprite_get_width(_feet_spr_prev); var _fsh2 = sprite_get_height(_feet_spr_prev);
                     var _anim_bdy  = (_cur_anim != undefined && variable_struct_exists(_cur_anim, "body_dy")) ? _cur_anim.body_dy : 0;
+                    var _anim_bdx  = (_cur_anim != undefined && variable_struct_exists(_cur_anim, "body_dx")) ? _cur_anim.body_dx : 0;
                     var _frame_fdy = (anim_editor_flipped_mode && variable_struct_exists(_cf, "frame_dy_flipped")) ? _cf.frame_dy_flipped
                                    : (variable_struct_exists(_cf, "frame_dy") ? _cf.frame_dy : 0);
                     var _frame_fdx = (anim_editor_flipped_mode && variable_struct_exists(_cf, "frame_dx_flipped")) ? _cf.frame_dx_flipped
@@ -4188,14 +4189,14 @@ if (anim_editor_open) {
 
                     var _feet_draw_x = _center_x - (_fsw2 * _fsc2 * 0.5);
                     var _feet_draw_y = _floor_y  - _fsh2 * _fsc2;
-                    var _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx) * _fsc2;
+                    var _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx + _anim_bdx) * _fsc2;
                     var _body_draw_y = _feet_draw_y + _body_dy_px * _fsc2;
                     var _cl_off_body = anim_editor_flipped_mode
                         ? (variable_struct_exists(_cf, "composite_legs_flipped") ? !_cf.composite_legs_flipped
                            : (variable_struct_exists(_cf, "composite_legs") && !_cf.composite_legs))
                         : (variable_struct_exists(_cf, "composite_legs") && !_cf.composite_legs);
                     if (_cl_off_body) {
-                        _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx) * _fsc2;
+                        _body_draw_x = _feet_draw_x + (_off_bdx + _frame_fdx + _anim_bdx) * _fsc2;
                         _body_dy_px = _fsh2 - _fh + _frame_fdy + _anim_bdy;
                         _body_draw_y = _feet_draw_y + _body_dy_px * _fsc2;
                     }
@@ -4264,6 +4265,17 @@ if (anim_editor_open) {
                 draw_text(_info_x + 163, _preview_y + 48, "-");
                 draw_text(_info_x + 189, _preview_y + 48, "+");
                 draw_set_halign(fa_left);
+                // Body X offset stepper (same row, right of Y)
+                var _bdx_val = variable_struct_exists(_cur_anim, "body_dx") ? _cur_anim.body_dx : 0;
+                draw_set_color(make_color_rgb(80, 110, 80));
+                draw_text(_info_x + 212, _preview_y + 48, "X " + string(_bdx_val));
+                draw_set_color(make_color_rgb(32, 70, 90));
+                draw_roundrect_ext(_info_x + 242, _preview_y + 44, _info_x + 264, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 268, _preview_y + 44, _info_x + 290, _preview_y + 62, 3, 3, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 253, _preview_y + 48, "-");
+                draw_text(_info_x + 279, _preview_y + 48, "+");
+                draw_set_halign(fa_left);
             } else {
                 var _anim_fsf = variable_struct_exists(_cur_anim, "feet_sprite_flipped") ? _cur_anim.feet_sprite_flipped : "";
                 var _fsf_disp = (_anim_fsf == "") ? "none" : _anim_fsf;
@@ -4290,6 +4302,17 @@ if (anim_editor_open) {
                 draw_set_color(c_white); draw_set_halign(fa_center);
                 draw_text(_info_x + 163, _preview_y + 48, "-");
                 draw_text(_info_x + 189, _preview_y + 48, "+");
+                draw_set_halign(fa_left);
+                // Body X offset stepper (same as normal mode — body_dx is animation-level, not per-facing)
+                var _bdx_val_f = variable_struct_exists(_cur_anim, "body_dx") ? _cur_anim.body_dx : 0;
+                draw_set_color(make_color_rgb(80, 110, 80));
+                draw_text(_info_x + 212, _preview_y + 48, "X " + string(_bdx_val_f));
+                draw_set_color(make_color_rgb(32, 70, 90));
+                draw_roundrect_ext(_info_x + 242, _preview_y + 44, _info_x + 264, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 268, _preview_y + 44, _info_x + 290, _preview_y + 62, 3, 3, false);
+                draw_set_color(c_white); draw_set_halign(fa_center);
+                draw_text(_info_x + 253, _preview_y + 48, "-");
+                draw_text(_info_x + 279, _preview_y + 48, "+");
                 draw_set_halign(fa_left);
             }
             if (_edit_frame.type == "sprite") {

@@ -388,6 +388,16 @@ function step_modal_anim_editor() {
                     _anim.body_dy = _cur_bdy + 1; anim_editor_dirty = true; return;
                 }
             }
+            // Body X offset stepper (both modes — body_dx is animation-level, not per-facing)
+            {
+                var _cur_bdx = variable_struct_exists(_anim, "body_dx") ? _anim.body_dx : 0;
+                if (_mx > _info_x + 242 && _mx < _info_x + 264 && _my > _preview_y + 44 && _my < _preview_y + 62) {
+                    _anim.body_dx = _cur_bdx - 1; anim_editor_dirty = true; return;
+                }
+                if (_mx > _info_x + 268 && _mx < _info_x + 290 && _my > _preview_y + 44 && _my < _preview_y + 62) {
+                    _anim.body_dx = _cur_bdx + 1; anim_editor_dirty = true; return;
+                }
+            }
         }
 
         // Edit controls — use selected_frame if set, otherwise fall back to current viewing frame
