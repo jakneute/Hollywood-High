@@ -132,7 +132,7 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
     var _prefix = string(_act_idx) + string(_pose);
 
     if (!ds_map_exists(char_expr_cache, _spr_nm)) {
-        var _ecfg_path = _config_path + "expressions_config.json";
+        var _ecfg_path = _config_path + "expressions.json";
         if (file_exists(_ecfg_path)) {
             var _ecfg_str = "";
             var _ecfg_f = file_text_open_read(_ecfg_path);

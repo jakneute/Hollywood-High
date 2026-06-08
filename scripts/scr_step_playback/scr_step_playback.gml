@@ -116,7 +116,9 @@ function step_tts_playback() {
                     _anim.frames_remaining--;
                     var _ji = _anim.intensity; var _jd = _anim.direction;
                     var _should_stop = (_anim.frames_remaining <= 0);
-                    if (variable_struct_exists(_anim, "tied_to_move") && _anim.tied_to_move) {
+                    if (variable_struct_exists(_anim, "chain_start_index") && _anim.chain_start_index != -1) {
+                        _should_stop = (playing_block_index != _anim.chain_start_index || !is_driving_event_active());
+                    } else if (variable_struct_exists(_anim, "tied_to_move") && _anim.tied_to_move) {
                         var _move_still_on = false;
                         for (var _mi2 = 0; _mi2 < array_length(active_animations); _mi2++) {
                             if (_mi2 == _ai) continue;
@@ -529,14 +531,21 @@ function step_tts_playback() {
                         var _dur = variable_struct_exists(_b, "duration") ? _b.duration : 1.0;
                         speaking_pause_timer = max(speaking_pause_timer, max(1, _dur * 60));
                     } else if (string_pos("display title", _aname) > 0) {
-                        var _is_linked_to_src = false;
-                        for (var _check = 0; _check < array_length(_blocks_to_start); _check++) {
-                            var _ctype = get_link_type(_blocks_to_start[_check]);
-                            if (_ctype == "sfx" || _ctype == "voice") { _is_linked_to_src = true; break; }
-                        }
-                        if (!_is_linked_to_src) {
-                            var _dur = variable_struct_exists(_b, "duration") ? _b.duration : 2.0;
-                            speaking_pause_timer = max(speaking_pause_timer, max(1, _dur * 60));
+                        var _dur = variable_struct_exists(_b, "duration") ? _b.duration : 2.0;
+                        var _tied = has_driving_event_in_chain(_blocks_to_start);
+                        _b.title_tied_to_chain = _tied;
+                        if (_tied) {
+                            _b.title_frames = 999999;
+                        } else {
+                            _b.title_frames = max(1, _dur * 60);
+                            var _is_linked_to_src = false;
+                            for (var _check = 0; _check < array_length(_blocks_to_start); _check++) {
+                                var _ctype = get_link_type(_blocks_to_start[_check]);
+                                if (_ctype == "sfx" || _ctype == "voice") { _is_linked_to_src = true; break; }
+                            }
+                            if (!_is_linked_to_src) {
+                                speaking_pause_timer = max(speaking_pause_timer, _b.title_frames);
+                            }
                         }
                     } else if (string_pos("play sfx", _aname) > 0) {
                         if (variable_struct_exists(_b, "sfx_path")) {
@@ -615,34 +624,42 @@ function step_tts_playback() {
                         var _qi2   = variable_struct_exists(_b, "quake_intensity") ? _b.quake_intensity : 3;
                         var _qdir2 = variable_struct_exists(_b, "quake_direction") ? _b.quake_direction : "omni";
                         var _qfr2  = max(1, round((variable_struct_exists(_b, "quake_duration") ? _b.quake_duration : 1.0) * 60));
-                        var _q_in_chain = (array_length(_blocks_to_start) > 1);
+                        var _chain_start = has_driving_event_in_chain(_blocks_to_start) ? playing_block_index : -1;
                         quake_intensity      = _qi2;
                         quake_direction      = _qdir2;
-                        quake_frames         = _q_in_chain ? 999999 : _qfr2;
-                        quake_tied_to_chain  = _q_in_chain;
-                        speaking_pause_timer = max(speaking_pause_timer, _qfr2);
+                        quake_frames         = (_chain_start != -1) ? 999999 : _qfr2;
+                        quake_tied_to_chain  = (_chain_start != -1);
+                        quake_chain_start    = _chain_start;
+                        if (_chain_start == -1) {
+                            speaking_pause_timer = max(speaking_pause_timer, _qfr2);
+                        }
                     } else if (_aname == "jitters") {
                         if (_act_idx != -1) {
                             var _ji  = variable_struct_exists(_b, "jitter_intensity") ? _b.jitter_intensity : 3;
                             var _jd  = variable_struct_exists(_b, "jitter_direction") ? _b.jitter_direction : "omni";
                             var _jfr = max(1, round((variable_struct_exists(_b, "jitter_duration") ? _b.jitter_duration : 1.0) * 60));
                             // If linked with same-char move, jitter lasts until move finishes
-                            var _tied = false;
+                            var _tied_to_move = false;
                             for (var _ti = 0; _ti < array_length(_blocks_to_start); _ti++) {
                                 var _tb = _blocks_to_start[_ti];
-                                if (variable_struct_exists(_tb, "char_index") && real(_tb.char_index) == real(_b.char_index) && get_link_type(_tb) == "move") { _tied = true; break; }
+                                if (variable_struct_exists(_tb, "char_index") && real(_tb.char_index) == real(_b.char_index) && get_link_type(_tb) == "move") { _tied_to_move = true; break; }
                             }
+                            var _chain_start = has_driving_event_in_chain(_blocks_to_start) ? playing_block_index : -1;
                             action_animating = true;
                             array_push(active_animations, {
                                 char_index:       _b.char_index,
                                 type:             "jitter",
                                 intensity:        _ji,
                                 direction:        _jd,
-                                frames_remaining: _tied ? 999999 : _jfr,
-                                tied_to_move:     _tied,
+                                frames_remaining: (_chain_start != -1 || _tied_to_move) ? 999999 : _jfr,
+                                tied_to_move:     _tied_to_move,
+                                tied_to_chain:    (_chain_start != -1),
+                                chain_start_index: _chain_start
                             });
                         }
-                        speaking_pause_timer = max(speaking_pause_timer, 5);
+                        if (!has_driving_event_in_chain(_blocks_to_start)) {
+                            speaking_pause_timer = max(speaking_pause_timer, 5);
+                        }
                     } else if (string_pos("disappears", _aname) > 0) {
                         var _dstyle = variable_struct_exists(_b, "disappear_style") ? _b.disappear_style : "pop";
                         var _dspeed_idx = variable_struct_exists(_b, "disappear_speed") ? _b.disappear_speed : 2;
@@ -860,12 +877,15 @@ function step_tts_playback() {
                     var _pcb    = variable_struct_exists(_b, "color_b") ? _b.color_b : 0;
                     var _paw    = variable_struct_exists(_b, "area_w")  ? _b.area_w  : 0;
                     var _pah    = variable_struct_exists(_b, "area_h")  ? _b.area_h  : 0;
-                    start_particle_emitter(_b.effect, _b.x, _b.y, _b.angle, _psize, _pdur, _pden, _pspd, _pspr, _pcol, _pcr, _pcg, _pcb, _paw, _pah);
+                    var _chain_start = has_driving_event_in_chain(_blocks_to_start) ? playing_block_index : -1;
+                    start_particle_emitter(_b.effect, _b.x, _b.y, _b.angle, _psize, _pdur, _pden, _pspd, _pspr, _pcol, _pcr, _pcg, _pcb, _paw, _pah, _chain_start);
                     if (_b.effect == "shot") {
                         speaking_pause_timer = max(speaking_pause_timer, 4);
                         waiting_for_shots    = true;
                     } else {
-                        speaking_pause_timer = max(speaking_pause_timer, round(_pdur * 60));
+                        if (_chain_start == -1) {
+                            speaking_pause_timer = max(speaking_pause_timer, round(_pdur * 60));
+                        }
                     }
                 } else {
                     var _is_empty = true;

@@ -36,7 +36,7 @@
         "frame_dy":-3.0,
         "frame_dx":1.0,
         "type":"sprite",
-        "frame_dx_flipped":-1.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3511.png",
         "composite_legs":true
@@ -51,7 +51,7 @@
       {
         "frame_dy":-8.0,
         "type":"sprite",
-        "frame_dx_flipped":1.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3513.png",
         "composite_legs":true
@@ -59,7 +59,7 @@
       {
         "frame_dy":-5.0,
         "type":"sprite",
-        "frame_dx_flipped":3.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3514.png",
         "composite_legs":true
@@ -68,7 +68,7 @@
         "frame_dy":-7.0,
         "type":"sprite",
         "frame_dy_flipped":-7.0,
-        "frame_dx_flipped":-7.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3515.png",
         "composite_legs":true
@@ -90,7 +90,7 @@
       {
         "frame_dy":-7.0,
         "type":"sprite",
-        "frame_dx_flipped":-5.0,
+        "frame_dx_flipped":0.0,
         "hold":20.0,
         "sprite":"pose_3515.png",
         "composite_legs":true
@@ -98,7 +98,7 @@
       {
         "frame_dy":-4.0,
         "type":"sprite",
-        "frame_dx_flipped":3.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3514.png",
         "composite_legs":true
@@ -118,7 +118,7 @@
       {
         "frame_dy":-7.0,
         "type":"sprite",
-        "frame_dx_flipped":-7.0,
+        "frame_dx_flipped":0.0,
         "hold":20.0,
         "sprite":"pose_3515.png",
         "composite_legs":true
@@ -126,7 +126,7 @@
       {
         "frame_dy":-9.0,
         "type":"sprite",
-        "frame_dx_flipped":-4.0,
+        "frame_dx_flipped":0.0,
         "hold":30.0,
         "sprite":"pose_3517.png",
         "composite_legs":true
@@ -139,34 +139,7 @@
       {
         "frame_dy":-9.0,
         "type":"sprite",
-        "frame_dx_flipped":-14.0,
-        "hold":10.0,
-        "sprite":"pose_3518.png",
-        "composite_legs":true
-      },
-      {
-        "frame_dy":-6.0,
-        "frame_dx":0.0,
-        "type":"sprite",
-        "frame_dx_flipped":-17.0,
-        "hold":10.0,
-        "sprite":"pose_3519.png",
-        "composite_legs":true
-      },
-      {
-        "frame_dy":-9.0,
-        "type":"sprite",
-        "frame_dx_flipped":-3.0,
-        "hold":10.0,
-        "sprite":"pose_3517.png",
-        "composite_legs":true
-      },
-      {
-        "frame_dy":-9.0,
-        "frame_dx":0.0,
-        "type":"sprite",
-        "frame_dy_flipped":-9.0,
-        "frame_dx_flipped":-16.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3518.png",
         "composite_legs":true
@@ -176,7 +149,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":-6.0,
-        "frame_dx_flipped":-17.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3519.png",
         "composite_legs":true
@@ -184,30 +157,63 @@
       {
         "frame_dy":-9.0,
         "type":"sprite",
-        "frame_dx_flipped":-15.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
-        "sprite":"pose_3518.png",
-        "composite_legs":true
-      },
-      {
-        "frame_dy":-9.0,
-        "hold":10.0,
-        "type":"sprite",
         "sprite":"pose_3517.png",
         "composite_legs":true
       },
       {
         "frame_dy":-9.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":-15.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3518.png",
         "composite_legs":true
       },
       {
         "frame_dy":-6.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":-19.0,
+        "frame_dy_flipped":-6.0,
+        "frame_dx_flipped":0.0,
+        "hold":10.0,
+        "sprite":"pose_3519.png",
+        "composite_legs":true
+      },
+      {
+        "frame_dy":-9.0,
+        "frame_dx":0.0,
+        "type":"sprite",
+        "frame_dx_flipped":0.0,
+        "hold":10.0,
+        "sprite":"pose_3518.png",
+        "composite_legs":true
+      },
+      {
+        "frame_dy":-9.0,
+        "frame_dx":0.0,
+        "type":"sprite",
+        "frame_dx_flipped":0.0,
+        "hold":10.0,
+        "sprite":"pose_3517.png",
+        "composite_legs":true
+      },
+      {
+        "frame_dy":-9.0,
+        "frame_dx":0.0,
+        "type":"sprite",
+        "frame_dx_flipped":0.0,
+        "hold":10.0,
+        "sprite":"pose_3518.png",
+        "composite_legs":true
+      },
+      {
+        "frame_dy":-6.0,
+        "frame_dx":0.0,
+        "type":"sprite",
+        "frame_dy_flipped":-6.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3519.png",
         "composite_legs":true
@@ -216,7 +222,7 @@
         "frame_dy":-12.0,
         "type":"sprite",
         "frame_dy_flipped":-12.0,
-        "frame_dx_flipped":-9.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3520.png",
         "composite_legs":true
@@ -224,7 +230,7 @@
       {
         "frame_dy":-6.0,
         "type":"sprite",
-        "frame_dx_flipped":-7.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3521.png",
         "composite_legs":true
@@ -238,7 +244,7 @@
         "frame_dy":-7.0,
         "type":"sprite",
         "frame_dy_flipped":-7.0,
-        "frame_dx_flipped":-7.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3522.png",
         "composite_legs":true
@@ -253,7 +259,7 @@
       {
         "frame_dy":-5.0,
         "type":"sprite",
-        "frame_dx_flipped":-6.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3508.png",
         "composite_legs":true
@@ -288,6 +294,7 @@
   {
     "frames":[
       {
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3525.png",
@@ -296,7 +303,7 @@
       {
         "frame_dy":-17.0,
         "type":"sprite",
-        "frame_dx_flipped":5.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite":"pose_3527.png",
         "composite_legs":true
@@ -310,7 +317,7 @@
         "frame_dy":8.0,
         "type":"sprite",
         "frame_dy_flipped":8.0,
-        "frame_dx_flipped":10.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite_flipped":"pose_2103.png",
         "sprite":"pose_3776.png",
@@ -320,7 +327,7 @@
         "frame_dy":9.0,
         "type":"sprite",
         "frame_dy_flipped":9.0,
-        "frame_dx_flipped":12.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite":"pose_3528.png",
         "composite_legs":true
@@ -329,7 +336,7 @@
         "frame_dy":10.0,
         "type":"sprite",
         "frame_dy_flipped":9.0,
-        "frame_dx_flipped":12.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite":"pose_3530.png",
         "composite_legs":true
@@ -339,7 +346,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":9.0,
-        "frame_dx_flipped":12.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite":"pose_3528.png",
         "composite_legs":true
@@ -349,7 +356,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":8.0,
-        "frame_dx_flipped":10.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite_flipped":"pose_2103.png",
         "sprite":"pose_3776.png",
@@ -360,7 +367,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":9.0,
-        "frame_dx_flipped":12.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite":"pose_3528.png",
         "composite_legs":true
@@ -370,7 +377,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":9.0,
-        "frame_dx_flipped":12.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite":"pose_3530.png",
         "composite_legs":true
@@ -380,7 +387,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":9.0,
-        "frame_dx_flipped":12.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite":"pose_3528.png",
         "composite_legs":true
@@ -390,7 +397,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":8.0,
-        "frame_dx_flipped":10.0,
+        "frame_dx_flipped":8.0,
         "hold":10.0,
         "sprite_flipped":"pose_2103.png",
         "sprite":"pose_3776.png",
@@ -400,7 +407,7 @@
         "frame_dy":-17.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":5.0,
+        "frame_dx_flipped":7.0,
         "hold":10.0,
         "sprite":"pose_3527.png",
         "composite_legs":true
@@ -427,10 +434,11 @@
   {
     "frames":[
       {
-        "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_3531.png",
         "frame_dy_flipped":0.0,
+        "frame_dx_flipped":7.0,
+        "hold":10.0,
+        "sprite":"pose_3531.png",
         "composite_legs":true
       },
       {
@@ -447,69 +455,70 @@
         "composite_legs":true
       },
       {
-        "frame_dx_flipped":3.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3533.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":3.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3535.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":3.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3533.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":7.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3532.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":3.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3535.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":3.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3533.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":3.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3535.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":3.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3533.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
-        "frame_dx_flipped":7.0,
+        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3532.png",
-        "composite_legs":true
+        "frame_dx_flipped":7.0
       },
       {
+        "frame_dx_flipped":7.0,
         "hold":10.0,
         "type":"sprite",
         "sprite":"pose_3531.png",
@@ -574,7 +583,7 @@
       {
         "frame_dy":-14.0,
         "type":"sprite",
-        "frame_dx_flipped":4.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3536.png",
         "composite_legs":true
@@ -596,7 +605,7 @@
       {
         "frame_dy":-12.0,
         "type":"sprite",
-        "frame_dx_flipped":4.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3539.png",
         "composite_legs":true
@@ -604,7 +613,7 @@
       {
         "frame_dy":-18.0,
         "type":"sprite",
-        "frame_dx_flipped":4.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3540.png",
         "composite_legs":true
@@ -612,7 +621,7 @@
       {
         "frame_dy":-13.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3541.png",
         "composite_legs":true
@@ -708,7 +717,7 @@
         "frame_dy":-13.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3541.png",
         "composite_legs":true
@@ -717,7 +726,7 @@
         "frame_dy":-18.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":4.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3540.png",
         "composite_legs":true
@@ -730,7 +739,7 @@
       {
         "frame_dy":-12.0,
         "type":"sprite",
-        "frame_dx_flipped":4.0,
+        "frame_dx_flipped":0.0,
         "hold":30.0,
         "sprite":"pose_3539.png",
         "composite_legs":true
@@ -752,7 +761,7 @@
       {
         "frame_dy":-14.0,
         "type":"sprite",
-        "frame_dx_flipped":4.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3536.png",
         "composite_legs":true
@@ -982,43 +991,43 @@
         "frame_dy":-4.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3559.png",
         "composite_legs":true
       },
       {
         "frame_dy":-4.0,
-        "frame_dx":-2.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3560.png",
         "composite_legs":true
       },
       {
         "frame_dy":-2.0,
-        "frame_dx":-2.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3561.png",
         "composite_legs":true
       },
       {
         "frame_dy":-7.0,
-        "frame_dx":-3.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":3.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3562.png",
         "composite_legs":true
       },
       {
         "frame_dy":-7.0,
-        "frame_dx":-2.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3564.png",
         "composite_legs":true
@@ -1038,25 +1047,25 @@
         "frame_dy":-4.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3559.png",
         "composite_legs":true
       },
       {
         "frame_dy":-4.0,
-        "frame_dx":-2.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3560.png",
         "composite_legs":true
       },
       {
         "frame_dy":-2.0,
-        "frame_dx":-2.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":2.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3561.png",
         "composite_legs":true
@@ -1083,13 +1092,15 @@
   {
     "frames":[
       {
-        "hold":10.0,
         "type":"sprite",
+        "frame_dy_flipped":0.0,
+        "frame_dx_flipped":0.0,
+        "hold":10.0,
         "sprite":"pose_3565.png",
         "composite_legs":true
       },
       {
-        "frame_dy":-6.0,
+        "frame_dy":-5.0,
         "type":"sprite",
         "frame_dx_flipped":2.0,
         "hold":70.0,
@@ -1148,7 +1159,7 @@
       {
         "type":"sprite",
         "frame_dy_flipped":0.0,
-        "frame_dx_flipped":-9.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite_flipped":"pose_4101.png",
         "sprite":"pose_3750.png",
@@ -1196,7 +1207,7 @@
         "frame_dy":-7.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":-6.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3509.png",
         "composite_legs":true
@@ -1230,7 +1241,7 @@
         "frame_dy":-8.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":1.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3513.png",
         "composite_legs":true
@@ -1239,7 +1250,7 @@
         "frame_dy":-5.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":3.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3514.png",
         "composite_legs":true
@@ -1254,7 +1265,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":-7.0,
-        "frame_dx_flipped":-7.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3515.png",
         "composite_legs":true
@@ -1273,7 +1284,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":-7.0,
-        "frame_dx_flipped":-7.0,
+        "frame_dx_flipped":0.0,
         "hold":20.0,
         "sprite":"pose_3515.png",
         "composite_legs":true
@@ -1282,7 +1293,7 @@
         "frame_dy":-5.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":3.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3514.png",
         "composite_legs":true
@@ -1306,7 +1317,7 @@
         "frame_dx":0.0,
         "type":"sprite",
         "frame_dy_flipped":-7.0,
-        "frame_dx_flipped":-7.0,
+        "frame_dx_flipped":0.0,
         "hold":20.0,
         "sprite":"pose_3515.png",
         "composite_legs":true
@@ -1315,16 +1326,16 @@
         "frame_dy":-8.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":1.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3513.png",
         "composite_legs":true
       },
       {
         "frame_dy":-3.0,
-        "frame_dx":1.0,
+        "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":-1.0,
+        "frame_dx_flipped":0.0,
         "hold":10.0,
         "sprite":"pose_3511.png",
         "composite_legs":true
@@ -1341,7 +1352,7 @@
         "frame_dy":-5.0,
         "frame_dx":0.0,
         "type":"sprite",
-        "frame_dx_flipped":-6.0,
+        "frame_dx_flipped":0.0,
         "hold":20.0,
         "sprite":"pose_3508.png",
         "composite_legs":true

@@ -17,10 +17,20 @@ for (var _ppi = array_length(active_particles) - 1; _ppi >= 0; _ppi--) {
 // --- Emitter update (continuous particle streams) ---
 for (var _ei = array_length(active_emitters) - 1; _ei >= 0; _ei--) {
     var _em = active_emitters[_ei];
-    _em.frames_remaining--;
-    if (_em.frames_remaining < 0) {
+    var _expired = false;
+    if (variable_struct_exists(_em, "chain_start_index") && _em.chain_start_index != -1) {
+        if (playing_block_index != _em.chain_start_index || !is_driving_event_active()) {
+            _expired = true;
+        }
+    } else {
+        _em.frames_remaining--;
+        if (_em.frames_remaining < 0) {
+            _expired = true;
+        }
+    }
+    if (_expired) {
         array_delete(active_emitters, _ei, 1);
-    } else if (_em.frames_remaining mod 2 == 0) {
+    } else if ((variable_struct_exists(_em, "chain_start_index") && _em.chain_start_index != -1) || (_em.frames_remaining mod 2 == 0)) {
         var _esx0 = scene_win_x + _em.x;
         var _esy0 = scene_win_y + _em.y;
         var _eang = degtorad(_em.angle);
@@ -44,8 +54,21 @@ for (var _ei = array_length(active_emitters) - 1; _ei >= 0; _ei--) {
 
 // --- Beam update ---
 for (var _bmi = array_length(active_beams) - 1; _bmi >= 0; _bmi--) {
-    active_beams[_bmi].frames_remaining--;
-    if (active_beams[_bmi].frames_remaining <= 0) array_delete(active_beams, _bmi, 1);
+    var _bm = active_beams[_bmi];
+    var _expired = false;
+    if (variable_struct_exists(_bm, "chain_start_index") && _bm.chain_start_index != -1) {
+        if (playing_block_index != _bm.chain_start_index || !is_driving_event_active()) {
+            _expired = true;
+        }
+    } else {
+        _bm.frames_remaining--;
+        if (_bm.frames_remaining <= 0) {
+            _expired = true;
+        }
+    }
+    if (_expired) {
+        array_delete(active_beams, _bmi, 1);
+    }
 }
 
 // --- Explosion update ---
@@ -87,13 +110,51 @@ for (var _exi = array_length(active_explosions) - 1; _exi >= 0; _exi--) {
         }
     }
 
-    if (_ex.frames_elapsed >= _ex.frames_total) array_delete(active_explosions, _exi, 1);
+    var _expired = false;
+    if (variable_struct_exists(_ex, "chain_start_index") && _ex.chain_start_index != -1) {
+        if (playing_block_index != _ex.chain_start_index || !is_driving_event_active()) {
+            _expired = true;
+        }
+    } else {
+        if (_ex.frames_elapsed >= _ex.frames_total) {
+            _expired = true;
+        }
+    }
+    if (_expired) {
+        array_delete(active_explosions, _exi, 1);
+    }
+}
+
+// --- Title frames update ---
+if (playing_block_index != -1) {
+    var _end_idx = max(playing_block_index, playing_linked_index);
+    var _driving_active = is_driving_event_active();
+    for (var _i = playing_block_index; _i <= _end_idx; _i++) {
+        if (_i < array_length(script_blocks)) {
+            var _cb = script_blocks[_i];
+            if (variable_struct_exists(_cb, "title_frames")) {
+                if (variable_struct_exists(_cb, "title_tied_to_chain") && _cb.title_tied_to_chain) {
+                    if (!_driving_active) {
+                        _cb.title_frames = 0;
+                    }
+                } else {
+                    if (!theater_paused && _cb.title_frames > 0) {
+                        _cb.title_frames--;
+                    }
+                }
+            }
+        }
+    }
 }
 
 // --- Quake ---
 if (quake_frames > 0) {
-    if (quake_tied_to_chain) {
-        if (!is_speaking && !action_animating && speaking_pause_timer <= 0) { quake_frames = 0; quake_tied_to_chain = false; }
+    if (quake_chain_start != -1) {
+        if (playing_block_index != quake_chain_start || !is_driving_event_active()) {
+            quake_frames = 0;
+            quake_tied_to_chain = false;
+            quake_chain_start = -1;
+        }
     } else { quake_frames--; }
     if (quake_frames > 0) {
         quake_x = (quake_direction != "vertical")   ? random_range(-quake_intensity, quake_intensity) : 0;

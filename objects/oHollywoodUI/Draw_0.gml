@@ -19,7 +19,7 @@ var _render_live_titles = function() {
             }
         }
         
-        if (_pb != -1) {
+        if (_pb != -1 && (!variable_struct_exists(_pb, "title_frames") || _pb.title_frames > 0)) {
             var _txt = variable_struct_exists(_pb, "title_text") ? _pb.title_text : "";
             if (_txt != "") {
                 var _align = variable_struct_exists(_pb, "title_align") ? _pb.title_align : 1;

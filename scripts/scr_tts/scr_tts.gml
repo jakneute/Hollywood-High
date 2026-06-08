@@ -22,14 +22,16 @@ function tts_speak(_text, _voice_id, _pitch, _speed, _mode, _style, _glottal = -
     var _done_file = working_directory + "talkit\\talkit_done_" + string(_req) + ".tmp";
     if (file_exists(_done_file)) file_delete(_done_file);
 
-    var _cmd = _ps_exe + " -ExecutionPolicy Bypass -File \"" + _script + "\""
+    var _game_pid = variable_global_exists("get_pid") ? external_call(global.get_pid) : 0;
+    var _cmd = _ps_exe + " -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"" + _script + "\""
         + " -Path \""     + _path            + "\""
         + " -Voice "      + string(_idx)
         + " -Rate "       + string(_t_speed)
         + " -Pitch "      + string(_t_pitch)
         + " -Mode "       + string(_mode)
         + " -Style "      + string(_style)
-        + " -Req "        + string(_req);
+        + " -Req "        + string(_req)
+        + " -GamePID "    + string(_game_pid);
 
     if (_glottal   >= 0) _cmd += " -GlottalSource " + string(_glottal);
     if (_f0perturb >= 0) _cmd += " -F0Perturb "     + string(_f0perturb);

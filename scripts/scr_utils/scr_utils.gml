@@ -100,6 +100,32 @@ function get_link_type(_block) {
     return "other";
 }
 
+function has_driving_event_in_chain(_blocks_to_start) {
+    for (var _i = 0; _i < array_length(_blocks_to_start); _i++) {
+        var _ctype = get_link_type(_blocks_to_start[_i]);
+        if (_ctype == "sfx" || _ctype == "move" || _ctype == "canned" || _ctype == "kill") {
+            return true;
+        }
+        if (variable_struct_exists(_blocks_to_start[_i], "action_name") && string_pos("wait", string_lower(_blocks_to_start[_i].action_name)) > 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function is_driving_event_active() {
+    if (!instance_exists(oHollywoodUI)) return false;
+    if (oHollywoodUI.playing_block_index == -1) return false;
+    if (oHollywoodUI.speaking_pause_timer > 0) return true;
+    for (var _i = 0; _i < array_length(oHollywoodUI.active_animations); _i++) {
+        var _type = oHollywoodUI.active_animations[_i].type;
+        if (_type == "move" || _type == "enter" || _type == "exit" || _type == "canned" || _type == "kill_fall" || _type == "kill_standup" || _type == "disintegrate" || _type == "melt") {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Maps a mouse position to a character index inside the script text area.
 function get_index(_mx, _my) {
     var _rel_x = _mx - (box_x + 10);
@@ -315,7 +341,8 @@ function do_export_script() {
     export_status_timer = 9999;
 }
 
-function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_sec, _density = 2, _speed = 1.0, _spread = 65, _color = "red", _color_r = 200, _color_g = 0, _color_b = 0, _area_w = 0, _area_h = 0) {
+function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_sec, _density = 2, _speed = 1.0, _spread = 65, _color = "red", _color_r = 200, _color_g = 0, _color_b = 0, _area_w = 0, _area_h = 0, _chain_start = -1) {
+    var _tied_to_chain = (_chain_start >= 0);
     if (_effect == "laser") {
         var _frames = max(2, round(_duration_sec * 60));
         var _ang = degtorad(_angle_deg);
@@ -370,8 +397,10 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
             color_g:          _color_g,
             color_b:          _color_b,
             beam_len:         _blen,
-            frames_total:     _frames,
-            frames_remaining: _frames,
+            frames_total:     _tied_to_chain ? 999999 : _frames,
+            frames_remaining: _tied_to_chain ? 999999 : _frames,
+            tied_to_chain:    _tied_to_chain,
+            chain_start_index: _chain_start,
         });
         return;
     }
@@ -390,10 +419,12 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
             spread: _spread,
             density: _density,
             color_r: _ergb.r, color_g: _ergb.g, color_b: _ergb.b,
-            frames_total: _frames,
+            frames_total: _tied_to_chain ? 999999 : _frames,
             frames_elapsed: 0,
             angles: _angles,
             sparks_done: false,
+            tied_to_chain: _tied_to_chain,
+            chain_start_index: _chain_start,
         });
         return;
     }
@@ -432,7 +463,9 @@ function start_particle_emitter(_effect, _ox, _oy, _angle_deg, _size, _duration_
         color_b:          _color_b,
         area_w:           _area_w,
         area_h:           _area_h,
-        frames_remaining: max(2, round(_duration_sec * 60)),
+        frames_remaining: _tied_to_chain ? 999999 : max(2, round(_duration_sec * 60)),
+        tied_to_chain:    _tied_to_chain,
+        chain_start_index: _chain_start,
     });
 }
 

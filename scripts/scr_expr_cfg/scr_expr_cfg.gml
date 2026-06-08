@@ -261,8 +261,8 @@ function open_expr_configurator(_char_idx) {
     var _c_oc = characters[_char_idx];
     var _folder_oc = datafiles_path + "config/" + _c_oc.name + "/";
     var _existing = {};
-    if (file_exists(_folder_oc + "expressions_config.json")) {
-        var _s2 = ""; var _f2 = file_text_open_read(_folder_oc + "expressions_config.json");
+    if (file_exists(_folder_oc + "expressions.json")) {
+        var _s2 = ""; var _f2 = file_text_open_read(_folder_oc + "expressions.json");
         while (!file_text_eof(_f2)) { _s2 += file_text_readln(_f2); }
         file_text_close(_f2); _existing = json_parse(_s2);
     }
@@ -317,8 +317,8 @@ function save_expr_config() {
             if (_cfg3 != undefined) _out[$ "pose_" + string(_p3) + "_" + (_d3 == 1 ? "high" : "low")] = _cfg3;
         }
     }
-    expr_cfg_pending_save_path = _folder_sv + "expressions_config.json";
-    expr_cfg_pending_save_data = json_stringify(_out);
+    expr_cfg_pending_save_path = _folder_sv + "expressions.json";
+    expr_cfg_pending_save_data = json_stringify(_out, true);
     if (ds_map_exists(char_expr_cache, _c_sv.name)) ds_map_delete(char_expr_cache, _c_sv.name);
 }
 

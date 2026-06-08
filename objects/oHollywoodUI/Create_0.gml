@@ -8,6 +8,9 @@
 if (!variable_global_exists("win_exec_id")) {
     global.win_exec_id = external_define("kernel32.dll", "WinExec", dll_stdcall, ty_real, 2, ty_string, ty_real);
 }
+if (!variable_global_exists("get_pid")) {
+    global.get_pid = external_define("kernel32.dll", "GetCurrentProcessId", dll_stdcall, ty_real, 0);
+}
 
 // --- 1b. WINDOW SCALING ---
 window_set_min_width(640);
@@ -230,7 +233,7 @@ if (!directory_exists(datafiles_path)) {
 // Character sprites and per-sprite canvas offsets (loaded lazily from offsets.json)
 char_sprites      = ds_map_create();
 char_offsets_cache = ds_map_create(); // char_name → struct parsed from offsets.json, or undefined
-char_expr_cache    = ds_map_create(); // char_name → struct parsed from expressions_config.json, or undefined
+char_expr_cache    = ds_map_create(); // char_name → struct parsed from expressions.json, or undefined
 char_anim_cache    = ds_map_create(); // char_name → parsed animations.json array, or undefined
 mouth_anim_cache   = ds_map_create(); // "charName_manim_pose_NNNNN.png" → array of animation frame sprites
 char_sel_layer_cache = array_create(array_length(characters), undefined); // Per-character composite layer cache for the selector UI (avoids file_exists every frame)
@@ -494,6 +497,7 @@ quake_frames                  = 0;
 quake_intensity               = 0;
 quake_direction               = "omni";
 quake_tied_to_chain           = false;
+quake_chain_start             = -1;
 action_modal_kill_style      = "sudden";
 action_modal_kill_speed           = 2; // index: 0=very slow .. 4=very fast; default NORMAL
 action_modal_resurrect_speed      = 2;
@@ -663,7 +667,7 @@ if (array_length(all_voices) > 0) {
 // EXPRESSION TILE CONFIGURATOR (debug tool — remove for final build)
 // ─────────────────────────────────────────────────────────────────
 // 4 poses × 2 directions (low = natural, high = flipped) = 8 configs per character.
-// Data saved to datafiles/config/<Name>/expressions_config.json.
+// Data saved to datafiles/config/<Name>/expressions.json.
 
 // Set to false before shipping to hide the expression configurator entirely.
 SHOW_EXPR_CFG           = true;
