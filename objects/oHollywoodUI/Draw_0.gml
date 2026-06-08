@@ -4670,6 +4670,16 @@ if (anim_editor_open) {
             // OK / Cancel buttons
             var _ok_x2  = _m_x + _m_w - 220; var _ok_w2 = 90;
             var _cx2    = _m_x + _m_w - 120; var _cw2   = 90;
+            
+            // Draw pending selected SFX name
+            if (anim_editor_sfx_pending != "") {
+                draw_set_color(make_color_rgb(255, 200, 80));
+                var _disp_pending = anim_editor_sfx_pending;
+                var _dot_pos = string_last_pos(".", _disp_pending);
+                if (_dot_pos > 0) _disp_pending = string_copy(_disp_pending, 1, _dot_pos - 1);
+                draw_text(_m_x + 14, _btn_y2 + 8, "Selected: " + _disp_pending);
+            }
+            
             var _ok_active = (anim_editor_sfx_pending != "");
             draw_set_color(_ok_active ? ((_mx > _ok_x2 && _mx < _ok_x2 + _ok_w2 && _my > _btn_y2 && _my < _btn_y2 + _btn_h2) ? make_color_rgb(80, 160, 80) : make_color_rgb(40, 100, 40)) : make_color_rgb(30, 50, 30));
             draw_roundrect_ext(_ok_x2, _btn_y2, _ok_x2 + _ok_w2, _btn_y2 + _btn_h2, 4, 4, false);

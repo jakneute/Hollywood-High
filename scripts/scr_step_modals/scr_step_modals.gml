@@ -143,9 +143,13 @@ function step_modal_anim_editor() {
                 }
                 _r++;
             }
-            // Click outside list (but not buttons) closes picker
-            if (_my < _btn_y) { anim_editor_sfx_pending = ""; anim_editor_sfx_picker = false; }
         }
+
+        if (keyboard_check_pressed(vk_escape)) {
+            anim_editor_sfx_insert_mode = false;
+            anim_editor_sfx_pending = ""; anim_editor_sfx_picker = false; return;
+        }
+
         if (mouse_wheel_up())   anim_editor_sfx_scroll = max(0, anim_editor_sfx_scroll - 1);
         if (mouse_wheel_down()) anim_editor_sfx_scroll = min(_max_scroll, anim_editor_sfx_scroll + 1);
         return;
@@ -187,7 +191,7 @@ function step_modal_anim_editor() {
                     _anim[$ _fk] = anim_editor_sprite_pending;
                     anim_editor_dirty = true;
                     anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false;
-                    anim_editor_sprite_picker_mode = 0; return;
+                    anim_editor_sprite_picker_mode = 0; anim_editor_sprite_insert_mode = false; return;
                 }
                 if (anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames)) {
                     if (anim_editor_flipped_mode) {
@@ -202,11 +206,15 @@ function step_modal_anim_editor() {
                     anim_editor_dirty = true;
                 }
                 anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false;
-                anim_editor_sprite_picker_mode = 0; return;
+                anim_editor_sprite_picker_mode = 0; anim_editor_sprite_insert_mode = false; return;
             }
             // Cancel
             if (_mx > _sp_cx && _mx < _sp_cx + _sp_cw && _my > _sp_btn_y && _my < _sp_btn_y + _sp_btn_h) {
-                anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false; anim_editor_sprite_picker_mode = 0; return;
+                if (anim_editor_sprite_insert_mode && anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames)) {
+                    array_delete(_frames, anim_editor_selected_frame, 1);
+                    anim_editor_selected_frame = -1;
+                }
+                anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false; anim_editor_sprite_picker_mode = 0; anim_editor_sprite_insert_mode = false; return;
             }
             // Start scrollbar drag
             if (_max_spr > 0 && _mx > _sbx_s && _mx < _sbx_s + 10 && _my > _thumb_y_s && _my < _thumb_y_s + _thumb_h_s) {
@@ -225,7 +233,15 @@ function step_modal_anim_editor() {
                     anim_editor_sprite_pending = anim_editor_sprite_list[_pi]; return;
                 }
             }
-            if (_my < _sp_btn_y) { anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false; anim_editor_sprite_picker_mode = 0; }
+        }
+
+        if (keyboard_check_pressed(vk_escape)) {
+            if (anim_editor_sprite_insert_mode && anim_editor_selected_frame >= 0 && anim_editor_selected_frame < array_length(_frames)) {
+                array_delete(_frames, anim_editor_selected_frame, 1);
+                anim_editor_selected_frame = -1;
+            }
+            anim_editor_sprite_pending = ""; anim_editor_sprite_picker = false; anim_editor_sprite_picker_mode = 0; anim_editor_sprite_insert_mode = false;
+            return;
         }
 
         if (mouse_wheel_up())   anim_editor_sprite_scroll = max(0, anim_editor_sprite_scroll - 1);
@@ -344,6 +360,7 @@ function step_modal_anim_editor() {
             // SET
             if (_mx > _info_x && _mx < _info_x + 54 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                 anim_editor_sprite_picker_mode = 1;
+                anim_editor_sprite_insert_mode = false;
                 anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
                 anim_editor_sprite_scroll = 0;
                 var _fp_found = false;
@@ -448,6 +465,7 @@ function step_modal_anim_editor() {
                 if (_mx > _info_x && _mx < _info_x + 160 && _my > _preview_y + 190 && _my < _preview_y + 212) {
                     anim_editor_selected_frame = _edit_idx;
                     anim_editor_sprite_picker_mode = 0;
+                    anim_editor_sprite_insert_mode = false;
                     anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
                     anim_editor_sprite_scroll = 0;
                     var _cur_spr = anim_editor_flipped_mode
@@ -693,6 +711,7 @@ function step_modal_anim_editor() {
                 anim_editor_dirty = true;
                 // Auto-open sprite picker for the new frame
                 anim_editor_sprite_picker_mode = 0;
+                anim_editor_sprite_insert_mode = true;
                 anim_editor_sprite_list = canned_anim_sprite_list(anim_editor_char_idx);
                 anim_editor_sprite_scroll = 0;
                 var _cur_spr2 = _new_sp2.sprite;

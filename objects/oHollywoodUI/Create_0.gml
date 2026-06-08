@@ -712,6 +712,7 @@ anim_editor_anchor_btn       = 0;
 anim_editor_anchor_repeat    = 0;
 anim_editor_flipped_mode     = false;
 anim_editor_sprite_picker_mode = 0;  // 0 = main anim sprite, 1 = feet sprite
+anim_editor_sprite_insert_mode = false;  // true if we just inserted a new sprite frame and are picking its sprite
 anim_editor_pan_x    = 0;
 anim_editor_pan_y    = 0;
 anim_editor_pan_drag = false;
