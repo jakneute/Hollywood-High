@@ -1851,7 +1851,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 var _is_wait = (string_pos("WAIT", _aname_u) > 0);
                 var _is_quake = variable_struct_exists(_block, "quake_intensity") || (string_pos("QUAKE", _aname_u) > 0);
                 var _is_disappear = (string_pos("DISAPPEARS", _aname_u) > 0);
-                var _is_jitter = (string_pos("JITTERS", _aname_u) > 0);
+                var _is_jitter = (_aname_u == "JITTERS");
                 var _is_kill = variable_struct_exists(_block, "kill_style") || (string_pos("KILL", _aname_u) > 0);
                 var _is_resurrect = (string_pos("RESURRECTS", _aname_u) > 0);
                 var _is_turn_around = (string_pos("TURNS AROUND", _aname_u) > 0);
@@ -1974,7 +1974,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     var _is_wait       = string_pos("WAIT",          string_upper(_block.action_name)) > 0;
                     var _is_title      = string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0;
                     var _is_disappear  = string_pos("DISAPPEARS",    string_upper(_block.action_name)) > 0;
-                    var _is_jitter     = string_pos("JITTERS",       string_upper(_block.action_name)) > 0;
+                    var _is_jitter     = string_upper(_block.action_name) == "JITTERS";
                     var _is_quake      = variable_struct_exists(_block, "quake_intensity");
                     var _is_kill       = variable_struct_exists(_block, "kill_style");
                     var _is_resurrect  = string_pos("RESURRECTS",    string_upper(_block.action_name)) > 0;
@@ -2247,7 +2247,7 @@ if (mouse_check_button_pressed(mb_left)) {
                                                     || (string_pos("pose ", _dbl_aname_lo) > 0 && string_pos("poses ", _dbl_aname_lo) == 0 && !_dbl_has_looks));
                             var _dbl_is_kill      = variable_struct_exists(_block, "kill_style");
                             var _dbl_is_resurrect = (string_pos("RESURRECTS", _dbl_aname_u) > 0);
-                            var _dbl_is_jitter    = (string_pos("JITTERS",    _dbl_aname_u) > 0);
+                            var _dbl_is_jitter    = (_dbl_aname_u == "JITTERS");
                             var _dbl_is_quake     = variable_struct_exists(_block, "quake_intensity");
                             var _dbl_is_gen = (string_pos("WAIT", _dbl_aname_u) > 0 || string_pos("PLAY SFX", _dbl_aname_u) > 0
                                            || string_pos("DISPLAY TITLE", _dbl_aname_u) > 0 || string_pos("DISAPPEARS", _dbl_aname_u) > 0

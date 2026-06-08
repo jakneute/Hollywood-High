@@ -85,7 +85,7 @@ function get_link_type(_block) {
         if (string_pos("play sfx",     _aname) > 0) return "sfx";
         if (string_pos("display title",_aname) > 0) return "title";
         if (string_pos("disappears",   _aname) > 0) return "charaction";
-        if (string_pos("jitters",      _aname) > 0) return "jitter";
+        if (_aname == "jitters") return "jitter";
         if (variable_struct_exists(_block, "quake_intensity") || string_pos("quake", _aname) > 0) return "quake";
         if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
         if (variable_struct_exists(_block, "kill_style") || string_pos("resurrects", _aname) > 0) return "kill";

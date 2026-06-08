@@ -2,48 +2,48 @@
   {
     "frames":[
       {
-        "type":"sprite",
-        "composite_legs":true,
         "frame_dy":0.0,
-        "hold":10.0,
+        "type":"sprite",
         "frame_dx":0.0,
-        "sprite":"pose_20501.png"
+        "hold":10.0,
+        "sprite":"pose_20501.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20502.png"
+        "sprite":"pose_20502.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20503.png"
+        "sprite":"pose_20503.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20504.png"
+        "sprite":"pose_20504.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20505.png"
+        "sprite":"pose_20505.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20506.png"
+        "sprite":"pose_20506.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20507.png"
+        "sprite":"pose_20507.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/brush teeth_20018.wav",
@@ -51,64 +51,64 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20508.png"
+        "sprite":"pose_20508.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20509.png"
+        "sprite":"pose_20509.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20510.png"
+        "sprite":"pose_20510.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20511.png"
+        "sprite":"pose_20511.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20510.png"
+        "sprite":"pose_20510.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20511.png"
+        "sprite":"pose_20511.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20512.png"
+        "sprite":"pose_20512.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20513.png"
+        "sprite":"pose_20513.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20514.png"
+        "sprite":"pose_20514.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20515.png"
+        "sprite":"pose_20515.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/hat on vocal_20002.wav",
@@ -116,33 +116,34 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20516.png"
+        "sprite":"pose_20516.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20517.png"
+        "sprite":"pose_20517.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20518.png"
+        "sprite":"pose_20518.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20524.png"
+        "sprite":"pose_20524.png",
+        "composite_legs":true
       }
     ],
+    "name":"brushes teeth",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"brushes teeth",
     "body_dy":28.0,
     "triggers":[
       "brush teeth",
@@ -152,22 +153,22 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20526.png"
+        "sprite":"pose_20526.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20527.png"
+        "sprite":"pose_20527.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20528.png"
+        "sprite":"pose_20528.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/cry_20006.wav",
@@ -175,105 +176,106 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20529.png"
+        "sprite":"pose_20529.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20532.png"
+        "sprite":"pose_20532.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20533.png"
+        "sprite":"pose_20533.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20534.png"
+        "sprite":"pose_20534.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20535.png"
+        "sprite":"pose_20535.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20536.png"
+        "sprite":"pose_20536.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20537.png"
+        "sprite":"pose_20537.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20538.png"
+        "sprite":"pose_20538.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20539.png"
+        "sprite":"pose_20539.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20540.png"
+        "sprite":"pose_20540.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20541.png"
+        "sprite":"pose_20541.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20542.png"
+        "sprite":"pose_20542.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20543.png"
+        "sprite":"pose_20543.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20544.png"
+        "sprite":"pose_20544.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20545.png"
+        "sprite":"pose_20545.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20547.png"
+        "sprite":"pose_20547.png",
+        "composite_legs":true
       }
     ],
+    "name":"cries",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"cries",
     "body_dy":28.0,
     "triggers":[
       "cry",
@@ -283,16 +285,16 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20548.png"
+        "sprite":"pose_20548.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20549.png"
+        "sprite":"pose_20549.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/dog balloon _hmm__20004.wav",
@@ -300,40 +302,40 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20550.png"
+        "sprite":"pose_20550.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20551.png"
+        "sprite":"pose_20551.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20552.png"
+        "sprite":"pose_20552.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20553.png"
+        "sprite":"pose_20553.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20554.png"
+        "sprite":"pose_20554.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20555.png"
+        "sprite":"pose_20555.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/dog balloon_20017.wav",
@@ -341,34 +343,34 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20556.png"
+        "sprite":"pose_20556.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20557.png"
+        "sprite":"pose_20557.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20558.png"
+        "sprite":"pose_20558.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20559.png"
+        "sprite":"pose_20559.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20560.png"
+        "sprite":"pose_20560.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/dog lick_20005.wav",
@@ -376,117 +378,118 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20566.png"
+        "sprite":"pose_20566.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20560.png"
+        "sprite":"pose_20560.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20566.png"
+        "sprite":"pose_20566.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20560.png"
+        "sprite":"pose_20560.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20559.png"
+        "sprite":"pose_20559.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20566.png"
+        "sprite":"pose_20566.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20559.png"
+        "sprite":"pose_20559.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20558.png"
+        "sprite":"pose_20558.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20557.png"
+        "sprite":"pose_20557.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20556.png"
+        "sprite":"pose_20556.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20555.png"
+        "sprite":"pose_20555.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20554.png"
+        "sprite":"pose_20554.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20553.png"
+        "sprite":"pose_20553.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20552.png"
+        "sprite":"pose_20552.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20551.png"
+        "sprite":"pose_20551.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20550.png"
+        "sprite":"pose_20550.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20549.png"
+        "sprite":"pose_20549.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20548.png"
+        "sprite":"pose_20548.png",
+        "composite_legs":true
       }
     ],
+    "name":"hugs a dog",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"hugs a dog",
     "body_dy":28.0,
     "triggers":[
       "hug a dog",
@@ -496,22 +499,22 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20567.png"
+        "sprite":"pose_20567.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20568.png"
+        "sprite":"pose_20568.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20569.png"
+        "sprite":"pose_20569.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/candy out of pocket_20013.wav",
@@ -519,34 +522,34 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20572.png"
+        "sprite":"pose_20572.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20573.png"
+        "sprite":"pose_20573.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20574.png"
+        "sprite":"pose_20574.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20575.png"
+        "sprite":"pose_20575.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20576.png"
+        "sprite":"pose_20576.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - Anna\/into candy bag_21001.wav",
@@ -554,34 +557,34 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20578.png"
+        "sprite":"pose_20578.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20579.png"
+        "sprite":"pose_20579.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20580.png"
+        "sprite":"pose_20580.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20581.png"
+        "sprite":"pose_20581.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20583.png"
+        "sprite":"pose_20583.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/toss candy_20014.wav",
@@ -589,76 +592,76 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20584.png"
+        "sprite":"pose_20584.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20585.png"
+        "sprite":"pose_20585.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20586.png"
+        "sprite":"pose_20586.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20587.png"
+        "sprite":"pose_20587.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20588.png"
+        "sprite":"pose_20588.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20589.png"
+        "sprite":"pose_20589.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20590.png"
+        "sprite":"pose_20590.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20591.png"
+        "sprite":"pose_20591.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20592.png"
+        "sprite":"pose_20592.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20593.png"
+        "sprite":"pose_20593.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20594.png"
+        "sprite":"pose_20594.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20595.png"
+        "sprite":"pose_20595.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/candy in mouth_20015.wav",
@@ -666,10 +669,10 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20596.png"
+        "sprite":"pose_20596.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/chew_20016.wav",
@@ -677,75 +680,76 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20597.png"
+        "sprite":"pose_20597.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20598.png"
+        "sprite":"pose_20598.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20597.png"
+        "sprite":"pose_20597.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20599.png"
+        "sprite":"pose_20599.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20597.png"
+        "sprite":"pose_20597.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20599.png"
+        "sprite":"pose_20599.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20600.png"
+        "sprite":"pose_20600.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20603.png"
+        "sprite":"pose_20603.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20605.png"
+        "sprite":"pose_20605.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20606.png"
+        "sprite":"pose_20606.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20608.png"
+        "sprite":"pose_20608.png",
+        "composite_legs":true
       }
     ],
+    "name":"eats",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"eats",
     "body_dy":28.0,
     "triggers":[
       "eat",
@@ -755,10 +759,10 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20617.png"
+        "sprite":"pose_20617.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/wind_20010.wav",
@@ -766,118 +770,118 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20618.png"
+        "sprite":"pose_20618.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20619.png"
+        "sprite":"pose_20619.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20620.png"
+        "sprite":"pose_20620.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20621.png"
+        "sprite":"pose_20621.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20622.png"
+        "sprite":"pose_20622.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20623.png"
+        "sprite":"pose_20623.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20624.png"
+        "sprite":"pose_20624.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20626.png"
+        "sprite":"pose_20626.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20627.png"
+        "sprite":"pose_20627.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20628.png"
+        "sprite":"pose_20628.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20626.png"
+        "sprite":"pose_20626.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20629.png"
+        "sprite":"pose_20629.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20630.png"
+        "sprite":"pose_20630.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20631.png"
+        "sprite":"pose_20631.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20632.png"
+        "sprite":"pose_20632.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20633.png"
+        "sprite":"pose_20633.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20634.png"
+        "sprite":"pose_20634.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":40.0,
         "type":"sprite",
-        "sprite":"pose_20635.png"
+        "sprite":"pose_20635.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20636.png"
+        "sprite":"pose_20636.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/hat off vocal_20003.wav",
@@ -885,22 +889,22 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20637.png"
+        "sprite":"pose_20637.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20637.png"
+        "sprite":"pose_20637.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20638.png"
+        "sprite":"pose_20638.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/hat on_20011.wav",
@@ -908,22 +912,22 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20639.png"
+        "sprite":"pose_20639.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20640.png"
+        "sprite":"pose_20640.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20641.png"
+        "sprite":"pose_20641.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/hat on boink_20012.wav",
@@ -931,10 +935,10 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20642.png"
+        "sprite":"pose_20642.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/hat on vocal_20002.wav",
@@ -942,21 +946,22 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":40.0,
         "type":"sprite",
-        "sprite":"pose_20643.png"
+        "sprite":"pose_20643.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20644.png"
+        "sprite":"pose_20644.png",
+        "composite_legs":true
       }
     ],
+    "name":"puts on hat",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"puts on hat",
     "body_dy":28.0,
     "triggers":[
       "put on hat",
@@ -966,40 +971,40 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20652.png"
+        "sprite":"pose_20652.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20653.png"
+        "sprite":"pose_20653.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20653.png"
+        "sprite":"pose_20653.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20655.png"
+        "sprite":"pose_20655.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20656.png"
+        "sprite":"pose_20656.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20657.png"
+        "sprite":"pose_20657.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/hands on hip_20008.wav",
@@ -1007,117 +1012,118 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20658.png"
+        "sprite":"pose_20658.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20659.png"
+        "sprite":"pose_20659.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20660.png"
+        "sprite":"pose_20660.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20666.png"
+        "sprite":"pose_20666.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20660.png"
+        "sprite":"pose_20660.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20659.png"
+        "sprite":"pose_20659.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20658.png"
+        "sprite":"pose_20658.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20659.png"
+        "sprite":"pose_20659.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20660.png"
+        "sprite":"pose_20660.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":40.0,
         "type":"sprite",
-        "sprite":"pose_20666.png"
+        "sprite":"pose_20666.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20660.png"
+        "sprite":"pose_20660.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20659.png"
+        "sprite":"pose_20659.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20658.png"
+        "sprite":"pose_20658.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20657.png"
+        "sprite":"pose_20657.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20656.png"
+        "sprite":"pose_20656.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20655.png"
+        "sprite":"pose_20655.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20654.png"
+        "sprite":"pose_20654.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20653.png"
+        "sprite":"pose_20653.png",
+        "composite_legs":true
       }
     ],
+    "name":"wags finger",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"wags finger",
     "body_dy":28.0,
     "triggers":[
       "wag finger",
@@ -1127,16 +1133,16 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20667.png"
+        "sprite":"pose_20667.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20668.png"
+        "sprite":"pose_20668.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/laughs_20007.wav",
@@ -1144,75 +1150,76 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20669.png"
+        "sprite":"pose_20669.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20670.png"
+        "sprite":"pose_20670.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20676.png"
+        "sprite":"pose_20676.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20670.png"
+        "sprite":"pose_20670.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20676.png"
+        "sprite":"pose_20676.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20670.png"
+        "sprite":"pose_20670.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20676.png"
+        "sprite":"pose_20676.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20670.png"
+        "sprite":"pose_20670.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20669.png"
+        "sprite":"pose_20669.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20668.png"
+        "sprite":"pose_20668.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20667.png"
+        "sprite":"pose_20667.png",
+        "composite_legs":true
       }
     ],
+    "name":"laughs",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"laughs",
     "body_dy":28.0,
     "triggers":[
       "laugh",
@@ -1222,43 +1229,43 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20677.png"
+        "sprite":"pose_20677.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20678.png"
+        "sprite":"pose_20678.png",
+        "composite_legs":true
       },
       {
-        "type":"sprite",
         "frame_dy_flipped":0.0,
-        "composite_legs":true,
-        "hold":10.0,
+        "type":"sprite",
         "frame_dx_flipped":-25.0,
+        "hold":10.0,
         "sprite_flipped":"pose_19004.png",
-        "sprite":"pose_20679.png"
+        "sprite":"pose_20679.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20680.png"
+        "sprite":"pose_20680.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20681.png"
+        "sprite":"pose_20681.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20682.png"
+        "sprite":"pose_20682.png",
+        "composite_legs":true
       },
       {
         "file":"Actors - STELLA\/lipstick vocal_20009.wav",
@@ -1266,141 +1273,142 @@
         "type":"sound"
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20683.png"
+        "sprite":"pose_20683.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20684.png"
+        "sprite":"pose_20684.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20685.png"
+        "sprite":"pose_20685.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20686.png"
+        "sprite":"pose_20686.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20687.png"
+        "sprite":"pose_20687.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20688.png"
+        "sprite":"pose_20688.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20687.png"
+        "sprite":"pose_20687.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20690.png"
+        "sprite":"pose_20690.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20691.png"
+        "sprite":"pose_20691.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20692.png"
+        "sprite":"pose_20692.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":40.0,
         "type":"sprite",
-        "sprite":"pose_20693.png"
+        "sprite":"pose_20693.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20694.png"
+        "sprite":"pose_20694.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20695.png"
+        "sprite":"pose_20695.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20696.png"
+        "sprite":"pose_20696.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20697.png"
+        "sprite":"pose_20697.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20698.png"
+        "sprite":"pose_20698.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20699.png"
+        "sprite":"pose_20699.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20700.png"
+        "sprite":"pose_20700.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20701.png"
+        "sprite":"pose_20701.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20702.png"
+        "sprite":"pose_20702.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20703.png"
+        "sprite":"pose_20703.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20709.png"
+        "sprite":"pose_20709.png",
+        "composite_legs":true
       }
     ],
+    "name":"puts on lipstick",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"puts on lipstick",
     "body_dy":28.0,
     "triggers":[
       "put on lipstick",
@@ -1410,214 +1418,215 @@
   {
     "frames":[
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20711.png"
+        "sprite":"pose_20711.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20712.png"
+        "sprite":"pose_20712.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20713.png"
+        "sprite":"pose_20713.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20714.png"
+        "sprite":"pose_20714.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20715.png"
+        "sprite":"pose_20715.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20716.png"
+        "sprite":"pose_20716.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20719.png"
+        "sprite":"pose_20719.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20720.png"
+        "sprite":"pose_20720.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20721.png"
+        "sprite":"pose_20721.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20722.png"
+        "sprite":"pose_20722.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20723.png"
+        "sprite":"pose_20723.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20724.png"
+        "sprite":"pose_20724.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20725.png"
+        "sprite":"pose_20725.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20726.png"
+        "sprite":"pose_20726.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20727.png"
+        "sprite":"pose_20727.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20728.png"
+        "sprite":"pose_20728.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20729.png"
+        "sprite":"pose_20729.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20730.png"
+        "sprite":"pose_20730.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20726.png"
+        "sprite":"pose_20726.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20731.png"
+        "sprite":"pose_20731.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
-        "sprite":"pose_20732.png"
+        "sprite":"pose_20732.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20733.png"
+        "sprite":"pose_20733.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20735.png"
+        "sprite":"pose_20735.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":20.0,
         "type":"sprite",
         "sprite_flipped":"pose_20984.png",
-        "sprite":"pose_20750.png"
+        "sprite":"pose_20750.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20726.png"
+        "sprite":"pose_20726.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20732.png"
+        "sprite":"pose_20732.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20721.png"
+        "sprite":"pose_20721.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20720.png"
+        "sprite":"pose_20720.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20719.png"
+        "sprite":"pose_20719.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":30.0,
         "type":"sprite",
-        "sprite":"pose_20718.png"
+        "sprite":"pose_20718.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20714.png"
+        "sprite":"pose_20714.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20713.png"
+        "sprite":"pose_20713.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20712.png"
+        "sprite":"pose_20712.png",
+        "composite_legs":true
       },
       {
-        "composite_legs":true,
         "hold":10.0,
         "type":"sprite",
-        "sprite":"pose_20711.png"
+        "sprite":"pose_20711.png",
+        "composite_legs":true
       }
     ],
+    "name":"puts on headphones",
+    "body_dy_flipped":29.0,
     "feet_sprite":"pose_20004.png",
     "feet_sprite_flipped":"pose_20102.png",
-    "name":"puts on headphones",
     "body_dy":28.0,
     "triggers":[
       "put on headphones",

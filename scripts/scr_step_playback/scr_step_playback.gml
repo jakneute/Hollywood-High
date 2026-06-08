@@ -254,7 +254,8 @@ function step_tts_playback() {
                                     : (variable_struct_exists(_cur_frame, "frame_dy") ? _cur_frame.frame_dy : 0);
                         var _fdx_ca = (_is_flipped_ca && variable_struct_exists(_cur_frame, "frame_dx_flipped")) ? _cur_frame.frame_dx_flipped
                                     : (variable_struct_exists(_cur_frame, "frame_dx") ? _cur_frame.frame_dx : 0);
-                        _act.canned_body_dy   = (variable_struct_exists(_anim.anim_data, "body_dy") ? _anim.anim_data.body_dy : 0) + _fdy_ca;
+                        var _bdy_key_ca = _is_flipped_ca ? "body_dy_flipped" : "body_dy";
+                        _act.canned_body_dy   = (variable_struct_exists(_anim.anim_data, _bdy_key_ca) ? _anim.anim_data[$ _bdy_key_ca] : 0) + _fdy_ca;
                         // Horizontal alignment via offsets.json (same coordinate system as get_composite_character_sprite)
                         var _c_ca  = characters[_anim.char_index];
                         var _nm_ca = variable_struct_exists(_c_ca, "sprite_name") ? _c_ca.sprite_name : _c_ca.name;
@@ -274,8 +275,8 @@ function step_tts_playback() {
                         var _feet_ok_ca = string_replace(_anim_feet_ca, ".png", "");
                         var _has_bx_ca = (_od_ca != undefined && variable_struct_exists(_od_ca, _body_ok_ca));
                         var _has_fx_ca = (_od_ca != undefined && _anim_feet_ca != "" && variable_struct_exists(_od_ca, _feet_ok_ca));
-                        _act.canned_body_dx = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][0] - _od_ca[$ _feet_ok_ca][0]) : 0) + _fdx_ca + (variable_struct_exists(_anim.anim_data, "body_dx") ? _anim.anim_data.body_dx : 0);
-                        _act.canned_body_off_y = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][1] - _od_ca[$ _feet_ok_ca][1]) : 0);
+                        var _bdx_key_ca = _is_flipped_ca ? "body_dx_flipped" : "body_dx";
+                        _act.canned_body_dx = ((_has_bx_ca && _has_fx_ca) ? (_od_ca[$ _body_ok_ca][0] - _od_ca[$ _feet_ok_ca][0]) : 0) + _fdx_ca + (variable_struct_exists(_anim.anim_data, _bdx_key_ca) ? _anim.anim_data[$ _bdx_key_ca] : 0);
                         _anim.tick++;
                         if (_anim.tick >= _hold) {
                             _anim.tick = 0;
@@ -620,7 +621,7 @@ function step_tts_playback() {
                         quake_frames         = _q_in_chain ? 999999 : _qfr2;
                         quake_tied_to_chain  = _q_in_chain;
                         speaking_pause_timer = max(speaking_pause_timer, _qfr2);
-                    } else if (string_pos("jitters", _aname) > 0) {
+                    } else if (_aname == "jitters") {
                         if (_act_idx != -1) {
                             var _ji  = variable_struct_exists(_b, "jitter_intensity") ? _b.jitter_intensity : 3;
                             var _jd  = variable_struct_exists(_b, "jitter_direction") ? _b.jitter_direction : "omni";
@@ -817,7 +818,8 @@ function step_tts_playback() {
                                               : (variable_struct_exists(_cf0, "frame_dy") ? _cf0.frame_dy : 0);
                                     var _fdx0 = (_is_flipped0 && variable_struct_exists(_cf0, "frame_dx_flipped")) ? _cf0.frame_dx_flipped
                                               : (variable_struct_exists(_cf0, "frame_dx") ? _cf0.frame_dx : 0);
-                                    preview_actors[_ca_aidx].canned_body_dy   = (variable_struct_exists(_canim, "body_dy") ? _canim.body_dy : 0) + _fdy0;
+                                    var _bdy_key0 = _is_flipped0 ? "body_dy_flipped" : "body_dy";
+                                    preview_actors[_ca_aidx].canned_body_dy   = (variable_struct_exists(_canim, _bdy_key0) ? _canim[$ _bdy_key0] : 0) + _fdy0;
                                     var _c0  = characters[_b.char_index];
                                     var _nm0 = variable_struct_exists(_c0, "sprite_name") ? _c0.sprite_name : _c0.name;
                                     if (!ds_map_exists(char_offsets_cache, _nm0)) {
@@ -836,8 +838,8 @@ function step_tts_playback() {
                                     var _feet_ok0 = string_replace(_anim_feet0, ".png", "");
                                     var _has_bx0 = (_od0 != undefined && variable_struct_exists(_od0, _body_ok0));
                                     var _has_fx0 = (_od0 != undefined && _anim_feet0 != "" && variable_struct_exists(_od0, _feet_ok0));
-                                    preview_actors[_ca_aidx].canned_body_dx = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][0] - _od0[$ _feet_ok0][0]) : 0) + _fdx0 + (variable_struct_exists(_canim, "body_dx") ? _canim.body_dx : 0);
-                                    preview_actors[_ca_aidx].canned_body_off_y = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][1] - _od0[$ _feet_ok0][1]) : 0);
+                                    var _bdx_key0 = _is_flipped0 ? "body_dx_flipped" : "body_dx";
+                                    preview_actors[_ca_aidx].canned_body_dx = ((_has_bx0 && _has_fx0) ? (_od0[$ _body_ok0][0] - _od0[$ _feet_ok0][0]) : 0) + _fdx0 + (variable_struct_exists(_canim, _bdx_key0) ? _canim[$ _bdx_key0] : 0);
                                 }
                             }
                             action_animating = true;

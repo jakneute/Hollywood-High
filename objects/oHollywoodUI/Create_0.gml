@@ -716,6 +716,11 @@ anim_editor_pan_my0  = 0;
 anim_editor_pan_ox   = 0;
 anim_editor_pan_oy   = 0;
 anim_editor_zoom     = 1.0;
+anim_editor_fit_mode = false;
+anim_editor_grid_snap = false;
+anim_editor_grid_size = 16;
+anim_editor_offset_clipboard         = undefined; // {dy, dx} for normal mode
+anim_editor_offset_clipboard_flipped = undefined; // {dy, dx} for flip mode
 
 char_rename_active = false;  // true while the inline name editor is open
 char_rename_target = -1;    // index into characters[] being renamed
