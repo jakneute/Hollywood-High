@@ -1,87 +1,642 @@
 [
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "sprite":"pose_2507.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2508.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2509.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/Anteater cry revise_2002.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2510.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2511.png",
+        "frame_dy":0.0,
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2513.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2511.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2510.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2511.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2513.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2511.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2510.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2511.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2509.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2508.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2507.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      }
     ],
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-44.0,
     "name":"cries",
     "body_dx":0.0,
-    "body_dy_flipped":10.0,
-    "feet_sprite":"pose_2004.png",
-    "body_dy":10.0,
-    "feet_sprite_flipped":"pose_3003.png",
+    "body_dy":6.0,
     "triggers":[
       "cry",
       "cries"
     ],
-    "body_dx_flipped":-42.0
+    "body_dy_flipped":6.0
   },
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "sprite":"pose_2514.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2515.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2516.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/fingers drumming_2003.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2517.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2518.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2519.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2520.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2521.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2522.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2523.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2524.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":40.0
+      },
+      {
+        "file":"Actors - SID\/Anteater gulp revise 6_12_2004.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2514.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":30.0
+      }
     ],
-    "feet_sprite":"pose_2500.png",
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-44.0,
+    "name":"eats",
+    "body_dy":6.0,
     "triggers":[
       "eat",
       "eats"
     ],
-    "name":"eats"
+    "body_dy_flipped":6.0
   },
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "sprite":"pose_2527.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/Anteater laugh revise_2009.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2528.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2529.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2531.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2529.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2528.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2529.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2531.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2529.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2528.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      },
+      {
+        "sprite":"pose_2527.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      }
     ],
-    "feet_sprite":"pose_2500.png",
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-44.0,
+    "name":"laughs",
+    "body_dy":6.0,
     "triggers":[
       "laugh",
       "laughs"
     ],
-    "name":"laughs"
+    "body_dy_flipped":6.0
   },
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "sprite":"pose_2532.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/Anteater slurp_2006.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2533.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2534.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2535.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2537.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      }
     ],
-    "feet_sprite":"pose_2500.png",
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-44.0,
+    "name":"licks",
+    "body_dy":6.0,
     "triggers":[
       "lick",
       "licks"
     ],
-    "name":"licks"
+    "body_dy_flipped":6.0
   },
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "sprite":"pose_2538.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/Dog, growl_2007.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2539.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2540.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2542.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2540.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2539.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/Dog, growl_2007.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2540.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2542.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2540.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      },
+      {
+        "sprite":"pose_2539.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2538.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      }
     ],
-    "feet_sprite":"pose_2500.png",
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-44.0,
+    "name":"shouts",
+    "body_dy":6.0,
     "triggers":[
       "shout",
       "shouts"
     ],
-    "name":"shouts"
+    "body_dy_flipped":6.0
   },
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "sprite":"pose_2543.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/boing 2_2008.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2544.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2545.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "file":"Actors - SID\/sniff_2005.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2546.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2548.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      },
+      {
+        "file":"Actors - SID\/sniff_2005.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2546.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2548.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      },
+      {
+        "file":"Actors - SID\/sniff_2005.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2546.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2545.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2544.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2543.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2543.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      }
     ],
-    "feet_sprite":"pose_2500.png",
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-44.0,
+    "name":"sniffs",
+    "body_dy":6.0,
     "triggers":[
       "sniff",
       "sniffs"
     ],
-    "name":"sniffs"
+    "body_dy_flipped":6.0
   },
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "sprite":"pose_2549.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "hold":70.0,
+        "sprite_flipped":"pose_2801.png",
+        "frame_dx_flipped":0.0,
+        "sprite":"pose_2556.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "frame_dx":89.0
+      }
     ],
-    "feet_sprite":"pose_2500.png",
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-42.0,
+    "name":"stares",
+    "body_dx":0.0,
+    "body_dy":6.0,
     "triggers":[
       "stare",
       "stares"
     ],
-    "name":"stares"
+    "body_dy_flipped":6.0
   },
   {
+    "feet_sprite":"pose_2004.png",
     "frames":[
+      {
+        "file":"Unknown\/Anteater thinks Mom_825.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite":"pose_2552.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2553.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2554.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":10.0
+      },
+      {
+        "sprite":"pose_2555.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      },
+      {
+        "file":"Actors - SID\/sniff_2005.wav",
+        "type":"sound",
+        "_sound_id":0.0
+      },
+      {
+        "sprite_flipped":"pose_4304.png",
+        "sprite":"pose_2750.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":40.0
+      },
+      {
+        "sprite":"pose_2554.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      },
+      {
+        "sprite":"pose_2553.png",
+        "type":"sprite",
+        "composite_legs":true,
+        "hold":20.0
+      }
     ],
-    "feet_sprite":"pose_2500.png",
+    "feet_sprite_flipped":"pose_3003.png",
+    "body_dx_flipped":-42.0,
+    "name":"thinks",
+    "body_dy":6.0,
     "triggers":[
       "think",
       "thinks"
     ],
-    "name":"thinks"
+    "body_dy_flipped":6.0
   }
 ]

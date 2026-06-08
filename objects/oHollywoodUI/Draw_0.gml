@@ -4311,22 +4311,22 @@ if (anim_editor_open) {
                 draw_set_color(make_color_rgb(80, 110, 80));
                 draw_text(_info_x + 122, _preview_y + 48, "Y " + string(_bdy_val));
                 draw_set_color(make_color_rgb(32, 70, 90));
-                draw_roundrect_ext(_info_x + 152, _preview_y + 44, _info_x + 174, _preview_y + 62, 3, 3, false);
-                draw_roundrect_ext(_info_x + 178, _preview_y + 44, _info_x + 200, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 172, _preview_y + 44, _info_x + 194, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 198, _preview_y + 44, _info_x + 220, _preview_y + 62, 3, 3, false);
                 draw_set_color(c_white); draw_set_halign(fa_center);
-                draw_text(_info_x + 163, _preview_y + 48, "-");
-                draw_text(_info_x + 189, _preview_y + 48, "+");
+                draw_text(_info_x + 183, _preview_y + 48, "-");
+                draw_text(_info_x + 209, _preview_y + 48, "+");
                 draw_set_halign(fa_left);
                 // Body X offset stepper (same row, right of Y)
                 var _bdx_val = variable_struct_exists(_cur_anim, "body_dx") ? _cur_anim.body_dx : 0;
                 draw_set_color(make_color_rgb(80, 110, 80));
-                draw_text(_info_x + 212, _preview_y + 48, "X " + string(_bdx_val));
+                draw_text(_info_x + 232, _preview_y + 48, "X " + string(_bdx_val));
                 draw_set_color(make_color_rgb(32, 70, 90));
-                draw_roundrect_ext(_info_x + 242, _preview_y + 44, _info_x + 264, _preview_y + 62, 3, 3, false);
-                draw_roundrect_ext(_info_x + 268, _preview_y + 44, _info_x + 290, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 282, _preview_y + 44, _info_x + 304, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 308, _preview_y + 44, _info_x + 330, _preview_y + 62, 3, 3, false);
                 draw_set_color(c_white); draw_set_halign(fa_center);
-                draw_text(_info_x + 253, _preview_y + 48, "-");
-                draw_text(_info_x + 279, _preview_y + 48, "+");
+                draw_text(_info_x + 293, _preview_y + 48, "-");
+                draw_text(_info_x + 319, _preview_y + 48, "+");
                 draw_set_halign(fa_left);
             } else {
                 var _anim_fsf = variable_struct_exists(_cur_anim, "feet_sprite_flipped") ? _cur_anim.feet_sprite_flipped : "";
@@ -4349,22 +4349,22 @@ if (anim_editor_open) {
                 draw_set_color(make_color_rgb(80, 110, 80));
                 draw_text(_info_x + 122, _preview_y + 48, "Y " + string(_bdy_val_f));
                 draw_set_color(make_color_rgb(32, 70, 90));
-                draw_roundrect_ext(_info_x + 152, _preview_y + 44, _info_x + 174, _preview_y + 62, 3, 3, false);
-                draw_roundrect_ext(_info_x + 178, _preview_y + 44, _info_x + 200, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 172, _preview_y + 44, _info_x + 194, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 198, _preview_y + 44, _info_x + 220, _preview_y + 62, 3, 3, false);
                 draw_set_color(c_white); draw_set_halign(fa_center);
-                draw_text(_info_x + 163, _preview_y + 48, "-");
-                draw_text(_info_x + 189, _preview_y + 48, "+");
+                draw_text(_info_x + 183, _preview_y + 48, "-");
+                draw_text(_info_x + 209, _preview_y + 48, "+");
                 draw_set_halign(fa_left);
                 // Body X offset stepper
                 var _bdx_val_f = variable_struct_exists(_cur_anim, "body_dx_flipped") ? _cur_anim.body_dx_flipped : 0;
                 draw_set_color(make_color_rgb(80, 110, 80));
-                draw_text(_info_x + 212, _preview_y + 48, "X " + string(_bdx_val_f));
+                draw_text(_info_x + 232, _preview_y + 48, "X " + string(_bdx_val_f));
                 draw_set_color(make_color_rgb(32, 70, 90));
-                draw_roundrect_ext(_info_x + 242, _preview_y + 44, _info_x + 264, _preview_y + 62, 3, 3, false);
-                draw_roundrect_ext(_info_x + 268, _preview_y + 44, _info_x + 290, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 282, _preview_y + 44, _info_x + 304, _preview_y + 62, 3, 3, false);
+                draw_roundrect_ext(_info_x + 308, _preview_y + 44, _info_x + 330, _preview_y + 62, 3, 3, false);
                 draw_set_color(c_white); draw_set_halign(fa_center);
-                draw_text(_info_x + 253, _preview_y + 48, "-");
-                draw_text(_info_x + 279, _preview_y + 48, "+");
+                draw_text(_info_x + 293, _preview_y + 48, "-");
+                draw_text(_info_x + 319, _preview_y + 48, "+");
                 draw_set_halign(fa_left);
             }
             if (_edit_frame.type == "sprite") {
@@ -4426,12 +4426,12 @@ if (anim_editor_open) {
                             draw_set_color(_has_cb ? c_white : make_color_rgb(70, 75, 70)); draw_set_halign(fa_center);
                             draw_text(_cb_base + 55, _off_row1 - 15, "PASTE");
                             draw_set_halign(fa_left);
-                            // GET DUPE: find same sprite in any animation and copy all offsets (normal + flipped)
-                            var _gd_hov = (_mx > _cb_base + 84 && _mx < _cb_base + 164 && _my > _off_row1 - 18 && _my < _off_row1 - 4);
-                            draw_set_color(_gd_hov ? make_color_rgb(80, 60, 120) : make_color_rgb(52, 38, 80));
-                            draw_roundrect_ext(_cb_base + 84, _off_row1 - 18, _cb_base + 164, _off_row1 - 4, 3, 3, false);
+                            // AUTO Y: calculate frame offsets relative to frame 1 height and apply to all frames
+                            var _ay_hov = (_mx > _cb_base + 84 && _mx < _cb_base + 152 && _my > _off_row1 - 18 && _my < _off_row1 - 4);
+                            draw_set_color(_ay_hov ? make_color_rgb(100, 100, 40) : make_color_rgb(68, 68, 26));
+                            draw_roundrect_ext(_cb_base + 84, _off_row1 - 18, _cb_base + 152, _off_row1 - 4, 3, 3, false);
                             draw_set_color(c_white); draw_set_halign(fa_center);
-                            draw_text(_cb_base + 124, _off_row1 - 15, "GET DUPE");
+                            draw_text(_cb_base + 118, _off_row1 - 15, "AUTO Y");
                             draw_set_halign(fa_left);
                         }
                         // Y row

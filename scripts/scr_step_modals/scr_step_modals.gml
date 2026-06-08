@@ -407,14 +407,14 @@ function step_modal_anim_editor() {
             {
                 var _bdy_key = anim_editor_flipped_mode ? "body_dy_flipped" : "body_dy";
                 var _cur_bdy = variable_struct_exists(_anim, _bdy_key) ? _anim[$ _bdy_key] : 0;
-                if (_mx > _info_x + 152 && _mx < _info_x + 174 && _my > _preview_y + 44 && _my < _preview_y + 62) {
+                if (_mx > _info_x + 172 && _mx < _info_x + 194 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                     _anim[$ _bdy_key] = _cur_bdy - 1;
                     if (!anim_editor_flipped_mode && variable_struct_exists(_anim, "body_dy_flipped")) {
                         _anim.body_dy_flipped -= 1;
                     }
                     anim_editor_dirty = true; return;
                 }
-                if (_mx > _info_x + 178 && _mx < _info_x + 200 && _my > _preview_y + 44 && _my < _preview_y + 62) {
+                if (_mx > _info_x + 198 && _mx < _info_x + 220 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                     _anim[$ _bdy_key] = _cur_bdy + 1;
                     if (!anim_editor_flipped_mode && variable_struct_exists(_anim, "body_dy_flipped")) {
                         _anim.body_dy_flipped += 1;
@@ -426,7 +426,7 @@ function step_modal_anim_editor() {
             {
                 var _bdx_key = anim_editor_flipped_mode ? "body_dx_flipped" : "body_dx";
                 var _cur_bdx = variable_struct_exists(_anim, _bdx_key) ? _anim[$ _bdx_key] : 0;
-                if (_mx > _info_x + 242 && _mx < _info_x + 264 && _my > _preview_y + 44 && _my < _preview_y + 62) {
+                if (_mx > _info_x + 282 && _mx < _info_x + 304 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                     _anim[$ _bdx_key] = _cur_bdx - 1;
                     if (!anim_editor_flipped_mode) {
                         var _old_bdf = variable_struct_exists(_anim, "body_dx_flipped") ? _anim.body_dx_flipped : 0;
@@ -434,7 +434,7 @@ function step_modal_anim_editor() {
                     }
                     anim_editor_dirty = true; return;
                 }
-                if (_mx > _info_x + 268 && _mx < _info_x + 290 && _my > _preview_y + 44 && _my < _preview_y + 62) {
+                if (_mx > _info_x + 308 && _mx < _info_x + 330 && _my > _preview_y + 44 && _my < _preview_y + 62) {
                     _anim[$ _bdx_key] = _cur_bdx + 1;
                     if (!anim_editor_flipped_mode) {
                         var _old_bdf = variable_struct_exists(_anim, "body_dx_flipped") ? _anim.body_dx_flipped : 0;
@@ -561,62 +561,56 @@ function step_modal_anim_editor() {
                             _sf2[$ _fdx_key2] = _active_cb2.dx;
                             anim_editor_dirty = true; return;
                         }
-                        // GET DUPE: search all animations across all characters for a frame with the same sprite, copy all offsets
-                        if (_mx > _cb2_base + 84 && _mx < _cb2_base + 164 && _my > _preview_y + 126 && _my < _preview_y + 140) {
-                            var _target_spr = variable_struct_exists(_sf2, "sprite") ? _sf2.sprite : "";
-                            if (_target_spr != "") {
-                                var _found_dy = 0; var _found_dx = 0;
-                                var _has_found_dyf = false; var _found_dyf = 0;
-                                var _has_found_dxf = false; var _found_dxf = 0;
-                                var _has_found_sfl = false; var _found_sfl = "";
-                                var _found_any = false;
-                                // Build search order: current character first, then all others
-                                var _search_order = [anim_editor_char_idx];
-                                for (var _sci = 0; _sci < array_length(characters); _sci++) {
-                                    if (_sci != anim_editor_char_idx) array_push(_search_order, _sci);
-                                }
-                                for (var _soi = 0; _soi < array_length(_search_order) && !_found_any; _soi++) {
-                                    var _sci2 = _search_order[_soi];
-                                    var _sdata = canned_anim_get_data(_sci2);
-                                    if (_sdata == undefined) continue;
-                                    for (var _sai = 0; _sai < array_length(_sdata) && !_found_any; _sai++) {
-                                        var _sanim = _sdata[_sai];
-                                        var _sframes = variable_struct_exists(_sanim, "frames") ? _sanim.frames : [];
-                                        for (var _sfi = 0; _sfi < array_length(_sframes) && !_found_any; _sfi++) {
-                                            // Skip the exact frame being edited
-                                            if (_sci2 == anim_editor_char_idx && _sai == anim_editor_anim_idx && _sfi == _edit_idx) continue;
-                                            var _sf_match = _sframes[_sfi];
-                                            if (!variable_struct_exists(_sf_match, "type") || _sf_match.type != "sprite") continue;
-                                            if (!variable_struct_exists(_sf_match, "sprite") || _sf_match.sprite != _target_spr) continue;
-                                            var _mdy  = variable_struct_exists(_sf_match, "frame_dy") ? _sf_match.frame_dy : 0;
-                                            var _mdx  = variable_struct_exists(_sf_match, "frame_dx") ? _sf_match.frame_dx : 0;
-                                            var _mdyf_exists = variable_struct_exists(_sf_match, "frame_dy_flipped");
-                                            var _mdxf_exists = variable_struct_exists(_sf_match, "frame_dx_flipped");
-                                            var _msfl_exists = variable_struct_exists(_sf_match, "sprite_flipped") && _sf_match.sprite_flipped != "";
-                                            // Only use if the frame has any non-zero or non-trivial offsets/overrides
-                                            if (_mdy == 0 && _mdx == 0 && !_mdyf_exists && !_mdxf_exists && !_msfl_exists) continue;
-                                            _found_dy       = _mdy;
-                                            _found_dx       = _mdx;
-                                            _has_found_dyf  = _mdyf_exists;
-                                            _found_dyf      = _mdyf_exists ? _sf_match.frame_dy_flipped : 0;
-                                            _has_found_dxf  = _mdxf_exists;
-                                            _found_dxf      = _mdxf_exists ? _sf_match.frame_dx_flipped : 0;
-                                            _has_found_sfl  = _msfl_exists;
-                                            _found_sfl      = _msfl_exists ? _sf_match.sprite_flipped : "";
-                                            _found_any      = true;
+                        // AUTO Y: calculate frame offset relative to frame 1 height and apply to selected frame
+                        if (_mx > _cb2_base + 84 && _mx < _cb2_base + 152 && _my > _preview_y + 126 && _my < _preview_y + 140) {
+                            var _h1 = 0;
+                            var _h1_f = 0;
+                            
+                            // Find baseline heights of first sprite frame
+                            for (var _fi = 0; _fi < array_length(_frames); _fi++) {
+                                var _sf = _frames[_fi];
+                                if (_sf.type == "sprite") {
+                                    var _sname = _sf.sprite;
+                                    if (_sname != "") {
+                                        var _spr1 = canned_anim_load_sprite(anim_editor_char_idx, _sname);
+                                        if (_spr1 != -1) {
+                                            _h1 = sprite_get_height(_spr1);
                                         }
                                     }
+                                    var _sf_name = (variable_struct_exists(_sf, "sprite_flipped") && _sf.sprite_flipped != "")
+                                                   ? _sf.sprite_flipped : canned_anim_flipped_name(_sf.sprite);
+                                    if (_sf_name != "") {
+                                        var _spr1_f = canned_anim_load_sprite(anim_editor_char_idx, _sf_name);
+                                        if (_spr1_f != -1) {
+                                            _h1_f = sprite_get_height(_spr1_f);
+                                        }
+                                    }
+                                    break; // baseline found
                                 }
-                                if (_found_any) {
-                                    _sf2.frame_dy = _found_dy;
-                                    _sf2.frame_dx = _found_dx;
-                                    if (_has_found_dyf) _sf2.frame_dy_flipped = _found_dyf;
-                                    else variable_struct_remove(_sf2, "frame_dy_flipped");
-                                    if (_has_found_dxf) _sf2.frame_dx_flipped = _found_dxf;
-                                    else variable_struct_remove(_sf2, "frame_dx_flipped");
-                                    if (_has_found_sfl) _sf2.sprite_flipped = _found_sfl;
-                                    else variable_struct_remove(_sf2, "sprite_flipped");
-                                    anim_editor_dirty = true;
+                            }
+                            
+                            // Apply bottom alignment to the selected frame only
+                            if (_h1 > 0) {
+                                var _sname = _sf2.sprite;
+                                if (_sname != "") {
+                                    var _spri = canned_anim_load_sprite(anim_editor_char_idx, _sname);
+                                    if (_spri != -1) {
+                                        var _hi = sprite_get_height(_spri);
+                                        _sf2.frame_dy = _hi - _h1;
+                                        anim_editor_dirty = true;
+                                    }
+                                }
+                            }
+                            if (_h1_f > 0) {
+                                var _sf_name = (variable_struct_exists(_sf2, "sprite_flipped") && _sf2.sprite_flipped != "")
+                                               ? _sf2.sprite_flipped : canned_anim_flipped_name(_sf2.sprite);
+                                if (_sf_name != "") {
+                                    var _spri_f = canned_anim_load_sprite(anim_editor_char_idx, _sf_name);
+                                    if (_spri_f != -1) {
+                                        var _hi_f = sprite_get_height(_spri_f);
+                                        _sf2.frame_dy_flipped = _hi_f - _h1_f;
+                                        anim_editor_dirty = true;
+                                    }
                                 }
                             }
                             return;
