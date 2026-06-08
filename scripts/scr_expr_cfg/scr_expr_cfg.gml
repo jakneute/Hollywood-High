@@ -246,12 +246,21 @@ function expr_cfg_apply_baseline(_all = false) {
 function open_expr_configurator(_char_idx) {
     if (characters[_char_idx].name == "NARRATOR") return;
     expr_cfg_char_idx      = _char_idx;
-    expr_cfg_pose          = 1;
-    expr_cfg_high          = false;
-    expr_cfg_preview_expr  = 1;
-    expr_cfg_selected_layer = 1;
+    if (!variable_instance_exists(id, "expr_cfg_pose"))          expr_cfg_pose          = 1;
+    if (!variable_instance_exists(id, "expr_cfg_high"))          expr_cfg_high          = false;
+    if (!variable_instance_exists(id, "expr_cfg_preview_expr"))  expr_cfg_preview_expr  = 1;
+    if (!variable_instance_exists(id, "expr_cfg_selected_layer")) expr_cfg_selected_layer = 1;
     expr_cfg_drag          = false;
-    expr_cfg_zoom          = 1.0;
+    if (!variable_instance_exists(id, "expr_cfg_zooms") || array_length(expr_cfg_zooms) != array_length(characters)) {
+        expr_cfg_zooms = array_create(array_length(characters), 1.0);
+    }
+    if (!variable_instance_exists(id, "expr_cfg_pans_x") || array_length(expr_cfg_pans_x) != array_length(characters)) {
+        expr_cfg_pans_x = array_create(array_length(characters), 0);
+    }
+    if (!variable_instance_exists(id, "expr_cfg_pans_y") || array_length(expr_cfg_pans_y) != array_length(characters)) {
+        expr_cfg_pans_y = array_create(array_length(characters), 0);
+    }
+    expr_cfg_zoom          = expr_cfg_zooms[_char_idx];
     expr_cfg_qfill_active    = -1;
     expr_cfg_dbl_click_layer = -1;
     expr_cfg_dbl_click_time  = 0;
@@ -275,7 +284,9 @@ function open_expr_configurator(_char_idx) {
         }
     }
 
-    expr_cfg_pan_x = 0; expr_cfg_pan_y = 0; expr_cfg_pan_drag = false;
+    expr_cfg_pan_x = expr_cfg_pans_x[_char_idx];
+    expr_cfg_pan_y = expr_cfg_pans_y[_char_idx];
+    expr_cfg_pan_drag = false;
     expr_cfg_file_list   = [];
     expr_cfg_file_scroll = 0;
     expr_cfg_preview_mood = 0;
@@ -304,6 +315,7 @@ function open_expr_configurator(_char_idx) {
     }
     array_sort(expr_cfg_file_list, function(a, b) { return (a < b) ? -1 : (a > b ? 1 : 0); });
     expr_cfg_open = true;
+    expr_cfg_scroll_to_layer(expr_cfg_selected_layer);
 }
 
 // Stages config for disk write; actual write happens in Step (file_text_write scope restriction).
@@ -402,10 +414,16 @@ function step_modal_expr_cfg() {
         expr_cfg_qfill_active = -1; // deactivate on any click; re-set below if hitting a field
         if (_mx > _lx && _mx < _lx + 28 && _my > _nav_y_s && _my < _nav_y_s + 28) {
             expr_cfg_char_idx = (expr_cfg_char_idx - 1 + array_length(characters)) mod array_length(characters);
+            if (characters[expr_cfg_char_idx].name == "NARRATOR") {
+                expr_cfg_char_idx = (expr_cfg_char_idx - 1 + array_length(characters)) mod array_length(characters);
+            }
             open_expr_configurator(expr_cfg_char_idx);
         }
         if (_mx > _lx + 253 && _mx < _lx + 281 && _my > _nav_y_s && _my < _nav_y_s + 28) {
             expr_cfg_char_idx = (expr_cfg_char_idx + 1) mod array_length(characters);
+            if (characters[expr_cfg_char_idx].name == "NARRATOR") {
+                expr_cfg_char_idx = (expr_cfg_char_idx + 1) mod array_length(characters);
+            }
             open_expr_configurator(expr_cfg_char_idx);
         }
         for (var _pi = 1; _pi <= 4; _pi++) {
@@ -642,4 +660,7 @@ function step_modal_expr_cfg() {
             }
         }
     }
+    if (variable_instance_exists(id, "expr_cfg_zooms"))          expr_cfg_zooms[expr_cfg_char_idx] = expr_cfg_zoom;
+    if (variable_instance_exists(id, "expr_cfg_pans_x"))         expr_cfg_pans_x[expr_cfg_char_idx] = expr_cfg_pan_x;
+    if (variable_instance_exists(id, "expr_cfg_pans_y"))         expr_cfg_pans_y[expr_cfg_char_idx] = expr_cfg_pan_y;
 }
