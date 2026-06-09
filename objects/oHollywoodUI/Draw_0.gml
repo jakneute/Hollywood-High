@@ -147,8 +147,9 @@ if (theater_mode) {
 			var _spr    = _layers[0].spr;
 
 			if (_spr != -1) {
+				var _idle_layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+				var _csw = (_idle_layers[0].spr != -1) ? sprite_get_width(_idle_layers[0].spr) : sprite_get_width(_spr);
 				var _csh = sprite_get_height(_spr);
-				var _csw = sprite_get_width(_spr);
 				var _asc = (_stg_h * 1.5) / 450;
 
 				var _ax = (_act.x / scene_win_w) * _stg_w;
@@ -928,7 +929,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				var _spr    = _layers[0].spr;
 
 				if (_spr != -1) {
-					var _csw = sprite_get_width(_spr), _csh = sprite_get_height(_spr);
+					var _idle_layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
+					var _csw = (_idle_layers[0].spr != -1) ? sprite_get_width(_idle_layers[0].spr) : sprite_get_width(_spr);
+					var _csh = sprite_get_height(_spr);
 					var _sc = (scene_win_h * 1.5) / 450;
 					var _y_off  = variable_struct_exists(_act, "y_offset")  ? _act.y_offset  : 0;
 					var _jit_x  = variable_struct_exists(_act, "jitter_x")  ? _act.jitter_x  : 0;
@@ -1365,15 +1368,46 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 			var _oexpr  = variable_struct_exists(_oact, "expression") ? _oact.expression : 21;
 			var _oface  = variable_struct_exists(_oact, "facing")     ? _oact.facing     : undefined;
 			var _oy_off = variable_struct_exists(_oact, "y_offset")   ? _oact.y_offset   : 0;
-			var _olayers = get_composite_character_sprite(_oact.char_index, _opose, _oexpr, _oface);
-			if (_olayers[0].spr == -1) break;
+			var _idle_layers = get_composite_character_sprite(_oact.char_index, _opose, _oexpr, _oface);
+			if (_idle_layers[0].spr == -1) break;
 
-			var _ocsw = sprite_get_width(_olayers[0].spr);
+			var _olayers = [];
+			var _is_canned = variable_struct_exists(_oact, "canned_spr") && _oact.canned_spr != -1;
+			if (_is_canned) {
+			    var _canned_ay_o = variable_struct_exists(_oact, "canned_anchor_y") ? _oact.canned_anchor_y : 0;
+			    var _feet_spr_o  = (variable_struct_exists(_oact, "canned_composite") && _oact.canned_composite && variable_struct_exists(_oact, "canned_feet_spr") && _oact.canned_feet_spr != -1) ? _oact.canned_feet_spr : -1;
+			    if (_feet_spr_o != -1) {
+			        var _canned_h_o  = sprite_get_height(_oact.canned_spr);
+			        var _body_dy_o   = variable_struct_exists(_oact, "canned_body_dy") ? _oact.canned_body_dy : 0;
+			        var _body_dx_o   = variable_struct_exists(_oact, "canned_body_dx") ? _oact.canned_body_dx : 0;
+			        var _composite_legs_o = !variable_struct_exists(_oact, "canned_composite_legs") || _oact.canned_composite_legs;
+			        var _dy_val_o = -_canned_h_o + _canned_ay_o + _body_dy_o;
+			        if (!_composite_legs_o) {
+			            var _feet_h_o = sprite_get_height(_feet_spr_o);
+			            _dy_val_o = _feet_h_o - _canned_h_o + _canned_ay_o + _body_dy_o;
+			        }
+			        _olayers = [{ spr: _feet_spr_o, dx: 0, dy: 0 }, { spr: _oact.canned_spr, dx: _body_dx_o, dy: _dy_val_o }, { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
+			    } else {
+			        var _body_dy_o   = variable_struct_exists(_oact, "canned_body_dy") ? _oact.canned_body_dy : 0;
+			        var _body_dx_o   = variable_struct_exists(_oact, "canned_body_dx") ? _oact.canned_body_dx : 0;
+			        _olayers = [{ spr: _oact.canned_spr, dx: _body_dx_o, dy: _canned_ay_o + _body_dy_o }, { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }, { spr: -1, dx: 0, dy: 0 }];
+			    }
+			} else {
+			    _olayers = _idle_layers;
+			}
+
+			var _ocsw = sprite_get_width(_idle_layers[0].spr);
 			var _ocsh = sprite_get_height(_olayers[0].spr);
 			var _osc  = (scene_win_h * 1.5) / 450;
 			// Local surface coords (no scene_win offset — applied when drawing the surface)
 			var _sdx = _oact.x - (_ocsw * _osc) / 2;
 			var _sdy = _oact.y - (_ocsh * _osc) + _oy_off;
+
+			if (_is_canned) {
+			    if (variable_struct_exists(_oact, "canned_composite_legs") && !_oact.canned_composite_legs) {
+			        _olayers[0].spr = -1;
+			    }
+			}
 
 			if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != scene_win_w || surface_get_height(o_mask_surface) != scene_win_h) {
 				if (surface_exists(o_mask_surface)) surface_free(o_mask_surface);
