@@ -1139,6 +1139,8 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
 
+                        drag_start_x = _act.x;
+                        drag_start_y = _act.y;
                         drag_off_x = _mx - _ax;
                         drag_off_y = _my - _ay;
                         return;
@@ -1161,37 +1163,50 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
             
             // Removed clamps: Characters can turn red and be removed if out of bounds
         } else {
-            // Check if off-stage for removal (Standardized 25% V / 51% H)
             var _act = _scene.actors[dragging_actor_idx];
-            var _spr = get_character_sprite(_act.char_index);
-            if (_spr == -1) { var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined); _spr = _tl[0].spr; }
+            var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
+            var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
+            var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+            var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
+            var _spr = _layers[0].spr;
             if (_spr != -1) {
                 var _sw = sprite_get_width(_spr);
                 var _sh = sprite_get_height(_spr);
                 var _sc = (scene_win_h * 1.5) / 450; 
                 var _cw = _sw * _sc;
                 var _ch = _sh * _sc;
-                
-                var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-                
-                // Vertical intersection
-                var _ay = scene_win_y + _act.y;
-                var _v_top = max(_ay - _ch, scene_win_y);
-                var _v_bottom = min(_ay, scene_win_y + scene_win_h);
-                var _v_visible = max(0, _v_bottom - _v_top);
-                
-                // Horizontal intersection
-                var _ax = scene_win_x + _act.x;
-                var _h_left = _ax - (_cw * _face)/2;
-                var _h_right = _ax + (_cw * _face)/2;
-                if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
-                
+
+                var _min_x = 0; var _max_x = _sw;
+                var _min_y = 0; var _max_y = _sh;
+                for (var _li = 0; _li < array_length(_layers); _li++) {
+                    var _l = _layers[_li];
+                    if (_l.spr != -1) {
+                        var _lw = sprite_get_width(_l.spr);
+                        var _lh = sprite_get_height(_l.spr);
+                        _min_x = min(_min_x, _l.dx);
+                        _max_x = max(_max_x, _l.dx + _lw);
+                        _min_y = min(_min_y, _l.dy);
+                        _max_y = max(_max_y, _l.dy + _lh);
+                    }
+                }
+                var _true_w = (_max_x - _min_x) * _sc;
+                var _true_h = (_max_y - _min_y) * _sc;
+
+                var _ay_abs = scene_win_y + _act.y;
+                var _v_top = _ay_abs - _ch + _min_y * _sc;
+                var _v_bottom = _ay_abs - _ch + _max_y * _sc;
+                var _v_visible = max(0, min(_v_bottom, scene_win_y + scene_win_h) - max(_v_top, scene_win_y));
+
+                var _ax_abs = scene_win_x + _act.x;
+                var _h_left  = _ax_abs - _cw / 2 + _min_x * _sc;
+                var _h_right = _ax_abs - _cw / 2 + _max_x * _sc;
+
                 var _h_intersect_l = max(_h_left, scene_win_x);
                 var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
                 var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
                 
-                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _cw * 0.51);
-
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _true_w * 0.20) && (_v_visible >= _true_h * 0.20);
+                
                 if (!_in_live) {
                     array_delete(_scene.actors, dragging_actor_idx, 1);
                 } else {
@@ -1306,57 +1321,77 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                 var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
                 
                 // Check if off-stage for exit (Standardized 25% V / 51% H)
-                var _spr = get_character_sprite(_act.char_index);
-                if (_spr == -1) { var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined); _spr = _tl[0].spr; }
+                var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
+                var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
+                var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
+                var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
+                var _spr = _layers[0].spr;
                 var _sw = sprite_get_width(_spr);
                 var _sh = sprite_get_height(_spr);
                 var _sc = (scene_win_h * 1.5) / 450; 
                 var _cw = _sw * _sc;
                 var _ch = _sh * _sc;
-                
-                var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-                
-                // Vertical intersection
-                var _ay = scene_win_y + _act.y;
-                var _v_top = max(_ay - _ch, scene_win_y);
-                var _v_bottom = min(_ay, scene_win_y + scene_win_h);
-                var _v_visible = max(0, _v_bottom - _v_top);
-                
-                // Horizontal intersection
-                var _ax = scene_win_x + _act.x;
-                var _h_left = _ax - (_cw * _face)/2;
-                var _h_right = _ax + (_cw * _face)/2;
-                if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
-                
+
+                var _min_x = 0; var _max_x = _sw;
+                var _min_y = 0; var _max_y = _sh;
+                for (var _li = 0; _li < array_length(_layers); _li++) {
+                    var _l = _layers[_li];
+                    if (_l.spr != -1) {
+                        var _lw = sprite_get_width(_l.spr);
+                        var _lh = sprite_get_height(_l.spr);
+                        _min_x = min(_min_x, _l.dx);
+                        _max_x = max(_max_x, _l.dx + _lw);
+                        _min_y = min(_min_y, _l.dy);
+                        _max_y = max(_max_y, _l.dy + _lh);
+                    }
+                }
+                var _true_w = (_max_x - _min_x) * _sc;
+                var _true_h = (_max_y - _min_y) * _sc;
+
+                var _ay_abs = scene_win_y + _act.y;
+                var _v_top = _ay_abs - _ch + _min_y * _sc;
+                var _v_bottom = _ay_abs - _ch + _max_y * _sc;
+                var _v_visible = max(0, min(_v_bottom, scene_win_y + scene_win_h) - max(_v_top, scene_win_y));
+
+                var _ax_abs = scene_win_x + _act.x;
+                var _h_left  = _ax_abs - _cw / 2 + _min_x * _sc;
+                var _h_right = _ax_abs - _cw / 2 + _max_x * _sc;
+
                 var _h_intersect_l = max(_h_left, scene_win_x);
                 var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
                 var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
                 
-                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _cw * 0.51);
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _true_w * 0.20) && (_v_visible >= _true_h * 0.20);
 
-                var _aname = "moves";
-                if (!_in_live) {
-                    _aname = (_ax < scene_win_x + scene_win_w/2) ? "exits left" : "exits right";
-                }
+                if (_v_visible < _true_h * 0.20) {
+                    // Out of upper/lower bounds in Live Action Mode: Snap back (revert)
+                    _act.x = drag_start_x;
+                    _act.y = drag_start_y;
+                } else {
+                    var _aname = "moves";
+                    if (!_in_live) {
+                        _aname = (_ax_abs < scene_win_x + scene_win_w/2) ? "exits left" : "exits right";
+                    }
                 
                 var _lbl = move_speed_labels[move_speed_index];
                 if (_lbl != "WALK") _aname += " (" + _lbl + ")";
                 if (moonwalk_enabled) _aname += " [MOONWALK]";
                 if (move_trick != "none") _aname += " [" + string_upper(move_trick) + "]";
 
-                array_insert(script_blocks, _insert_idx, {
-                    type: "action",
-                    action_name: _aname,
-                    char_index: _act.char_index,
-                    target_x: _act.x,
-                    target_y: _act.y,
-                    facing: _act.facing,
-                    height: 85,
-                    speed: move_speeds[move_speed_index],
-                    moonwalk: moonwalk_enabled,
-                    trick: move_trick
-                });
-                focused_block = _insert_idx;
+                    array_insert(script_blocks, _insert_idx, {
+                        type: "action",
+                        action_name: _aname,
+                        char_index: _act.char_index,
+                        target_x: _act.x,
+                        target_y: _act.y,
+                        facing: _act.facing,
+                        height: 85,
+                        speed: move_speeds[move_speed_index],
+                        moonwalk: moonwalk_enabled,
+                        trick: move_trick
+                    });
+                    focused_block = _insert_idx;
+                }
             } else {
                 // Revert position cleanly if clicked without dragging to select
                 _act.x = drag_start_x;
@@ -2822,7 +2857,8 @@ if (!_overlay_active) {
 
                     dragging_char_index = i; // START DRAGGING (Unified)
                     drag_off_x = 0;
-                    drag_off_y = 0;
+                    // Grab by the head/face instead of the feet so they can drag it lower
+                    drag_off_y = -(_csh * _scale);
                     
                     // Auto-scroll logic
                     var _row = floor(selected_character_index / 2);
@@ -2846,34 +2882,54 @@ _overlay_active = (file_menu_open || edit_mode || scene_modal_open || action_mod
 
 if (!script_expanded && !_overlay_active && playing_block_index == -1 && dragging_char_index != -1) {
     if (!mouse_check_button(mb_left)) {
-        var _spr_ghost = get_character_sprite(dragging_char_index);
-        var _char_h = (_spr_ghost != -1) ? sprite_get_height(_spr_ghost) * ((scene_win_h * 1.5) / 450) : 100;
-        var _char_w = (_spr_ghost != -1) ? sprite_get_width(_spr_ghost) * ((scene_win_h * 1.5) / 450) : 100;
+        var _c = characters[dragging_char_index];
+        var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
+        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
+        var _face = (_mx < scene_win_x + (scene_win_w / 2)) ? -1 : 1;
+        var _layers = get_composite_character_sprite(dragging_char_index, _pose, _expr, _face);
+        var _spr = _layers[0].spr;
+        
+        var _sc = (scene_win_h * 1.5) / 450;
+        var _sw = (_spr != -1) ? sprite_get_width(_spr) : 100;
+        var _sh = (_spr != -1) ? sprite_get_height(_spr) : 100;
+        var _cw = _sw * _sc;
+        var _ch = _sh * _sc;
 
-        // Proposed Position (relative to window, with offsets and clamps)
+        var _min_x = 0; var _max_x = _sw;
+        var _min_y = 0; var _max_y = _sh;
+        if (_spr != -1) {
+            for (var _li = 0; _li < array_length(_layers); _li++) {
+                var _l = _layers[_li];
+                if (_l.spr != -1) {
+                    var _lw = sprite_get_width(_l.spr);
+                    var _lh = sprite_get_height(_l.spr);
+                    _min_x = min(_min_x, _l.dx);
+                    _max_x = max(_max_x, _l.dx + _lw);
+                    _min_y = min(_min_y, _l.dy);
+                    _max_y = max(_max_y, _l.dy + _lh);
+                }
+            }
+        }
+        var _true_w = (_max_x - _min_x) * _sc;
+        var _true_h = (_max_y - _min_y) * _sc;
+
         var _px = _mx - scene_win_x - drag_off_x;
         var _py = _my - scene_win_y - drag_off_y;
 
-        // Vertical intersection (using Proposed Position)
         var _ay_abs = scene_win_y + _py;
-        var _ch = _char_h;
-        var _cw = _char_w;
-        var _v_top = max(_ay_abs - _ch, scene_win_y);
-        var _v_bottom = min(_ay_abs, scene_win_y + scene_win_h);
-        var _v_visible = max(0, _v_bottom - _v_top);
+        var _v_top = _ay_abs - _ch + _min_y * _sc;
+        var _v_bottom = _ay_abs - _ch + _max_y * _sc;
+        var _v_visible = max(0, min(_v_bottom, scene_win_y + scene_win_h) - max(_v_top, scene_win_y));
         
-        // Horizontal intersection (using Proposed Position)
         var _ax_abs = scene_win_x + _px;
-        var _face = (_mx < scene_win_x + (scene_win_w / 2)) ? 1 : -1;
-        var _h_left = _ax_abs - (_cw * _face)/2;
-        var _h_right = _ax_abs + (_cw * _face)/2;
-        if (_face == -1) { var _tmp = _h_left; _h_left = _h_right; _h_right = _tmp; }
+        var _h_left  = _ax_abs - _cw / 2 + _min_x * _sc;
+        var _h_right = _ax_abs - _cw / 2 + _max_x * _sc;
         
         var _h_intersect_l = max(_h_left, scene_win_x);
         var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
         var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
         
-        var _in_live = (current_scene_sprite != -1) && (_h_visible >= _cw * 0.51);
+        var _in_live = (current_scene_sprite != -1) && (_h_visible >= _true_w * 0.20) && (_v_visible >= _true_h * 0.20);
         
         if (_in_live) {
             if (scene_edit_mode) {

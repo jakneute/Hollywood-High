@@ -1175,72 +1175,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		draw_editor_actors(_scene, -1, false, true);
 	};
 
-	// --- Selection outline: hollow yellow ring drawn on top of foreground ---
-	// Drawn before FX capture so distortion shaders (e.g. CRT) warp it in sync with characters.
-	if (playing_block_index == -1 && !particle_edit_mode) {
-		for (var _oa = 0; _oa < array_length(preview_actors); _oa++) {
-			var _oact = preview_actors[_oa];
-			if (real(_oact.char_index) != real(selected_character_index)) continue;
-			if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _oact.char_index) continue;
 
-			var _opose  = variable_struct_exists(_oact, "pose")       ? _oact.pose       : 1;
-			var _oexpr  = variable_struct_exists(_oact, "expression") ? _oact.expression : 21;
-			var _oface  = variable_struct_exists(_oact, "facing")     ? _oact.facing     : undefined;
-			var _oy_off = variable_struct_exists(_oact, "y_offset")   ? _oact.y_offset   : 0;
-			var _olayers = get_composite_character_sprite(_oact.char_index, _opose, _oexpr, _oface);
-			if (_olayers[0].spr == -1) break;
-
-			var _ocsw = sprite_get_width(_olayers[0].spr);
-			var _ocsh = sprite_get_height(_olayers[0].spr);
-			var _osc  = (scene_win_h * 1.5) / 450;
-			// Local surface coords (no scene_win offset — applied when drawing the surface)
-			var _sdx = _oact.x - (_ocsw * _osc) / 2;
-			var _sdy = _oact.y - (_ocsh * _osc) + _oy_off;
-
-			if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != scene_win_w || surface_get_height(o_mask_surface) != scene_win_h) {
-				if (surface_exists(o_mask_surface)) surface_free(o_mask_surface);
-				o_mask_surface = surface_create(scene_win_w, scene_win_h);
-			}
-			surface_set_target(o_mask_surface);
-			draw_clear_alpha(c_black, 0);
-			gpu_set_texfilter(false);
-
-			// Stamp 8-offset alpha footprint in white (color will be overwritten)
-			var _ow = 3;
-			var _ooffs = [[-_ow,0],[_ow,0],[0,-_ow],[0,_ow],[-_ow,-_ow],[_ow,-_ow],[-_ow,_ow],[_ow,_ow]];
-			for (var _oi = 0; _oi < 8; _oi++) {
-				for (var _li = 0; _li < array_length(_olayers); _li++) {
-					var _ol = _olayers[_li];
-					if (_ol.spr != -1) {
-						draw_sprite_ext(_ol.spr, 0, _sdx + _ol.dx * _osc + _ooffs[_oi][0], _sdy + _ol.dy * _osc + _ooffs[_oi][1], _osc, _osc, 0, c_white, 1.0);
-					}
-				}
-			}
-
-			// Flatten all stamped pixels to pure yellow, preserving the alpha mask
-			gpu_set_colorwriteenable(true, true, true, false);
-			draw_set_color(c_yellow);
-			draw_rectangle(0, 0, scene_win_w, scene_win_h, false);
-			gpu_set_colorwriteenable(true, true, true, true);
-
-			// Punch a hole where the character actually is
-			gpu_set_blendmode_ext(bm_zero, bm_inv_src_alpha);
-			for (var _li2 = 0; _li2 < array_length(_olayers); _li2++) {
-				var _ol2 = _olayers[_li2];
-				if (_ol2.spr != -1) {
-					draw_sprite_ext(_ol2.spr, 0, _sdx + _ol2.dx * _osc, _sdy + _ol2.dy * _osc, _osc, _osc, 0, c_white, 1.0);
-				}
-			}
-			gpu_set_blendmode(bm_normal);
-			gpu_set_texfilter(false);
-			surface_reset_target();
-
-			// Draw the hollow ring on top of the scene
-			gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
-			draw_surface(o_mask_surface, scene_win_x, scene_win_y);
-			break;
-		}
-	}
 
 	// --- Active Beams ---
 	if (array_length(active_beams) > 0) {
@@ -1416,6 +1351,73 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		var _fg_scale_y = scene_win_h / sprite_get_height(_mask_sprite);
 		draw_sprite_ext(_mask_sprite, 0, scene_win_x + quake_x, scene_win_y + quake_y, _fg_scale_x, _fg_scale_y, 0, c_white, 1);
 		gpu_set_scissor(0, 0, 1280, 960);
+	}
+
+	// --- Selection outline: hollow yellow ring drawn on top of foreground ---
+	// Drawn before FX capture so distortion shaders (e.g. CRT) warp it in sync with characters.
+	if (playing_block_index == -1 && !particle_edit_mode) {
+		for (var _oa = 0; _oa < array_length(preview_actors); _oa++) {
+			var _oact = preview_actors[_oa];
+			if (real(_oact.char_index) != real(selected_character_index)) continue;
+			if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _oact.char_index) continue;
+
+			var _opose  = variable_struct_exists(_oact, "pose")       ? _oact.pose       : 1;
+			var _oexpr  = variable_struct_exists(_oact, "expression") ? _oact.expression : 21;
+			var _oface  = variable_struct_exists(_oact, "facing")     ? _oact.facing     : undefined;
+			var _oy_off = variable_struct_exists(_oact, "y_offset")   ? _oact.y_offset   : 0;
+			var _olayers = get_composite_character_sprite(_oact.char_index, _opose, _oexpr, _oface);
+			if (_olayers[0].spr == -1) break;
+
+			var _ocsw = sprite_get_width(_olayers[0].spr);
+			var _ocsh = sprite_get_height(_olayers[0].spr);
+			var _osc  = (scene_win_h * 1.5) / 450;
+			// Local surface coords (no scene_win offset — applied when drawing the surface)
+			var _sdx = _oact.x - (_ocsw * _osc) / 2;
+			var _sdy = _oact.y - (_ocsh * _osc) + _oy_off;
+
+			if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != scene_win_w || surface_get_height(o_mask_surface) != scene_win_h) {
+				if (surface_exists(o_mask_surface)) surface_free(o_mask_surface);
+				o_mask_surface = surface_create(scene_win_w, scene_win_h);
+			}
+			surface_set_target(o_mask_surface);
+			draw_clear_alpha(c_black, 0);
+			gpu_set_texfilter(false);
+
+			// Stamp 8-offset alpha footprint in white (color will be overwritten)
+			var _ow = 3;
+			var _ooffs = [[-_ow,0],[_ow,0],[0,-_ow],[0,-_ow],[-_ow,-_ow],[_ow,-_ow],[-_ow,_ow],[_ow,_ow]];
+			for (var _oi = 0; _oi < 8; _oi++) {
+				for (var _li = 0; _li < array_length(_olayers); _li++) {
+					var _ol = _olayers[_li];
+					if (_ol.spr != -1) {
+						draw_sprite_ext(_ol.spr, 0, _sdx + _ol.dx * _osc + _ooffs[_oi][0], _sdy + _ol.dy * _osc + _ooffs[_oi][1], _osc, _osc, 0, c_white, 1.0);
+					}
+				}
+			}
+
+			// Flatten all stamped pixels to pure yellow, preserving the alpha mask
+			gpu_set_colorwriteenable(true, true, true, false);
+			draw_set_color(c_yellow);
+			draw_rectangle(0, 0, scene_win_w, scene_win_h, false);
+			gpu_set_colorwriteenable(true, true, true, true);
+
+			// Punch a hole where the character actually is
+			gpu_set_blendmode_ext(bm_zero, bm_inv_src_alpha);
+			for (var _li2 = 0; _li2 < array_length(_olayers); _li2++) {
+				var _ol2 = _olayers[_li2];
+				if (_ol2.spr != -1) {
+					draw_sprite_ext(_ol2.spr, 0, _sdx + _ol2.dx * _osc, _sdy + _ol2.dy * _osc, _osc, _osc, 0, c_white, 1.0);
+				}
+			}
+			gpu_set_blendmode(bm_normal);
+			gpu_set_texfilter(false);
+			surface_reset_target();
+
+			// Draw the hollow ring on top of the scene
+			gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+			draw_surface(o_mask_surface, scene_win_x, scene_win_y);
+			break;
+		}
 	}
 
 	// --- FX OVERLAY (editor preview) ---
@@ -2212,20 +2214,36 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         var _px = _mx - scene_win_x - drag_off_x;
         var _py = _my - scene_win_y - drag_off_y;
 
+        var _min_x = 0; var _max_x = _csw;
+        var _min_y = 0; var _max_y = _csh;
+        for (var _li = 0; _li < array_length(_layers); _li++) {
+            var _l = _layers[_li];
+            if (_l.spr != -1) {
+                var _lw = sprite_get_width(_l.spr);
+                var _lh = sprite_get_height(_l.spr);
+                _min_x = min(_min_x, _l.dx);
+                _max_x = max(_max_x, _l.dx + _lw);
+                _min_y = min(_min_y, _l.dy);
+                _max_y = max(_max_y, _l.dy + _lh);
+            }
+        }
+        var _true_w = (_max_x - _min_x) * _scale;
+        var _true_h = (_max_y - _min_y) * _scale;
+
         var _ay_abs = scene_win_y + _py;
-        var _v_top = _ay_abs - _ch;
-        var _v_bottom = _ay_abs;
+        var _v_top = _ay_abs - _ch + _min_y * _scale;
+        var _v_bottom = _ay_abs - _ch + _max_y * _scale;
         var _v_visible = max(0, min(_v_bottom, scene_win_y + scene_win_h) - max(_v_top, scene_win_y));
 
         var _ax_abs = scene_win_x + _px;
-        var _h_left  = _ax_abs - _cw / 2;
-        var _h_right = _ax_abs + _cw / 2;
+        var _h_left  = _ax_abs - _cw / 2 + _min_x * _scale;
+        var _h_right = _ax_abs - _cw / 2 + _max_x * _scale;
 
         var _h_intersect_l = max(_h_left, scene_win_x);
         var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
         var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
 
-        var _in_live = (current_scene_sprite != -1) && (_h_visible >= _cw * 0.51);
+        var _in_live = (current_scene_sprite != -1) && (_h_visible >= _true_w * 0.20) && (_v_visible >= _true_h * 0.20);
         var _color = _in_live ? c_white : c_red;
         var _alpha = _in_live ? 0.6 : 0.4;
 
