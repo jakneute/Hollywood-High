@@ -670,11 +670,11 @@ if (array_length(all_voices) > 0) {
 // Data saved to datafiles/config/<Name>/expressions.json.
 
 // Set to false before shipping to hide the expression configurator entirely.
-SHOW_EXPR_CFG           = true;
+SHOW_EXPR_CFG           = false;
 // Set to false before shipping to hide the voice config export button.
 SHOW_VOICE_CFG          = false;
 // Set to false before shipping to hide the animation editor.
-SHOW_ANIM_EDITOR        = true;
+SHOW_ANIM_EDITOR        = false;
 
 // Animation editor state
 anim_editor_open             = false;
