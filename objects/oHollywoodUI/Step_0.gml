@@ -1148,9 +1148,9 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
                     }
                     var _hbox = get_actor_bbox(_tl, _scale, _ax, _ay, _pa_inj2);
                     if (_mx > _hbox.bb_left && _mx < _hbox.bb_right && _my > _hbox.bb_top && _my < _hbox.bb_bottom) {
-                        dragging_actor_idx = a;
-                        scene_edit_selected_actor_idx = a; // Select on click
-                        selected_character_index = _act.char_index; // Sync global selection
+                        // Select on click regardless of injury
+                        scene_edit_selected_actor_idx = a;
+                        selected_character_index = _act.char_index;
                         if (particle_panel_mode) particle_panel_mode = false;
 
                         // Auto-scroll character pane
@@ -1159,10 +1159,17 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
 
-                        drag_start_x = _act.x;
-                        drag_start_y = _act.y;
-                        drag_off_x = _mx - _ax;
-                        drag_off_y = _my - _ay;
+                        // Injured actors cannot be dragged
+                        var _inj_pa = _pa_inj2;
+                        var _is_inj_drag = (variable_struct_exists(_inj_pa, "is_knocked_down") && _inj_pa.is_knocked_down)
+                                        || (variable_struct_exists(_inj_pa, "is_decapitated")  && _inj_pa.is_decapitated);
+                        if (!_is_inj_drag) {
+                            dragging_actor_idx = a;
+                            drag_start_x = _act.x;
+                            drag_start_y = _act.y;
+                            drag_off_x = _mx - _ax;
+                            drag_off_y = _my - _ay;
+                        }
                         return;
                     }
                 }
@@ -1290,21 +1297,12 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                     var _ay = scene_win_y + _act.y;
                     var _is_injured_nd  = variable_struct_exists(_act, "is_knocked_down") && _act.is_knocked_down;
                     var _kangle_nd      = _is_injured_nd ? (variable_struct_exists(_act, "knock_angle") ? _act.knock_angle : 0) : 0;
-                    var _head_piv_nd    = variable_struct_exists(_act, "head_pivot_mode") && _act.head_pivot_mode;
                     var _is_decap_nd    = variable_struct_exists(_act, "is_decapitated") && _act.is_decapitated;
                     var _decap_mode_nd  = _is_decap_nd ? (variable_struct_exists(_act, "decap_mode") ? _act.decap_mode : "remove_head") : "";
-                    // For hit testing: inverse-rotate mouse around correct pivot
+                    // For hit testing: inverse-rotate mouse around foot pivot
                     var _test_mx = _mx; var _test_my = _my;
                     if (_kangle_nd != 0) {
-                        var _piv_x_nd; var _piv_y_nd;
-                        if (_head_piv_nd && _tl[1].spr != -1) {
-                            var _draw_x_nd = _ax - _sw * _scale * 0.5;
-                            var _draw_y_nd = _ay - _sh * _scale;
-                            _piv_x_nd = _draw_x_nd + (_tl[1].dx + sprite_get_width(_tl[1].spr) * 0.5) * _scale;
-                            _piv_y_nd = _draw_y_nd + (_tl[1].dy + sprite_get_height(_tl[1].spr) * 0.5) * _scale;
-                        } else {
-                            _piv_x_nd = _ax; _piv_y_nd = _ay;
-                        }
+                        var _piv_x_nd = _ax; var _piv_y_nd = _ay;
                         var _inv_cos = dcos(-_kangle_nd); var _inv_sin = dsin(-_kangle_nd);
                         var _dvx = _mx - _piv_x_nd; var _dvy = _my - _piv_y_nd;
                         _test_mx = _piv_x_nd + _dvx * _inv_cos + _dvy * _inv_sin;

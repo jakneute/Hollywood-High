@@ -396,98 +396,15 @@ function update_preview_actors_for_block(_idx, _inclusive) {
     if (active_scene_block_idx != -1) {
         var _scene = script_blocks[active_scene_block_idx];
         if (variable_struct_exists(_scene, "actors")) {
-            // Scan all blocks before this scene to find chars that were injured and track their state
-            var _injured_before = ds_map_create(); // char_index -> { is_knocked_down, knock_direction, is_decapitated, decap_mode }
-            for (var _di = 0; _di < active_scene_block_idx; _di++) {
-                var _db = script_blocks[_di];
-                if (!variable_struct_exists(_db, "type") || _db.type != "action") continue;
-                if (!variable_struct_exists(_db, "char_index")) continue;
-                if (variable_struct_exists(_db, "injure_style")) {
-                    var _istate = ds_map_exists(_injured_before, _db.char_index) ? _injured_before[? _db.char_index] : { is_knocked_down: false, knock_direction: "forwards", is_decapitated: false, decap_mode: "remove_head", facing_flips: 0 };
-                    if (_db.injure_style == "knock_down") {
-                        // head_pivot_mode: true only if body was already removed before this knock
-                        _istate.head_pivot_mode = (_istate.is_decapitated && (variable_struct_exists(_istate, "decap_mode") ? _istate.decap_mode : "remove_head") == "remove_body");
-                        _istate.is_knocked_down = true;
-                        _istate.knock_direction = variable_struct_exists(_db, "knock_direction") ? _db.knock_direction : "forwards";
-                    } else if (_db.injure_style == "decapitate") {
-                        _istate.is_decapitated = true;
-                        _istate.decap_mode = variable_struct_exists(_db, "decap_mode") ? _db.decap_mode : "remove_head";
-                    }
-                    _injured_before[? _db.char_index] = _istate;
-                } else if (string_pos("stands up", string_lower(_db.action_name)) > 0) {
-                    if (ds_map_exists(_injured_before, _db.char_index)) {
-                        _injured_before[? _db.char_index].is_knocked_down = false;
-                        _injured_before[? _db.char_index].knock_direction = "forwards";
-                        _injured_before[? _db.char_index].head_pivot_mode = false;
-                    }
-                } else if (string_pos("reforms", string_lower(_db.action_name)) > 0) {
-                    if (ds_map_exists(_injured_before, _db.char_index)) {
-                        _injured_before[? _db.char_index].is_decapitated = false;
-                    }
-                } else if (string_pos("rolls over", string_lower(_db.action_name)) > 0) {
-                    if (ds_map_exists(_injured_before, _db.char_index)) {
-                        var _kd = _injured_before[? _db.char_index].knock_direction;
-                        _injured_before[? _db.char_index].knock_direction = (_kd == "forwards") ? "backwards" : "forwards";
-                        _injured_before[? _db.char_index].facing_flips = (variable_struct_exists(_injured_before[? _db.char_index], "facing_flips") ? _injured_before[? _db.char_index].facing_flips : 0) + 1;
-                    }
-                }
-            }
+            // Injuries are scene-scoped — actors always enter fresh with no prior injury state
             for (var a = 0; a < array_length(_scene.actors); a++) {
                 var _sa = _scene.actors[a];
                 var _face = variable_struct_exists(_sa, "facing")     ? _sa.facing     : 1;
                 var _pose = variable_struct_exists(_sa, "pose")       ? _sa.pose       : 1;
                 var _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 21;
-                // Injury state: merge prior-block state with state stored directly on the actor entry (staging/drag-in)
-                var _sa_kd    = variable_struct_exists(_sa, "is_knocked_down") && _sa.is_knocked_down;
-                var _sa_kdir  = _sa_kd ? (variable_struct_exists(_sa, "knock_direction") ? _sa.knock_direction : "forwards") : "forwards";
-                var _sa_decap = variable_struct_exists(_sa, "is_decapitated") && _sa.is_decapitated;
-                var _sa_dmode = _sa_decap ? (variable_struct_exists(_sa, "decap_mode") ? _sa.decap_mode : "remove_head") : "remove_head";
-                if (ds_map_exists(_injured_before, _sa.char_index)) {
-                    var _is = _injured_before[? _sa.char_index];
-                    // Actor-entry state overrides prior-block state (staging sets it explicitly)
-                    var _kd    = _sa_kd    || _is.is_knocked_down;
-                    var _kdir  = _sa_kd    ? _sa_kdir  : _is.knock_direction;
-                    var _decap = _sa_decap || _is.is_decapitated;
-                    var _dmode = _sa_decap ? _sa_dmode : _is.decap_mode;
-                    var _injured = _kd || _decap;
-                    var _flips = variable_struct_exists(_is, "facing_flips") ? _is.facing_flips : 0;
-                    var _eff_face = (_flips % 2 == 0) ? _face : -_face;
-                    var _hpm = variable_struct_exists(_is, "head_pivot_mode") ? _is.head_pivot_mode : false;
-                    var _pa_new = { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _eff_face, pose: _pose, expression: _expr,
-                        injured: _injured, is_knocked_down: _kd, knock_direction: _kdir, knock_angle: _kd ? ((_kdir == "forwards") ? (_eff_face * 90) : (-_eff_face * 90)) : 0,
-                        is_decapitated: _decap, decap_mode: _dmode, head_pivot_mode: _hpm };
-                    array_push(preview_actors, _pa_new);
-                    char_facings[_sa.char_index] = _eff_face;
-                } else if (_sa_kd || _sa_decap) {
-                    // Injury stored on actor entry only (staging or drag-in, no prior block)
-                    var _pa_new2 = { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr,
-                        injured: true, is_knocked_down: _sa_kd, knock_direction: _sa_kdir, knock_angle: _sa_kd ? ((_sa_kdir == "forwards") ? (_face * 90) : (-_face * 90)) : 0,
-                        is_decapitated: _sa_decap, decap_mode: _sa_dmode, head_pivot_mode: false };
-                    array_push(preview_actors, _pa_new2);
-                    char_facings[_sa.char_index] = _face;
-                } else {
-                    array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
-                    char_facings[_sa.char_index] = _face;
-                }
+                array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
+                char_facings[_sa.char_index] = _face;
             }
-            // Also add injured chars not already in preview_actors so the panel can mark them
-            for (var _ci = 0; _ci < array_length(characters); _ci++) {
-                if (!ds_map_exists(_injured_before, _ci)) continue;
-                var _in_pa = false;
-                for (var _pi = 0; _pi < array_length(preview_actors); _pi++) {
-                    if (preview_actors[_pi].char_index == _ci) { _in_pa = true; break; }
-                }
-                if (!_in_pa) {
-                    var _is2 = _injured_before[? _ci];
-                    var _flips2 = variable_struct_exists(_is2, "facing_flips") ? _is2.facing_flips : 0;
-                    var _def_face2 = variable_struct_exists(characters[_ci], "default_facing") ? characters[_ci].default_facing : 1;
-                    var _eff_face2 = (_flips2 % 2 == 0) ? _def_face2 : -_def_face2;
-                    array_push(preview_actors, { char_index: _ci, x: 0, y: 0, is_base: false, facing: _eff_face2, pose: 1, expression: 21,
-                        injured: true, is_knocked_down: _is2.is_knocked_down, knock_direction: _is2.knock_direction, knock_angle: _is2.is_knocked_down ? ((_is2.knock_direction == "forwards") ? (_eff_face2 * 90) : (-_eff_face2 * 90)) : 0,
-                        is_decapitated: _is2.is_decapitated, decap_mode: _is2.decap_mode, head_pivot_mode: (variable_struct_exists(_is2, "head_pivot_mode") ? _is2.head_pivot_mode : false), hidden: true });
-                }
-            }
-            ds_map_destroy(_injured_before);
         }
 
         var _limit = _inclusive ? _idx : (_idx - 1);
@@ -631,15 +548,14 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                         }
                     }
                 } else if (variable_struct_exists(_b, "injure_style")) {
-                    if (_act_idx != -1) {
+                    var _sc_ia_hidden = (_act_idx != -1 && variable_struct_exists(preview_actors[_act_idx], "hidden") && preview_actors[_act_idx].hidden)
+                                     || (variable_struct_exists(_b, "offscreen_pre") && _b.offscreen_pre);
+                    if (_act_idx != -1 && !_sc_ia_hidden) {
                         var _istyle = _b.injure_style;
                         var _rface = variable_struct_exists(preview_actors[_act_idx], "facing") ? preview_actors[_act_idx].facing : 1;
                         preview_actors[_act_idx].injured = true;
                         if (_istyle == "knock_down") {
                             var _kdir = variable_struct_exists(_b, "knock_direction") ? _b.knock_direction : "forwards";
-                            // head_pivot_mode: bodyless at time of knock means head rolls
-                            preview_actors[_act_idx].head_pivot_mode = (variable_struct_exists(preview_actors[_act_idx], "is_decapitated") && preview_actors[_act_idx].is_decapitated
-                                && (variable_struct_exists(preview_actors[_act_idx], "decap_mode") ? preview_actors[_act_idx].decap_mode : "remove_head") == "remove_body");
                             preview_actors[_act_idx].is_knocked_down = true;
                             preview_actors[_act_idx].knock_direction  = _kdir;
                             preview_actors[_act_idx].knock_angle      = (_kdir == "forwards") ? (_rface * 90) : (-_rface * 90);
@@ -654,7 +570,6 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                         preview_actors[_act_idx].is_knocked_down = false;
                         preview_actors[_act_idx].knock_angle     = 0;
                         preview_actors[_act_idx].knock_direction = "forwards";
-                        preview_actors[_act_idx].head_pivot_mode = false;
                         var _still_inj = variable_struct_exists(preview_actors[_act_idx], "is_decapitated") && preview_actors[_act_idx].is_decapitated;
                         preview_actors[_act_idx].injured = _still_inj;
                         // Snap y into valid vertical range now that character is upright
