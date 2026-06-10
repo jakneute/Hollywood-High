@@ -220,16 +220,34 @@ if (waiting_for_shots) {
 // --- Decap head ---
 for (var _dhi = array_length(active_decap_heads) - 1; _dhi >= 0; _dhi--) {
     var _dh = active_decap_heads[_dhi];
-    _dh.x     += _dh.vx;
-    _dh.y     += _dh.vy;
-    _dh.angle += _dh.spin;
     _dh.life++;
-    if (_dh.life > _dh.max_life * 0.6) _dh.alpha = max(0, 1.0 - (_dh.life - _dh.max_life * 0.6) / (_dh.max_life * 0.4));
-    var _dh_exited = (_dh.x < scene_win_x || _dh.x > scene_win_x + scene_win_w
-                   || _dh.y < scene_win_y || _dh.y > scene_win_y + scene_win_h);
-    if (_dh_exited || _dh.life >= _dh.max_life) {
-        if (array_length(active_decap_heads) == 1) speaking_pause_timer = 1;
-        array_delete(active_decap_heads, _dhi, 1);
+    if (variable_struct_exists(_dh, "returning") && _dh.returning) {
+        // Ease toward target (reform animation)
+        var _rt = clamp(_dh.life / _dh.max_life, 0, 1);
+        var _rt_ease = 1 - (1 - _rt) * (1 - _rt);
+        _dh.x = lerp(_dh.x, _dh.target_x, 0.09 + _rt * 0.12);
+        _dh.y = lerp(_dh.y, _dh.target_y, 0.09 + _rt * 0.12);
+        _dh.spin = lerp(_dh.spin, 0, 0.18);
+        _dh.angle += _dh.spin;
+        if (_dh.life >= _dh.max_life || (abs(_dh.x - _dh.target_x) < 2 && abs(_dh.y - _dh.target_y) < 2)) {
+            // Arrived — clear decapitated flag on the actor
+            var _cr = _dh.char_ref;
+            _cr.is_decapitated = false;
+            var _still_inj_ret = variable_struct_exists(_cr, "is_knocked_down") && _cr.is_knocked_down;
+            _cr.injured = _still_inj_ret;
+            array_delete(active_decap_heads, _dhi, 1);
+        }
+    } else {
+        _dh.x     += _dh.vx;
+        _dh.y     += _dh.vy;
+        _dh.angle += _dh.spin;
+        if (_dh.life > _dh.max_life * 0.6) _dh.alpha = max(0, 1.0 - (_dh.life - _dh.max_life * 0.6) / (_dh.max_life * 0.4));
+        var _dh_exited = (_dh.x < scene_win_x || _dh.x > scene_win_x + scene_win_w
+                       || _dh.y < scene_win_y || _dh.y > scene_win_y + scene_win_h);
+        if (_dh_exited || _dh.life >= _dh.max_life) {
+            if (array_length(active_decap_heads) == 1) speaking_pause_timer = 1;
+            array_delete(active_decap_heads, _dhi, 1);
+        }
     }
 }
 
@@ -1216,7 +1234,16 @@ if (!script_expanded && playing_block_index == -1 && current_scene_sprite != -1 
                     if (_s.actors[_ai].char_index == selected_character_index) {
                         if (!variable_struct_exists(_s.actors[_ai], "facing")) _s.actors[_ai].facing = 1;
                         _s.actors[_ai].facing *= -1;
-                        preview_actors[_flip_act_idx].facing = _s.actors[_ai].facing;
+                        var _pa = preview_actors[_flip_act_idx];
+                        _pa.facing = _s.actors[_ai].facing;
+                        // For knocked-down actors, also flip knock_direction to keep head in same spot
+                        if (variable_struct_exists(_pa, "is_knocked_down") && _pa.is_knocked_down) {
+                            var _cur_kdir_stg = variable_struct_exists(_s.actors[_ai], "knock_direction") ? _s.actors[_ai].knock_direction : "forwards";
+                            var _new_kdir_stg = (_cur_kdir_stg == "forwards") ? "backwards" : "forwards";
+                            _s.actors[_ai].knock_direction = _new_kdir_stg;
+                            _pa.knock_direction = _new_kdir_stg;
+                            _pa.knock_angle = (_new_kdir_stg == "forwards") ? (_pa.facing * 90) : (-_pa.facing * 90);
+                        }
                         break;
                     }
                 }
@@ -1263,15 +1290,18 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                     var _ay = scene_win_y + _act.y;
                     var _is_injured_nd  = variable_struct_exists(_act, "is_knocked_down") && _act.is_knocked_down;
                     var _kangle_nd      = _is_injured_nd ? (variable_struct_exists(_act, "knock_angle") ? _act.knock_angle : 0) : 0;
+                    var _head_piv_nd    = variable_struct_exists(_act, "head_pivot_mode") && _act.head_pivot_mode;
                     var _is_decap_nd    = variable_struct_exists(_act, "is_decapitated") && _act.is_decapitated;
                     var _decap_mode_nd  = _is_decap_nd ? (variable_struct_exists(_act, "decap_mode") ? _act.decap_mode : "remove_head") : "";
-                    // For hit testing: inverse-rotate mouse around the character pivot to get unrotated coords
+                    // For hit testing: inverse-rotate mouse around correct pivot
                     var _test_mx = _mx; var _test_my = _my;
                     if (_kangle_nd != 0) {
                         var _piv_x_nd; var _piv_y_nd;
-                        if (_is_decap_nd && _decap_mode_nd == "remove_body" && _tl[1].spr != -1) {
-                            _piv_x_nd = _ax + (_tl[1].dx + sprite_get_width(_tl[1].spr) * 0.5 - _sw * 0.5) * _scale;
-                            _piv_y_nd = _ay - (_sh - _tl[1].dy - sprite_get_height(_tl[1].spr) * 0.5) * _scale;
+                        if (_head_piv_nd && _tl[1].spr != -1) {
+                            var _draw_x_nd = _ax - _sw * _scale * 0.5;
+                            var _draw_y_nd = _ay - _sh * _scale;
+                            _piv_x_nd = _draw_x_nd + (_tl[1].dx + sprite_get_width(_tl[1].spr) * 0.5) * _scale;
+                            _piv_y_nd = _draw_y_nd + (_tl[1].dy + sprite_get_height(_tl[1].spr) * 0.5) * _scale;
                         } else {
                             _piv_x_nd = _ax; _piv_y_nd = _ay;
                         }
@@ -1428,7 +1458,6 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
     // --- STAGING label click → exit staging ---
     if (_mx > _ind_x && _mx < _ind_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         scene_edit_mode = false;
-        focused_block = -1; // deselect block too
         return;
     }
 
@@ -2314,7 +2343,6 @@ if (mouse_check_button_pressed(mb_left)) {
                 if (playing_block_index == -1 && _mx > box_x + 45 && _mx < box_x + box_w - 45 && _my > _box_y && _my < _box_y + 80) {
                     if (focused_block == i && scene_edit_mode) {
                         scene_edit_mode = false;
-                        focused_block = -1;
                     } else {
                         focused_block = i;
                         particle_edit_mode = false;
@@ -2948,9 +2976,17 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                     if (_dup_idx == -1) {
                         // Injured characters can still be placed in scenes; no blocking needed
                         if (true) {
-                        // Auto-flip for entrance
+                        // Auto-flip for entrance — but keep existing facing if knocked down
                         var _is_left = (_mx < scene_win_x + (scene_win_w / 2));
-                        _face = _is_left ? -1 : 1;
+                        var _drop_is_kd = false;
+                        for (var _dki = 0; _dki < array_length(preview_actors); _dki++) {
+                            if (preview_actors[_dki].char_index == dragging_char_index) {
+                                _drop_is_kd = variable_struct_exists(preview_actors[_dki], "is_knocked_down") && preview_actors[_dki].is_knocked_down;
+                                if (_drop_is_kd) _face = variable_struct_exists(preview_actors[_dki], "facing") ? preview_actors[_dki].facing : _face;
+                                break;
+                            }
+                        }
+                        if (!_drop_is_kd) _face = _is_left ? -1 : 1;
 
                         // Precise coordinates within background
                         var _nx = _px;
@@ -2968,19 +3004,22 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                                 if (variable_struct_exists(_hpa, "is_knocked_down") && _hpa.is_knocked_down) {
                                     _sa_new.is_knocked_down  = true;
                                     _sa_new.knock_direction  = variable_struct_exists(_hpa, "knock_direction") ? _hpa.knock_direction : "forwards";
-                                    _sa_new.knock_angle      = _face * 90;
+                                    var _hpa_angle = variable_struct_exists(_hpa, "knock_angle") ? _hpa.knock_angle : 0;
+                                    _sa_new.knock_angle = (_hpa_angle != 0) ? _hpa_angle : ((_sa_new.knock_direction == "forwards") ? (_face * 90) : (-_face * 90));
                                 }
                                 if (variable_struct_exists(_hpa, "is_decapitated") && _hpa.is_decapitated) {
                                     _sa_new.is_decapitated = true;
                                     _sa_new.decap_mode     = variable_struct_exists(_hpa, "decap_mode") ? _hpa.decap_mode : "remove_head";
                                 }
-                                // Unhide and place the preview actor
+                                // Unhide and place the preview actor — keep facing unchanged for knocked-down
                                 _hpa.hidden  = false;
                                 _hpa.x       = _nx;
                                 _hpa.y       = _ny;
-                                _hpa.facing  = _face;
-                                if (variable_struct_exists(_hpa, "is_knocked_down") && _hpa.is_knocked_down) {
-                                    _hpa.knock_angle = _face * 90;
+                                if (!_drop_is_kd) _hpa.facing = _face;
+                                if (variable_struct_exists(_hpa, "is_knocked_down") && _hpa.is_knocked_down && _hpa.knock_angle == 0) {
+                                    var _hpa_kdir = variable_struct_exists(_hpa, "knock_direction") ? _hpa.knock_direction : "forwards";
+                                    var _hpa_face = variable_struct_exists(_hpa, "facing") ? _hpa.facing : 1;
+                                    _hpa.knock_angle = (_hpa_kdir == "forwards") ? (_hpa_face * 90) : (-_hpa_face * 90);
                                 }
                                 break;
                             }

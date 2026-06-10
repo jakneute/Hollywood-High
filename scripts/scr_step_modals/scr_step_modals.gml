@@ -1671,6 +1671,7 @@ function step_modal_action() {
                 }
             }
             if (_can_proceed) {
+                var _asel = all_actions[action_modal_selected_idx].name;
                 if (action_modal_edit_mode) {
                     var _b = script_blocks[action_modal_target_index];
                     _b.action_name = _act_name;
@@ -1710,7 +1711,6 @@ function step_modal_action() {
                     }
                     action_modal_edit_mode = false;
                 } else {
-                    var _asel = all_actions[action_modal_selected_idx].name;
                     var _new_a = { type: "action", char_index: selected_character_index, action_name: _act_name, height: 85 };
                     if (_asel == "wait") { _new_a.duration = action_modal_wait_duration; _new_a.char_index = 0; }
                     else if (_asel == "display title") {
@@ -1755,6 +1755,11 @@ function step_modal_action() {
                 for (var k = 0; k < _ins_idx; k++) _block_y += script_blocks[k].height + 20;
                 block_scroll_y = min(0, -(_block_y - box_h / 3));
                 update_preview_actors_for_block(_ins_idx, true);
+                if (_asel == "injure" || _asel == "stand up" || _asel == "reform") {
+                    var _row = floor(selected_character_index / 2);
+                    var _iy = _row * 135;
+                    char_sel_scroll_y = -max(0, _iy - (char_sel_h / 2 - 67));
+                }
                 return;
             }
         }

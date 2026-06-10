@@ -240,6 +240,7 @@ if (theater_mode) {
 				var _decap_mode_dr = _is_decap_dr ? (variable_struct_exists(_act, "decap_mode") ? _act.decap_mode : "remove_head") : "";
 				var _is_kd_dr     = variable_struct_exists(_act, "is_knocked_down") && _act.is_knocked_down;
 				var _dangle_dr    = _is_kd_dr ? (variable_struct_exists(_act, "knock_angle") ? _act.knock_angle : 0) : 0;
+				var _head_piv_dr  = variable_struct_exists(_act, "head_pivot_mode") && _act.head_pivot_mode;
 				for (var _li = 0; _li < array_length(_layers); _li++) {
 					var _l       = _layers[_li];
 					// remove_head: skip head layers (face=1, mouth=2, eyes=3); remove_body: skip body layer (index 0)
@@ -268,20 +269,11 @@ if (theater_mode) {
 				var _melt_th = variable_struct_exists(_act, "melt_progress")     ? _act.melt_progress     : 0;
 				var _ang_th  = variable_struct_exists(_act, "image_angle")       ? _act.image_angle       : 0;
 				if (_is_kd_dr && _dangle_dr != 0) {
-					// Knocked down: rotate around foot pivot; for remove_body (head-only) use face centre instead
 					var _rpx_dr; var _rpy_dr;
-					if (_is_decap_dr && _decap_mode_dr == "remove_body") {
-						var _face_l_dr = _final_layers[1];
-						if (_face_l_dr != undefined && _face_l_dr.spr != -1) {
-							var _flx = _draw_x + (_face_l_dr.dx + sprite_get_width(_face_l_dr.spr) * 0.5) * _asc;
-							var _fly = _draw_y + (_face_l_dr.dy + sprite_get_height(_face_l_dr.spr) * 0.5) * _asc;
-							// _draw_x/_draw_y are screen-space — face centre is already correct
-							_rpx_dr = _flx;
-							_rpy_dr = _fly;
-						} else {
-							_rpx_dr = (target_surface == -1) ? (_stg_x + _ax) : _ax;
-							_rpy_dr = (target_surface == -1) ? (_stg_y + _ay + _y_off) : (_ay + _y_off);
-						}
+					if (_head_piv_dr && array_length(_final_layers) > 1 && _final_layers[1].spr != -1) {
+						var _hl_dr = _final_layers[1];
+						_rpx_dr = _draw_x + (_hl_dr.dx + sprite_get_width(_hl_dr.spr) * 0.5) * _asc;
+						_rpy_dr = _draw_y + (_hl_dr.dy + sprite_get_height(_hl_dr.spr) * 0.5) * _asc;
 					} else {
 						_rpx_dr = (target_surface == -1) ? (_stg_x + _ax) : _ax;
 						_rpy_dr = (target_surface == -1) ? (_stg_y + _ay + _y_off) : (_ay + _y_off);
@@ -1054,6 +1046,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					var _decap_mode_ed = _is_decap_ed ? (variable_struct_exists(_act, "decap_mode") ? _act.decap_mode : "remove_head") : "";
 					var _is_kd_ed      = variable_struct_exists(_act, "is_knocked_down") && _act.is_knocked_down;
 					var _dangle_ed     = _is_kd_ed ? (variable_struct_exists(_act, "knock_angle") ? _act.knock_angle : 0) : 0;
+					var _head_piv_ed   = variable_struct_exists(_act, "head_pivot_mode") && _act.head_pivot_mode;
 					var _is_injured_ed = _is_decap_ed || _is_kd_ed;
 					var _final_layers = [];
 					for (var _li = 0; _li < array_length(_layers); _li++) {
@@ -1082,17 +1075,11 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					if (_draw_outline && playing_block_index == -1 && selected_character_index == _act.char_index) {
 						var _outline_col = _is_injured_ed ? make_color_rgb(220, 120, 30) : c_yellow;
 						var _os = _sc * 1.18;
-						// Compute pivot matching the knocked-down render logic
 						var _ol_rpx_ed; var _ol_rpy_ed;
-						if (_is_decap_ed && _decap_mode_ed == "remove_body") {
-							var _face_ol_ed = _final_layers[1];
-							if (_face_ol_ed != undefined && _face_ol_ed.spr != -1) {
-								_ol_rpx_ed = _draw_x + (_face_ol_ed.dx + sprite_get_width(_face_ol_ed.spr) * 0.5) * _sc;
-								_ol_rpy_ed = _draw_y + (_face_ol_ed.dy + sprite_get_height(_face_ol_ed.spr) * 0.5) * _sc;
-							} else {
-								_ol_rpx_ed = (target_surface == -1) ? (scene_win_x + _act.x) : _act.x;
-								_ol_rpy_ed = (target_surface == -1) ? (scene_win_y + _act.y + _y_off) : (_act.y + _y_off);
-							}
+						if (_head_piv_ed && array_length(_final_layers) > 1 && _final_layers[1].spr != -1) {
+							var _hl_ol = _final_layers[1];
+							_ol_rpx_ed = _draw_x + (_hl_ol.dx + sprite_get_width(_hl_ol.spr) * 0.5) * _sc;
+							_ol_rpy_ed = _draw_y + (_hl_ol.dy + sprite_get_height(_hl_ol.spr) * 0.5) * _sc;
 						} else {
 							_ol_rpx_ed = (target_surface == -1) ? (scene_win_x + _act.x) : _act.x;
 							_ol_rpy_ed = (target_surface == -1) ? (scene_win_y + _act.y + _y_off) : (_act.y + _y_off);
@@ -1155,23 +1142,16 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 								draw_sprite_ext(_ml.spr, 0, _ml_x, _ml_y, _mxsc, _mysc, 0, c_white, _malpha);
 							}
 						} else if (_is_kd_ed && _dangle_ed != 0) {
-							// Knocked down: rotate around foot pivot; for remove_body (head-only) use face centre instead
 							var _rpx_ed; var _rpy_ed;
-							if (_is_decap_ed && _decap_mode_ed == "remove_body") {
-								var _face_l_ed = _final_layers[1];
-								if (_face_l_ed != undefined && _face_l_ed.spr != -1) {
-									_rpx_ed = _draw_x + (_face_l_ed.dx + sprite_get_width(_face_l_ed.spr) * 0.5) * _sc;
-									_rpy_ed = _draw_y + (_face_l_ed.dy + sprite_get_height(_face_l_ed.spr) * 0.5) * _sc;
-								} else {
-									_rpx_ed = (target_surface == -1) ? (scene_win_x + _act.x) : _act.x;
-									_rpy_ed = (target_surface == -1) ? (scene_win_y + _act.y + _y_off) : (_act.y + _y_off);
-								}
+							if (_head_piv_ed && array_length(_final_layers) > 1 && _final_layers[1].spr != -1) {
+								var _hl_ed = _final_layers[1];
+								_rpx_ed = _draw_x + (_hl_ed.dx + sprite_get_width(_hl_ed.spr) * 0.5) * _sc;
+								_rpy_ed = _draw_y + (_hl_ed.dy + sprite_get_height(_hl_ed.spr) * 0.5) * _sc;
 							} else {
 								_rpx_ed = (target_surface == -1) ? (scene_win_x + _act.x) : _act.x;
 								_rpy_ed = (target_surface == -1) ? (scene_win_y + _act.y + _y_off) : (_act.y + _y_off);
 							}
 							var _cos_ed = dcos(_dangle_ed); var _sin_ed = dsin(_dangle_ed);
-							var _inj_sel_fall = (target_surface == -1) && (_act.char_index == selected_character_index) && playing_block_index == -1;
 							for (var _rli_ed = 0; _rli_ed < array_length(_final_layers); _rli_ed++) {
 								var _rl_ed = _final_layers[_rli_ed];
 								if (_rl_ed.spr == -1) continue;
@@ -1179,12 +1159,6 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 								var _vy_ed = (_draw_y + _rl_ed.dy * _sc) - _rpy_ed;
 								var _rx_ed = _rpx_ed + _vx_ed * _cos_ed + _vy_ed * _sin_ed;
 								var _ry_ed = _rpy_ed - _vx_ed * _sin_ed + _vy_ed * _cos_ed;
-								if (_inj_sel_fall) {
-									var _lw_e = sprite_get_width(_rl_ed.spr); var _lh_e = sprite_get_height(_rl_ed.spr);
-									var _os_e = _sc * 1.18;
-									var _olx_e = _rx_ed - _lw_e * (_os_e - _sc) * 0.5; var _oly_e = _ry_ed - _lh_e * (_os_e - _sc) * 0.5;
-									draw_sprite_ext(_rl_ed.spr, 0, _olx_e, _oly_e, _os_e, _os_e, _dangle_ed, make_color_rgb(220, 120, 30), _alpha);
-								}
 								draw_sprite_ext(_rl_ed.spr, 0, _rx_ed, _ry_ed, _sc, _sc, _dangle_ed, c_white, _alpha);
 							}
 						} else {
@@ -1457,6 +1431,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	if (playing_block_index == -1 && !particle_edit_mode) {
 		for (var _oa = 0; _oa < array_length(preview_actors); _oa++) {
 			var _oact = preview_actors[_oa];
+			if (variable_struct_exists(_oact, "hidden") && _oact.hidden) continue;
 			if (real(_oact.char_index) != real(selected_character_index)) continue;
 			if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _oact.char_index) continue;
 
@@ -1472,6 +1447,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 			var _o_decap_mode = _o_is_decap ? (variable_struct_exists(_oact, "decap_mode") ? _oact.decap_mode : "remove_head") : "";
 			var _o_is_kd     = variable_struct_exists(_oact, "is_knocked_down") && _oact.is_knocked_down;
 			var _o_kangle    = _o_is_kd ? (variable_struct_exists(_oact, "knock_angle") ? _oact.knock_angle : 0) : 0;
+			var _o_head_piv  = variable_struct_exists(_oact, "head_pivot_mode") && _oact.head_pivot_mode;
 
 			var _olayers = [];
 			var _is_canned = variable_struct_exists(_oact, "canned_spr") && _oact.canned_spr != -1;
@@ -1523,21 +1499,13 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 
 			// Compute rotation pivot for knocked-down state (surface-local coords)
 			var _o_do_rotate = (_o_is_kd && _o_kangle != 0);
-			var _o_rpx = 0; var _o_rpy = 0;
-			if (_o_do_rotate) {
-			    if (_o_is_decap && _o_decap_mode == "remove_body") {
-			        // Head-only: pivot at face-centre
-			        var _face_ol = _olayers[1];
-			        if (_face_ol != undefined && _face_ol.spr != -1) {
-			            _o_rpx = _sdx + (_face_ol.dx + sprite_get_width(_face_ol.spr) * 0.5) * _osc;
-			            _o_rpy = _sdy + (_face_ol.dy + sprite_get_height(_face_ol.spr) * 0.5) * _osc;
-			        } else {
-			            _o_rpx = _oact.x; _o_rpy = _oact.y + _oy_off;
-			        }
-			    } else {
-			        // Normal: pivot at foot
-			        _o_rpx = _oact.x; _o_rpy = _oact.y + _oy_off;
-			    }
+			var _o_rpx; var _o_rpy;
+			if (_o_head_piv && array_length(_olayers) > 1 && _olayers[1].spr != -1) {
+				var _hl_o = _olayers[1];
+				_o_rpx = _sdx + (_hl_o.dx + sprite_get_width(_hl_o.spr) * 0.5) * _osc;
+				_o_rpy = _sdy + (_hl_o.dy + sprite_get_height(_hl_o.spr) * 0.5) * _osc;
+			} else {
+				_o_rpx = _oact.x; _o_rpy = _oact.y + _oy_off;
 			}
 			var _o_cos = dcos(_o_kangle); var _o_sin = dsin(_o_kangle);
 
@@ -2211,24 +2179,38 @@ for (var i = 0; i < array_length(characters); i++) {
         var _ch_pa_kdir  = "forwards";
         var _ch_pa_decap = false;
         var _ch_pa_dmode = "remove_head";
+        var _ch_pa_facing = 1;
         for (var _dpa = 0; _dpa < array_length(preview_actors); _dpa++) {
             var _dpa_act = preview_actors[_dpa];
             if (_dpa_act.char_index == i) {
-                _ch_pa_kd    = variable_struct_exists(_dpa_act, "is_knocked_down") && _dpa_act.is_knocked_down;
-                _ch_pa_kdir  = _ch_pa_kd ? (variable_struct_exists(_dpa_act, "knock_direction") ? _dpa_act.knock_direction : "forwards") : "forwards";
-                _ch_pa_decap = variable_struct_exists(_dpa_act, "is_decapitated") && _dpa_act.is_decapitated;
-                _ch_pa_dmode = _ch_pa_decap ? (variable_struct_exists(_dpa_act, "decap_mode") ? _dpa_act.decap_mode : "remove_head") : "remove_head";
+                _ch_pa_kd     = variable_struct_exists(_dpa_act, "is_knocked_down") && _dpa_act.is_knocked_down;
+                _ch_pa_kdir   = _ch_pa_kd ? (variable_struct_exists(_dpa_act, "knock_direction") ? _dpa_act.knock_direction : "forwards") : "forwards";
+                _ch_pa_facing = variable_struct_exists(_dpa_act, "facing") ? _dpa_act.facing : 1;
+                _ch_pa_decap  = variable_struct_exists(_dpa_act, "is_decapitated") && _dpa_act.is_decapitated;
+                _ch_pa_dmode  = _ch_pa_decap ? (variable_struct_exists(_dpa_act, "decap_mode") ? _dpa_act.decap_mode : "remove_head") : "remove_head";
                 break;
             }
         }
         // Draw with actual injury state — filtered layers for decap, rotated for knocked-down
         var _ch_clip = [char_sel_x + 2, char_sel_y + 30, char_sel_w - 4, char_sel_h - 35];
         if (_ch_pa_kd) {
-            // Knocked down: rotate around foot pivot (bottom-center of item)
-            var _rpx_ch = _ix + (_item_w - 5) / 2;
-            var _rpy_ch = _iy + _item_h - 22;
-            var _kangle_ch = ((_ch_pa_kdir == "forwards") ? 1 : -1) * 90;
+            var _kangle_ch = (_ch_pa_kdir == "forwards") ? (_ch_pa_facing * 90) : (-_ch_pa_facing * 90);
             var _dcos_ch = dcos(_kangle_ch); var _dsin_ch = dsin(_kangle_ch);
+            // Pivot: face-centre for lone head (remove_body), otherwise center of tile
+            // After 90° rotation the character lies flat — center pivot in tile so they appear centered
+            var _rpx_ch, _rpy_ch;
+            var _tile_cx = _ix + (_item_w - 5) / 2;
+            var _tile_cy = _iy + 30 + (_item_h - 52) / 2; // center of drawable area above name label
+            if (_ch_pa_decap && _ch_pa_dmode == "remove_body" && _ch_layers[1].spr != -1) {
+                // Lone head: pivot at face-centre in upright position, then center that in the tile
+                _rpx_ch = _sx + (_ch_layers[1].dx + sprite_get_width(_ch_layers[1].spr) * 0.5) * _sc;
+                _rpy_ch = _sy + (_ch_layers[1].dy + sprite_get_height(_ch_layers[1].spr) * 0.5) * _sc;
+            } else {
+                // Full body or headless: pivot at horizontal center, vertical center of tile
+                // so the rotated body fills the tile symmetrically
+                _rpx_ch = _tile_cx;
+                _rpy_ch = _tile_cy;
+            }
             gpu_set_scissor(_ch_clip[0], _ch_clip[1], _ch_clip[2], _ch_clip[3]);
             for (var _cli = 0; _cli < array_length(_ch_layers); _cli++) {
                 var _cll = _ch_layers[_cli];
@@ -2412,25 +2394,62 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
     // in all modes so the ghost never flips as the cursor enters the scene area.
     var _drag_face = undefined;
     if (dragging_char_index != -1) {
-        var _ghost_is_left = (_mx < scene_win_x + scene_win_w / 2);
-        _drag_face = _ghost_is_left ? -1 : 1;
+        // If knocked down, keep existing facing — head orientation must not flip during drag
+        var _drag_is_kd_face = false;
+        for (var _dfi = 0; _dfi < array_length(preview_actors); _dfi++) {
+            if (preview_actors[_dfi].char_index == dragging_char_index) {
+                _drag_is_kd_face = variable_struct_exists(preview_actors[_dfi], "is_knocked_down") && preview_actors[_dfi].is_knocked_down;
+                if (_drag_is_kd_face) _drag_face = variable_struct_exists(preview_actors[_dfi], "facing") ? preview_actors[_dfi].facing : 1;
+                break;
+            }
+        }
+        if (!_drag_is_kd_face) {
+            var _ghost_is_left = (_mx < scene_win_x + scene_win_w / 2);
+            _drag_face = _ghost_is_left ? -1 : 1;
+        }
     } else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+        // Prefer preview_actors facing (live state); fall back to scene block actor
         var _da = script_blocks[active_scene_block_idx].actors[dragging_actor_idx];
-        _drag_face = variable_struct_exists(_da, "facing") ? _da.facing : undefined;
+        var _da_face_src = undefined;
+        for (var _dfi2 = 0; _dfi2 < array_length(preview_actors); _dfi2++) {
+            if (preview_actors[_dfi2].char_index == _da.char_index) { _da_face_src = preview_actors[_dfi2]; break; }
+        }
+        if (_da_face_src != undefined) {
+            _drag_face = variable_struct_exists(_da_face_src, "facing") ? _da_face_src.facing : undefined;
+        } else {
+            _drag_face = variable_struct_exists(_da, "facing") ? _da.facing : undefined;
+        }
     } else if (dragging_preview_idx != -1) {
         var _dp = preview_actors[dragging_preview_idx];
         _drag_face = variable_struct_exists(_dp, "facing") ? _dp.facing : undefined;
     }
 
-    // Read knock-down state for the dragged actor (preview drag only)
+    // Read knock-down state for the dragged actor
     var _drag_is_kd = false; var _drag_kangle = 0;
     var _drag_is_decap = false; var _drag_decap_mode = "remove_head";
+    var _drag_inj_src = undefined;
     if (dragging_preview_idx != -1) {
-        var _dpa = preview_actors[dragging_preview_idx];
-        _drag_is_kd     = variable_struct_exists(_dpa, "is_knocked_down") && _dpa.is_knocked_down;
-        _drag_kangle    = _drag_is_kd ? (variable_struct_exists(_dpa, "knock_angle") ? _dpa.knock_angle : 0) : 0;
-        _drag_is_decap  = variable_struct_exists(_dpa, "is_decapitated") && _dpa.is_decapitated;
-        _drag_decap_mode = _drag_is_decap ? (variable_struct_exists(_dpa, "decap_mode") ? _dpa.decap_mode : "remove_head") : "remove_head";
+        _drag_inj_src = preview_actors[dragging_preview_idx];
+    } else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+        var _dsa = script_blocks[active_scene_block_idx].actors[dragging_actor_idx];
+        // Prefer preview_actors entry (has live knock_angle); fall back to scene actor
+        for (var _dpi = 0; _dpi < array_length(preview_actors); _dpi++) {
+            if (preview_actors[_dpi].char_index == _dsa.char_index) { _drag_inj_src = preview_actors[_dpi]; break; }
+        }
+        if (_drag_inj_src == undefined) _drag_inj_src = _dsa;
+    } else if (dragging_char_index != -1) {
+        // Look up this character's injury state from preview_actors
+        for (var _dpi2 = 0; _dpi2 < array_length(preview_actors); _dpi2++) {
+            if (preview_actors[_dpi2].char_index == dragging_char_index) { _drag_inj_src = preview_actors[_dpi2]; break; }
+        }
+    }
+    var _drag_head_piv = false;
+    if (_drag_inj_src != undefined) {
+        _drag_is_kd      = variable_struct_exists(_drag_inj_src, "is_knocked_down") && _drag_inj_src.is_knocked_down;
+        _drag_kangle     = _drag_is_kd ? (variable_struct_exists(_drag_inj_src, "knock_angle") ? _drag_inj_src.knock_angle : 0) : 0;
+        _drag_head_piv   = variable_struct_exists(_drag_inj_src, "head_pivot_mode") && _drag_inj_src.head_pivot_mode;
+        _drag_is_decap   = variable_struct_exists(_drag_inj_src, "is_decapitated") && _drag_inj_src.is_decapitated;
+        _drag_decap_mode = _drag_is_decap ? (variable_struct_exists(_drag_inj_src, "decap_mode") ? _drag_inj_src.decap_mode : "remove_head") : "remove_head";
     }
 
     var _layers = get_composite_character_sprite(_char_id, _pose, _expr, _drag_face);
@@ -2446,7 +2465,7 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
 
         var _ax_abs = scene_win_x + _px;
         var _ay_abs = scene_win_y + _py;
-        var _drag_act_state = (dragging_preview_idx != -1) ? preview_actors[dragging_preview_idx] : {};
+        var _drag_act_state = (_drag_inj_src != undefined) ? _drag_inj_src : {};
         var _bbox_dg = get_actor_bbox(_layers, _scale, _ax_abs, _ay_abs, _drag_act_state);
         var _bb_dg_w = _bbox_dg.bb_right - _bbox_dg.bb_left;
         var _bb_dg_h = _bbox_dg.bb_bottom - _bbox_dg.bb_top;
@@ -2462,9 +2481,9 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         var _gy = scene_win_y + _py - (_csh * _scale);
 
         if (_drag_is_kd && _drag_kangle != 0) {
-            // Draw per-layer with rotation around the appropriate pivot (same pattern as editor outline)
+            // remove_body with stored pivot uses head_pivot; all others use foot pivot
             var _rpx_dg; var _rpy_dg;
-            if (_drag_is_decap && _drag_decap_mode == "remove_body" && _layers[1].spr != -1) {
+            if (_drag_head_piv && array_length(_layers) > 1 && _layers[1].spr != -1) {
                 _rpx_dg = _gx + (_layers[1].dx + sprite_get_width(_layers[1].spr) * 0.5) * _scale;
                 _rpy_dg = _gy + (_layers[1].dy + sprite_get_height(_layers[1].spr) * 0.5) * _scale;
             } else {
@@ -2484,6 +2503,16 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
                 var _dlxr = _rpx_dg + _dvx * _dcos + _dvy * _dsin;
                 var _dlyr = _rpy_dg - _dvx * _dsin + _dvy * _dcos;
                 draw_sprite_ext(_dgl.spr, 0, _dlxr, _dlyr, _scale, _scale, _drag_kangle, _color, _alpha);
+            }
+        } else if (_drag_is_decap) {
+            // Upright but decapitated — filter layers manually
+            var _dcos_up = dcos(0); var _dsin_up = dsin(0);
+            for (var _dgi2 = 0; _dgi2 < array_length(_layers); _dgi2++) {
+                var _dgl2 = _layers[_dgi2];
+                if (_dgl2.spr == -1) continue;
+                if (_drag_decap_mode == "remove_head" && _dgi2 > 0) continue;
+                if (_drag_decap_mode == "remove_body" && _dgi2 == 0) continue;
+                draw_sprite_ext(_dgl2.spr, 0, _gx + _dgl2.dx * _scale, _gy + _dgl2.dy * _scale, _scale, _scale, 0, _color, _alpha);
             }
         } else {
             draw_composite_character_ext(_layers, _gx, _gy, _scale, _alpha, _color, false, 3, c_yellow, [scene_win_x, scene_win_y, scene_win_w, scene_win_h]);
