@@ -108,13 +108,15 @@ function unpackActors(targetChar) {
     let skipped = 0;
 
     Object.keys(toc).forEach(key => {
-        // key format: "charname/pose_XXXXX.png"
         const slash = key.indexOf('/');
         if (slash < 0) return;
         const charDir  = key.slice(0, slash);
         const filename = key.slice(slash + 1);
 
-        if (filter && charDir !== filter) { skipped++; return; }
+        // Sprites are keyed lowercase; configs use original case — normalise for filter
+        if (filter && charDir.toLowerCase() !== filter) { skipped++; return; }
+
+        if (!filename.endsWith('.png')) return; // configs extracted separately
 
         const { offset, size } = toc[key];
         const outDir = path.join(actorsDir, charDir);
@@ -125,37 +127,93 @@ function unpackActors(targetChar) {
         count++;
     });
 
-    const total = Object.keys(toc).length;
+    const total = Object.keys(toc).filter(k => k.endsWith('.png')).length;
     if (filter) {
-        console.log(`  Extracted ${count} file(s) for "${targetChar}" (${skipped} others skipped).`);
+        console.log(`  Extracted ${count} PNG(s) for "${targetChar}" (${skipped} others skipped).`);
     } else {
-        console.log(`  Extracted ${count}/${total} file(s) → scripts/custom/unpacked_assets/actors/`);
+        console.log(`  Extracted ${count}/${total} PNG(s) → scripts/custom/unpacked_assets/actors/`);
     }
-    console.log(`  NOTE: offsets.json / expressions_config.json are not in the pack — they stay loose.`);
+}
+
+// ── Config JSONs ──────────────────────────────────────────────────────────────
+function unpackConfigs(targetChar) {
+    console.log('\n[CONFIGS]');
+    const packPath  = path.join(datafilesDir, 'actors.pack');
+    const actorsDir = path.join(unpackedDir, 'actors');
+
+    if (!fs.existsSync(packPath)) {
+        console.log(`  actors.pack not found at ${packPath}`);
+        return;
+    }
+
+    console.log(`  Reading actors.pack...`);
+    const buf        = fs.readFileSync(packPath);
+    const headerSize = buf.readUInt32LE(0);
+
+    let toc;
+    try {
+        toc = JSON.parse(buf.toString('utf8', 4, 4 + headerSize));
+    } catch (e) {
+        console.error(`  Failed to parse actors.pack header: ${e.message}`);
+        return;
+    }
+
+    const filter = targetChar ? targetChar.toLowerCase() : null;
+    let count = 0;
+    let skipped = 0;
+
+    // Keys are: "charname/config/filename.json"
+    Object.keys(toc).forEach(key => {
+        if (!key.endsWith('.json')) return;
+        const parts = key.split('/');
+        if (parts.length !== 3 || parts[1] !== 'config') return;
+        const charDir  = parts[0];
+        const filename = parts[2];
+
+        if (filter && charDir !== filter) { skipped++; return; }
+
+        const { offset, size } = toc[key];
+        const outDir = path.join(actorsDir, charDir, 'config');
+        if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+
+        const outPath = path.join(outDir, filename);
+        if (fs.existsSync(outPath)) console.warn(`    Overwriting: ${key}`);
+        fs.writeFileSync(outPath, buf.subarray(offset, offset + size));
+        count++;
+    });
+
+    if (filter) {
+        console.log(`  Extracted ${count} JSON(s) for "${targetChar}" (${skipped} others skipped) → unpacked_assets/actors/<Name>/config/`);
+    } else {
+        console.log(`  Extracted ${count} JSON(s) → unpacked_assets/actors/<Name>/config/`);
+    }
+    console.log(`  NOTE: loose files in datafiles/actors/<Name>/config/ take priority over packed versions at runtime.`);
 }
 
 // ── CLI ───────────────────────────────────────────────────────────────────────
 function run(choice, extra) {
     const c = choice.toLowerCase();
-    if      (c === '1' || c === 'all')    { unpackScenes(); unpackSounds(); unpackActors(); }
-    else if (c === '2' || c === 'scenes') { unpackScenes(); }
-    else if (c === '3' || c === 'sounds') { unpackSounds(); }
-    else if (c === '4' || c === 'actors') { unpackActors(extra); }
+    if      (c === '1' || c === 'all')     { unpackScenes(); unpackSounds(); unpackActors(); unpackConfigs(); }
+    else if (c === '2' || c === 'scenes')  { unpackScenes(); }
+    else if (c === '3' || c === 'sounds')  { unpackSounds(); }
+    else if (c === '4' || c === 'actors')  { unpackActors(extra); }
+    else if (c === '5' || c === 'configs') { unpackConfigs(extra); }
     else { console.error('Invalid choice.'); process.exit(1); }
     console.log('\nAll done. Edit loose files, then re-pack with pack_assets.js.');
 }
 
 const arg   = process.argv[2];
-const extra = process.argv[3]; // optional character name for actors
+const extra = process.argv[3]; // optional character name for actors/configs
 
 if (arg) {
     run(arg, extra);
 } else {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     console.log('What would you like to unpack?');
-    console.log('  1. All  (scenes, sounds, actors)');
+    console.log('  1. All  (scenes, sounds, actors, configs)');
     console.log('  2. Scenes');
     console.log('  3. Sounds');
     console.log('  4. Actors  (or pass a name: node unpack_assets.js actors Gus)');
-    rl.question('Choice [1-4]: ', choice => { rl.close(); run(choice.trim(), null); });
+    console.log('  5. Configs  (or pass a name: node unpack_assets.js configs Gus)');
+    rl.question('Choice [1-5]: ', choice => { rl.close(); run(choice.trim(), null); });
 }

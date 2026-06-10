@@ -44,15 +44,38 @@ Review and make edits there before moving anything into `datafiles/`.
 ---
 
 ### `pack_assets.js` — Pack File Builder
-Packs loose files from `unpacked_assets/` back into binary `.pack` archives.
-Writes the new `.pack` file to whatever directory you run the script from,
+Packs loose files back into binary `.pack` archives.
+Writes the new `.pack` file to the directory you run the script from,
 so you can verify it before manually overwriting the one in `datafiles/`.
+
+When packing actors, config JSONs (`offsets.json`, `expressions.json`, `animations.json`) are
+read from `datafiles/config/<Name>/` and included in `actors.pack` automatically.
 
 **Usage:**
 ```bash
 node pack_assets.js
 ```
 Choose what to pack from the menu. Move the resulting `.pack` to `datafiles/` when ready.
+
+---
+
+### `update_offsets.js` — Character Offset Updater
+Re-reads the original `.RF` actor files from the CD-ROM scratch copy and writes updated position offset data to each character's `datafiles/config/<Name>/offsets.json`. Run this after re-extracting actors or adjusting sprite origins.
+
+**Usage:**
+```bash
+node update_offsets.js
+```
+
+---
+
+## Config JSON priority
+
+At runtime, a loose file in `datafiles/actors/<Name>/config/` always wins over the packed version in `actors.pack`. This means:
+
+- The expression configurator and animation editor write loose files as normal — no repacking needed during development.
+- Packing configs is purely for distribution: once packed, the loose files can be deleted and the game reads from the pack.
+- To edit a packed config, either unpack it first (`node unpack_assets.js configs <Name>`) or just drop a new loose file in `datafiles/actors/<Name>/config/` — it will override the pack immediately.
 
 ---
 
@@ -93,8 +116,7 @@ Both scenes and sounds are picked up automatically with no additional configurat
 | `extract_hhi.js` | CD-ROM extractor |
 | `unpack_assets.js` | Unpack `.pack` archives to loose files |
 | `pack_assets.js` | Repack loose files into `.pack` archives |
-| `extract_offsets.js` | Offset extraction utility |
+| `update_offsets.js` | Re-reads `.RF` files to refresh per-character position offsets in `datafiles/config/` |
 | `color_mappings.json` | Palette correction overrides for actor extraction |
-| `custom_actor_plan.md` | Design plan for the custom actor system |
 | `extracted_assets/` | Output folder for CD-ROM extraction |
 | `unpacked_assets/` | Staging folder for unpacked assets |

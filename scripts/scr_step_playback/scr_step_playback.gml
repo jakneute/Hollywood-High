@@ -283,13 +283,7 @@ function step_tts_playback() {
                         var _c_ca  = characters[_anim.char_index];
                         var _nm_ca = variable_struct_exists(_c_ca, "sprite_name") ? _c_ca.sprite_name : _c_ca.name;
                         if (!ds_map_exists(char_offsets_cache, _nm_ca)) {
-                            var _op_ca = datafiles_path + "config/" + _nm_ca + "/offsets.json";
-                            if (file_exists(_op_ca)) {
-                                var _os_ca = ""; var _of_ca = file_text_open_read(_op_ca);
-                                while (!file_text_eof(_of_ca)) { _os_ca += file_text_readln(_of_ca); }
-                                file_text_close(_of_ca);
-                                ds_map_add(char_offsets_cache, _nm_ca, json_parse(_os_ca));
-                            } else { ds_map_add(char_offsets_cache, _nm_ca, undefined); }
+                            ds_map_add(char_offsets_cache, _nm_ca, load_config_json(_nm_ca, "offsets.json"));
                         }
                         var _od_ca = char_offsets_cache[? _nm_ca];
                         var _body_ok_ca = string_replace(_spr_ca, ".png", "");
@@ -1018,13 +1012,7 @@ function step_tts_playback() {
                                     var _c0  = characters[_b.char_index];
                                     var _nm0 = variable_struct_exists(_c0, "sprite_name") ? _c0.sprite_name : _c0.name;
                                     if (!ds_map_exists(char_offsets_cache, _nm0)) {
-                                        var _op0 = datafiles_path + "config/" + _nm0 + "/offsets.json";
-                                        if (file_exists(_op0)) {
-                                            var _os0 = ""; var _of0 = file_text_open_read(_op0);
-                                            while (!file_text_eof(_of0)) { _os0 += file_text_readln(_of0); }
-                                            file_text_close(_of0);
-                                            ds_map_add(char_offsets_cache, _nm0, json_parse(_os0));
-                                        } else { ds_map_add(char_offsets_cache, _nm0, undefined); }
+                                        ds_map_add(char_offsets_cache, _nm0, load_config_json(_nm0, "offsets.json"));
                                     }
                                     var _od0 = char_offsets_cache[? _nm0];
                                     var _body_ok0 = string_replace(_spr0, ".png", "");

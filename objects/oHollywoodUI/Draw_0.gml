@@ -5070,13 +5070,7 @@ if (expr_cfg_open) {
 
     // Load offsets.json for left panel total offset displays
     var _folder_ec2 = datafiles_path + "actors/" + _c_ec.name + "/";
-    var _cfg_ec2 = datafiles_path + "config/" + _c_ec.name + "/";
-    var _off_data = undefined;
-    if (file_exists(_cfg_ec2 + "offsets.json")) {
-        var _s = ""; var _f = file_text_open_read(_cfg_ec2 + "offsets.json");
-        while (!file_text_eof(_f)) { _s += file_text_readln(_f); }
-        file_text_close(_f); _off_data = json_parse(_s);
-    }
+    var _off_data = load_config_json(_c_ec.name, "offsets.json");
 
     // Title
     draw_set_color(c_black);

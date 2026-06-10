@@ -7,11 +7,13 @@ A modern take on old Windows 95 edutainment software. Write screenplays, cast ch
 ## Features
 
 - **Screenplay Editor** — Create scripts with Voice, Action, Scene, and Particle blocks. Reorder, delete, and splice blocks anywhere in the timeline.
-- **TTS Voice System** — Powered by the TiSpeech engine (TalkIt, original Hollywood High Windows engine). Each character has a unique voice with configurable pitch, speed, effort, quality, and timbre. Individual blocks can override the character default.
+- **TTS Voice System** — Powered by the TiSpeech engine (TalkIt, original Hollywood High Windows engine). Each character has a unique voice with configurable pitch, speed, effort, quality, and timbre. Individual blocks can override the character default via the **Alter Voice** button.
 - **Theater Mode** — Full-screen playback of your screenplay with automated character positioning, movement, expressions, and voice-over.
 - **Scene Staging** — Place and position characters directly in the scene window. Characters remember their positions per scene block.
 - **Particle System** — Add visual effects (rain, fire, sparks, etc.) tied to script blocks.
-- **Action Blocks** — Characters can move, enter/exit, change pose and expression, display title cards, play sound effects, or disappear with various animations.
+- **Action Blocks** — Characters can move, enter/exit, change pose and expression, display title cards, play sound effects, disappear with various animations, or be injured (knocked down, decapitated, or both).
+- **Canned Animations** — Trigger pre-scripted multi-frame animations from `.actn` files, synchronized with optional sound effects.
+- **Expression Configurator** — Per-character expression slots (up to 8) that map custom poses and overlays to named expressions, configurable via a debug modal with a file browser.
 - **Dictionary** — Override TTS pronunciation of specific words globally.
 - **Unsaved Changes Protection** — The app warns before starting a new script, loading a file, or exiting (Alt+F4) if there are unsaved changes. A `*` indicator appears next to Save Script in the file menu when changes are pending.
 - **SFX Library** — Browse and attach sound effects from a folder-based library. Supports both packed and custom loose files.
@@ -37,8 +39,8 @@ A modern take on old Windows 95 edutainment software. Write screenplays, cast ch
 
 | Block | Purpose |
 |---|---|
-| **Voice** | A line of dialogue spoken by a character via TTS. Double-click or use the pencil to edit voice settings per-block. |
-| **Action** | A character action: move, enter, exit, pose, expression, display title, play SFX, or disappear. |
+| **Voice** | A line of dialogue spoken by a character via TTS. Use **Alter Voice** to edit voice settings for that block only. |
+| **Action** | A character action: move, enter, exit, pose, expression, display title, play SFX, disappear, or injure. |
 | **Scene** | Sets the background and initializes character staging for that scene. |
 | **Particle** | Attaches a particle effect to the scene at a configurable position/direction. |
 
@@ -48,7 +50,7 @@ A modern take on old Windows 95 edutainment software. Write screenplays, cast ch
 
 - Characters are selected from the sidebar. The **+ VOICE** button (green) adds a new dialogue block for the selected character.
 - The **VOICE** button (amber) opens the global voice studio for the selected character — changes here apply to all unaltered blocks for that character.
-- Double-clicking a voice block, or using the pencil icon, opens the voice studio scoped to that block only ("alter voice — this block only").
+- Clicking **Alter Voice** on a voice block opens the voice studio scoped to that block only ("alter voice — this block only").
 - Altered blocks are indicated in the block header and are not affected by subsequent global voice changes.
 
 ### Voice Studio — Advanced Tweaks
@@ -123,10 +125,9 @@ Folder and file names can be anything you want. Custom folders and files are mer
 ## Project Structure
 
 ```
-objects/         Core game logic and UI (oHollywoodUI)
-scripts/         Helper functions: TTS bridge, sequencer, scene loader, utils
-datafiles/       External assets: talkit bridge, scenes/, sounds/, config/
-rooms/           Main application room
+scripts/         All GML logic: TTS bridge, sequencer, scene loader, character sprites, expressions, canned animations, utils
+datafiles/       External assets: talkit bridge, scenes/, sounds/, config/ (expressions, animations, offsets per character)
+rooms/           Main application room (oHollywoodUI)
 ```
 
 ---

@@ -8,16 +8,8 @@ function canned_anim_get_data(_char_index) {
 
     if (ds_map_exists(char_anim_cache, _name)) return char_anim_cache[? _name];
 
-    var _path = datafiles_path + "config/" + _name + "/animations.json";
-    if (!file_exists(_path)) {
-        ds_map_add(char_anim_cache, _name, []);
-        return [];
-    }
-
-    var _str = ""; var _f = file_text_open_read(_path);
-    while (!file_text_eof(_f)) { _str += file_text_readln(_f); }
-    file_text_close(_f);
-    var _data = json_parse(_str);
+    var _data = load_config_json(_name, "animations.json");
+    if (_data == undefined) _data = [];
     ds_map_add(char_anim_cache, _name, _data);
     return _data;
 }
@@ -175,7 +167,7 @@ function canned_anim_save(_char_index) {
     if (_data == undefined) return;
     var _c    = characters[_char_index];
     var _name = variable_struct_exists(_c, "sprite_name") ? _c.sprite_name : _c.name;
-    var _path = datafiles_path + "config/" + _name + "/animations.json";
+    var _path = datafiles_path + "actors/" + _name + "/config/animations.json";
     var _f    = file_text_open_write(_path);
     file_text_write_string(_f, json_stringify(_data, true));
     file_text_close(_f);

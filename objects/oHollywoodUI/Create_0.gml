@@ -671,7 +671,7 @@ if (array_length(all_voices) > 0) {
 // EXPRESSION TILE CONFIGURATOR (debug tool — remove for final build)
 // ─────────────────────────────────────────────────────────────────
 // 4 poses × 2 directions (low = natural, high = flipped) = 8 configs per character.
-// Data saved to datafiles/config/<Name>/expressions.json.
+// Data saved to datafiles/actors/<Name>/config/expressions.json.
 
 // Set to false before shipping to hide the expression configurator entirely.
 SHOW_EXPR_CFG           = false;

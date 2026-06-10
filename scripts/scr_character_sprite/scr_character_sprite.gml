@@ -7,6 +7,33 @@ function _actor_pack_prefix(_dir_name) {
     return global.actors_pack_chars[$ _dir_name];
 }
 
+// Reads a config JSON (offsets/expressions/animations) for a character.
+// Loose file wins over pack so debug tools that write loose files take effect immediately.
+// _char_name: original-case name used in datafiles/config/ (e.g. "Artie")
+// _filename:  "offsets.json", "expressions.json", or "animations.json"
+// Returns the parsed struct/array, or undefined if not found in either location.
+function load_config_json(_char_name, _filename) {
+    var _loose = datafiles_path + "actors/" + _char_name + "/config/" + _filename;
+    if (file_exists(_loose)) {
+        var _s = ""; var _f = file_text_open_read(_loose);
+        while (!file_text_eof(_f)) { _s += file_text_readln(_f); }
+        file_text_close(_f);
+        return json_parse(_s);
+    }
+    if (global.actors_pack_header != undefined) {
+        var _key = string_lower(_char_name) + "/config/" + _filename;
+        if (variable_struct_exists(global.actors_pack_header, _key)) {
+            var _info = global.actors_pack_header[$ _key];
+            var _buf  = buffer_create(_info.size, buffer_fixed, 1);
+            buffer_load_partial(_buf, working_directory + "actors.pack", _info.offset, _info.size, 0);
+            var _str  = buffer_read(_buf, buffer_string);
+            buffer_delete(_buf);
+            return json_parse(_str);
+        }
+    }
+    return undefined;
+}
+
 function _actor_dir_exists(_dir_name, _folder_path) {
     if (directory_exists(_folder_path)) return true;
     return _actor_pack_prefix(_dir_name) != "";
@@ -173,8 +200,8 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
         _folder_path = datafiles_path + "actors/" + _dir_name + "/";
     }
 
-    var _config_path = datafiles_path + "config/" + _spr_nm + "/";
-    if (!directory_exists(_config_path)) _config_path = datafiles_path + "config/" + _dir_name + "/";
+    var _config_path = datafiles_path + "actors/" + _spr_nm + "/config/";
+    if (!directory_exists(_config_path)) _config_path = datafiles_path + "actors/" + _dir_name + "/config/";
 
     if (!_actor_dir_exists(_dir_name, _folder_path)) {
         var _bp = datafiles_path + "actors/" + _dir_name + ".png";
@@ -193,32 +220,14 @@ function get_composite_character_sprite(_char_index, _pose, _expression, _facing
     }
 
     if (!ds_map_exists(char_offsets_cache, _spr_nm)) {
-        var _off_path = _config_path + "offsets.json";
-        if (file_exists(_off_path)) {
-            var _off_str = "";
-            var _off_f = file_text_open_read(_off_path);
-            while (!file_text_eof(_off_f)) { _off_str += file_text_readln(_off_f); }
-            file_text_close(_off_f);
-            ds_map_add(char_offsets_cache, _spr_nm, json_parse(_off_str));
-        } else {
-            ds_map_add(char_offsets_cache, _spr_nm, undefined);
-        }
+        ds_map_add(char_offsets_cache, _spr_nm, load_config_json(_spr_nm, "offsets.json"));
     }
     var _off_data = char_offsets_cache[? _spr_nm];
 
     var _prefix = string(_act_idx) + string(_pose);
 
     if (!ds_map_exists(char_expr_cache, _spr_nm)) {
-        var _ecfg_path = _config_path + "expressions.json";
-        if (file_exists(_ecfg_path)) {
-            var _ecfg_str = "";
-            var _ecfg_f = file_text_open_read(_ecfg_path);
-            while (!file_text_eof(_ecfg_f)) { _ecfg_str += file_text_readln(_ecfg_f); }
-            file_text_close(_ecfg_f);
-            ds_map_add(char_expr_cache, _spr_nm, json_parse(_ecfg_str));
-        } else {
-            ds_map_add(char_expr_cache, _spr_nm, undefined);
-        }
+        ds_map_add(char_expr_cache, _spr_nm, load_config_json(_spr_nm, "expressions.json"));
     }
     var _ecfg_data = char_expr_cache[? _spr_nm];
     var _ecfg_dir  = _use_high ? "high" : "low";
