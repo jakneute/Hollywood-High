@@ -1509,9 +1509,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				}
 			}
 
-			// Flatten all stamped pixels to pure yellow, preserving the alpha mask
+			// Flatten all stamped pixels to yellow (normal) or orange (injured), preserving the alpha mask
 			gpu_set_colorwriteenable(true, true, true, false);
-			draw_set_color(c_yellow);
+			draw_set_color((_o_is_kd || _o_is_decap) ? make_color_rgb(220, 120, 30) : c_yellow);
 			draw_rectangle(0, 0, scene_win_w, scene_win_h, false);
 			gpu_set_colorwriteenable(true, true, true, true);
 
@@ -3595,8 +3595,6 @@ if (action_modal_open) {
                 if (!action_modal_char_is_knocked_down) _disabled = true;
             } else if (_aname_i == "reform") {
                 if (!action_modal_char_is_decapitated) _disabled = true;
-            } else if (_aname_i == "injure") {
-                // allowed offscreen
             } else if (!action_modal_char_onstage) _disabled = true;
             else if (_aname_i == "special animation" && action_modal_char_is_injured) _disabled = true;
         }

@@ -1329,14 +1329,18 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                         var _iy = _row * 135;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
-                        dragging_preview_idx = a;
-                        drag_preview_char = _act.char_index;
-                        drag_preview_x = _act.x;
-                        drag_preview_y = _act.y;
-                        drag_start_x = _act.x;
-                        drag_start_y = _act.y;
-                        drag_off_x = _mx - _ax;
-                        drag_off_y = _my - _ay;
+                        // Injured actors cannot be dragged to create move blocks
+                        var _is_inj_prev = _is_injured_nd || _is_decap_nd;
+                        if (!_is_inj_prev) {
+                            dragging_preview_idx = a;
+                            drag_preview_char = _act.char_index;
+                            drag_preview_x = _act.x;
+                            drag_preview_y = _act.y;
+                            drag_start_x = _act.x;
+                            drag_start_y = _act.y;
+                            drag_off_x = _mx - _ax;
+                            drag_off_y = _my - _ay;
+                        }
                         break;
                     }
                 }

@@ -1387,8 +1387,8 @@ function step_modal_action() {
                     }
                 }
                 for (var _ispi = 0; _ispi < 5; _ispi++) {
-                    var _ispy = _myo + 290 + _ispi * 40;
-                    if (_mx > _mxo+555 && _mx < _mxo+745 && _my > _ispy && _my < _ispy+34) {
+                    var _ispy = _myo + 310 + _ispi * 36;
+                    if (_mx > _mxo+555 && _mx < _mxo+745 && _my > _ispy && _my < _ispy+30) {
                         action_modal_injure_speed = _ispi; return;
                     }
                 }
