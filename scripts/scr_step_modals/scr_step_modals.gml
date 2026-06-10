@@ -1275,7 +1275,7 @@ function step_modal_pose_expr() {
 
 function step_modal_action() {
     var _mx = mouse_x; var _my = mouse_y;
-    var _mw = 900; var _mh = 550; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
+    var _mw = 900; var _mh = 660; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
 
     if (mouse_check_button_pressed(mb_left)) {
         for (var i = 0; i < array_length(all_actions); i++) {
@@ -1288,11 +1288,14 @@ function step_modal_action() {
                 if (action_modal_selected_idx != i) _disabled = true;
             } else if (!_is_gen) {
                 if (selected_character_index == 0) _disabled = true;
-                else if (all_actions[i].name == "resurrect") {
-                    if (!action_modal_char_is_dead) _disabled = true;
+                else if (all_actions[i].name == "stand up") {
+                    if (!action_modal_char_is_knocked_down) _disabled = true;
+                } else if (all_actions[i].name == "reform") {
+                    if (!action_modal_char_is_decapitated) _disabled = true;
+                } else if (all_actions[i].name == "injure") {
+                    if (!action_modal_char_onstage) _disabled = true;
                 } else if (!action_modal_char_onstage) _disabled = true;
-                else if (all_actions[i].name == "kill" && action_modal_char_is_dead) _disabled = true;
-                else if (all_actions[i].name != "kill" && action_modal_char_is_dead) _disabled = true;
+                else if (all_actions[i].name == "special animation" && action_modal_char_is_injured) _disabled = true;
             }
             if (!_disabled && _mx > _mxo+20 && _mx < _mxo+250 && _my > _by && _my < _by+40) {
                 action_modal_selected_idx = i; action_modal_locked = true; action_modal_selected_anim_idx = -1;
@@ -1301,7 +1304,7 @@ function step_modal_action() {
                 else if (all_actions[i].name == "disappear") { action_modal_disappear_style = "pop"; action_modal_disappear_speed = 2; }
                 else if (all_actions[i].name == "jitter")    { action_modal_jitter_intensity = 3; action_modal_jitter_duration = 1.0; action_modal_jitter_direction = "omni"; }
                 else if (all_actions[i].name == "quake")     { action_modal_quake_intensity = 3; action_modal_quake_duration = 1.0; action_modal_quake_direction = "omni"; }
-                else if (all_actions[i].name == "kill")            { action_modal_kill_style = "sudden"; }
+                else if (all_actions[i].name == "injure")          { action_modal_injure_style = "knock_down"; action_modal_knock_direction = "forwards"; action_modal_decap_mode = "remove_head"; }
                 else if (all_actions[i].name == "special animation") { action_modal_sa_scroll = 0; }
                 return;
             }
@@ -1366,33 +1369,47 @@ function step_modal_action() {
             }
         }
 
-        // Kill style + speed selector
-        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "kill") {
-            var _kstyles = ["sudden", "fall_forwards", "fall_backwards", "decapitate"];
-            for (var _ksi = 0; _ksi < 4; _ksi++) {
-                var _ksy = _myo + 184 + _ksi * 46;
-                if (_mx > _mxo+290 && _mx < _mxo+540 && _my > _ksy && _my < _ksy+40) {
-                    action_modal_kill_style = _kstyles[_ksi]; return;
+        // Injure sub-options
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "injure") {
+            var _istyles = ["knock_down", "decapitate"];
+            for (var _isi = 0; _isi < 2; _isi++) {
+                var _isy = _myo + 184 + _isi * 46;
+                if (_mx > _mxo+290 && _mx < _mxo+540 && _my > _isy && _my < _isy+40) {
+                    action_modal_injure_style = _istyles[_isi]; return;
                 }
             }
-            var _kfall2 = (action_modal_kill_style == "fall_forwards" || action_modal_kill_style == "fall_backwards");
-            if (_kfall2) {
-                for (var _kspi2 = 0; _kspi2 < 5; _kspi2++) {
-                    var _kspy2 = _myo + 184 + _kspi2 * 40;
-                    if (_mx > _mxo+555 && _mx < _mxo+745 && _my > _kspy2 && _my < _kspy2+34) {
-                        action_modal_kill_speed = _kspi2; return;
+            if (action_modal_injure_style == "knock_down") {
+                var _kdirs = ["forwards", "backwards"];
+                for (var _kdi = 0; _kdi < 2; _kdi++) {
+                    var _kdy = _myo + 184 + _kdi * 46;
+                    if (_mx > _mxo+555 && _mx < _mxo+745 && _my > _kdy && _my < _kdy+40) {
+                        action_modal_knock_direction = _kdirs[_kdi]; return;
+                    }
+                }
+                for (var _ispi = 0; _ispi < 5; _ispi++) {
+                    var _ispy = _myo + 290 + _ispi * 40;
+                    if (_mx > _mxo+555 && _mx < _mxo+745 && _my > _ispy && _my < _ispy+34) {
+                        action_modal_injure_speed = _ispi; return;
+                    }
+                }
+            } else if (action_modal_injure_style == "decapitate") {
+                var _dmodes = ["remove_head", "remove_body"];
+                for (var _dmi = 0; _dmi < 2; _dmi++) {
+                    var _dmy = _myo + 184 + _dmi * 46;
+                    if (_mx > _mxo+555 && _mx < _mxo+745 && _my > _dmy && _my < _dmy+40) {
+                        action_modal_decap_mode = _dmodes[_dmi]; return;
                     }
                 }
             }
         }
 
-        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "resurrect") {
-            var _rfell3 = (action_modal_char_death_style == "fall_forwards" || action_modal_char_death_style == "fall_backwards");
-            if (_rfell3) {
-                for (var _rspi = 0; _rspi < 5; _rspi++) {
-                    var _rspy = _myo + 260 + _rspi * 36;
-                    if (_mx > _mxo+290 && _mx < _mxo+540 && _my > _rspy && _my < _rspy+30) {
-                        action_modal_resurrect_speed = _rspi; return;
+        // Stand up speed selector
+        if (action_modal_selected_idx != -1 && all_actions[action_modal_selected_idx].name == "stand up") {
+            if (action_modal_char_is_knocked_down) {
+                for (var _supi = 0; _supi < 5; _supi++) {
+                    var _supy = _myo + 260 + _supi * 36;
+                    if (_mx > _mxo+290 && _mx < _mxo+540 && _my > _supy && _my < _supy+30) {
+                        action_modal_standup_speed = _supi; return;
                     }
                 }
             }
@@ -1418,7 +1435,7 @@ function step_modal_action() {
                     }
                 }
                 // List item clicks (only selectable when char eligible)
-                if (action_modal_char_onstage && !action_modal_char_is_dead && selected_character_index > 0) {
+                if (action_modal_char_onstage && !action_modal_char_is_injured && selected_character_index > 0) {
                     for (var _si3 = 0; _si3 < array_length(_sa_d3); _si3++) {
                         var _sby3 = _sa_ry + (_si3 - _sa_scr3) * _sa_stp;
                         if (_sby3 < _sa_ry || _sby3 + _sa_rh > _sa_ry + _sa_lh) continue;
@@ -1627,20 +1644,26 @@ function step_modal_action() {
             } else if (_act_name == "disappear") {
                 if (selected_character_index == 0 || !action_modal_char_onstage) _can_proceed = false;
                 else _act_name = "disappears (" + action_modal_disappear_style + ")";
-            } else if (_act_name == "kill") {
-                if (selected_character_index == 0 || !action_modal_char_onstage || action_modal_char_is_dead) _can_proceed = false;
+            } else if (_act_name == "injure") {
+                if (selected_character_index == 0) _can_proceed = false;
+                else if (!action_modal_edit_mode && action_modal_injure_style == "knock_down" && action_modal_char_is_knocked_down) _can_proceed = false;
+                else if (!action_modal_edit_mode && action_modal_injure_style == "decapitate" && action_modal_char_is_decapitated) _can_proceed = false;
                 else {
-                    var _dlbl = "sudden death";
-                    if (action_modal_kill_style == "fall_forwards")  _dlbl = "fell forwards";
-                    else if (action_modal_kill_style == "fall_backwards") _dlbl = "fell backwards";
-                    else if (action_modal_kill_style == "decapitate")     _dlbl = "decapitated";
-                    _act_name = "dies (" + _dlbl + ")";
+                    if (action_modal_injure_style == "knock_down") {
+                        _act_name = "injured (knocked " + action_modal_knock_direction + ")";
+                    } else if (action_modal_injure_style == "decapitate") {
+                        var _dmlbl = (action_modal_decap_mode == "remove_body") ? "body removed" : "decapitated";
+                        _act_name = "injured (" + _dmlbl + ")";
+                    }
                 }
-            } else if (_act_name == "resurrect") {
-                if (selected_character_index == 0 || !action_modal_char_is_dead) _can_proceed = false;
-                else _act_name = "resurrects";
+            } else if (_act_name == "stand up") {
+                if (selected_character_index == 0 || !action_modal_char_is_knocked_down) _can_proceed = false;
+                else _act_name = "stands up";
+            } else if (_act_name == "reform") {
+                if (selected_character_index == 0 || !action_modal_char_is_decapitated) _can_proceed = false;
+                else _act_name = "reforms";
             } else if (_act_name == "special animation") {
-                if (action_modal_selected_anim_idx < 0 || !action_modal_char_onstage || action_modal_char_is_dead) { _can_proceed = false; }
+                if (action_modal_selected_anim_idx < 0 || !action_modal_char_onstage || action_modal_char_is_injured) { _can_proceed = false; }
                 else {
                     var _sa_ok = canned_anim_get_data(selected_character_index);
                     if (_sa_ok == undefined || action_modal_selected_anim_idx >= array_length(_sa_ok)) { _can_proceed = false; }
@@ -1669,53 +1692,64 @@ function step_modal_action() {
                     } else if (all_actions[action_modal_selected_idx].name == "disappear") {
                         _b.disappear_style = action_modal_disappear_style;
                         _b.disappear_speed = action_modal_disappear_speed;
-                    } else if (all_actions[action_modal_selected_idx].name == "kill") {
-                        _b.kill_style  = action_modal_kill_style;
-                        _b.kill_speed  = action_modal_kill_speed;
-                        var _dlbl2 = "sudden death";
-                        if (action_modal_kill_style == "fall_forwards")  _dlbl2 = "fell forwards";
-                        else if (action_modal_kill_style == "fall_backwards") _dlbl2 = "fell backwards";
-                        else if (action_modal_kill_style == "decapitate")     _dlbl2 = "decapitated";
-                        _b.action_name = "dies (" + _dlbl2 + ")";
-                    } else if (all_actions[action_modal_selected_idx].name == "resurrect") {
-                        _b.resurrect_speed            = action_modal_resurrect_speed;
-                        _b.resurrect_prev_death_style = action_modal_char_death_style;
+                    } else if (all_actions[action_modal_selected_idx].name == "injure") {
+                        _b.injure_style    = action_modal_injure_style;
+                        if (action_modal_injure_style == "knock_down") {
+                            _b.knock_direction = action_modal_knock_direction;
+                            _b.injure_speed    = action_modal_injure_speed;
+                            _b.action_name = "injured (knocked " + action_modal_knock_direction + ")";
+                        } else {
+                            _b.decap_mode  = action_modal_decap_mode;
+                            var _dmlbl3 = (action_modal_decap_mode == "remove_body") ? "body removed" : "decapitated";
+                            _b.action_name = "injured (" + _dmlbl3 + ")";
+                        }
+                    } else if (all_actions[action_modal_selected_idx].name == "stand up") {
+                        _b.standup_speed = action_modal_standup_speed;
+                    } else if (all_actions[action_modal_selected_idx].name == "reform") {
+                        // no extra params
                     }
                     action_modal_edit_mode = false;
                 } else {
+                    var _asel = all_actions[action_modal_selected_idx].name;
                     var _new_a = { type: "action", char_index: selected_character_index, action_name: _act_name, height: 85 };
-                    if (all_actions[action_modal_selected_idx].name == "wait") { _new_a.duration = action_modal_wait_duration; _new_a.char_index = 0; }
-                    else if (all_actions[action_modal_selected_idx].name == "display title") {
+                    if (_asel == "wait") { _new_a.duration = action_modal_wait_duration; _new_a.char_index = 0; }
+                    else if (_asel == "display title") {
                         _new_a.duration = action_modal_wait_duration; _new_a.title_text = action_modal_title_text;
                         _new_a.title_align = action_modal_title_align; _new_a.title_font = action_modal_title_font;
                         _new_a.title_size = action_modal_title_size; _new_a.title_color = action_modal_title_color;
                         _new_a.char_index = 0;
-                    } else if (all_actions[action_modal_selected_idx].name == "play sfx") { _new_a.sfx_path = _sfx_path; _new_a.char_index = 0; }
-                    else if (all_actions[action_modal_selected_idx].name == "quake") {
+                    } else if (_asel == "play sfx") { _new_a.sfx_path = _sfx_path; _new_a.char_index = 0; }
+                    else if (_asel == "quake") {
                         _new_a.quake_intensity = action_modal_quake_intensity;
                         _new_a.quake_duration  = action_modal_quake_duration;
                         _new_a.quake_direction = action_modal_quake_direction;
                         _new_a.char_index      = 0;
-                    } else if (all_actions[action_modal_selected_idx].name == "jitter") {
+                    } else if (_asel == "jitter") {
                         _new_a.jitter_intensity = action_modal_jitter_intensity;
                         _new_a.jitter_duration  = action_modal_jitter_duration;
                         _new_a.jitter_direction = action_modal_jitter_direction;
-                    } else if (all_actions[action_modal_selected_idx].name == "disappear") {
+                    } else if (_asel == "disappear") {
                         _new_a.disappear_style = action_modal_disappear_style;
                         _new_a.disappear_speed = action_modal_disappear_speed;
-                    } else if (all_actions[action_modal_selected_idx].name == "kill") {
-                        _new_a.kill_style  = action_modal_kill_style;
-                        _new_a.kill_speed  = action_modal_kill_speed;
-                    } else if (all_actions[action_modal_selected_idx].name == "resurrect") {
-                        _new_a.resurrect_speed            = action_modal_resurrect_speed;
-                        _new_a.resurrect_prev_death_style = action_modal_char_death_style;
+                    } else if (_asel == "injure") {
+                        _new_a.injure_style = action_modal_injure_style;
+                        if (action_modal_injure_style == "knock_down") {
+                            _new_a.knock_direction = action_modal_knock_direction;
+                            _new_a.injure_speed    = action_modal_injure_speed;
+                        } else {
+                            _new_a.decap_mode = action_modal_decap_mode;
+                        }
+                    } else if (_asel == "stand up") {
+                        _new_a.standup_speed = action_modal_standup_speed;
+                    } else if (_asel == "reform") {
+                        // no extra params
                     }
                     if (action_modal_target_index == -1) array_push(script_blocks, _new_a);
                     else array_insert(script_blocks, action_modal_target_index, _new_a);
                 }
-                update_all_block_heights();
                 action_modal_open = false;
-                insertion_idx = -1; // Reset splice mode!
+                insertion_idx = -1;
+                update_all_block_heights();
                 var _ins_idx = (action_modal_target_index != -1) ? action_modal_target_index : (array_length(script_blocks) - 1);
                 var _block_y = 0;
                 for (var k = 0; k < _ins_idx; k++) _block_y += script_blocks[k].height + 20;

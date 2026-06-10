@@ -478,8 +478,9 @@ all_actions = [
     { name: "special animation",  desc: "Plays one of this character's custom animations.",                          category: "character" },
     { name: "disappear",     desc: "Instantly removes the character from the scene.\nChoose a vanish style.",  category: "character" },
     { name: "jitter",        desc: "Shakes the character in place for a set duration.\nChoose intensity, duration, and direction.", category: "character" },
-    { name: "kill",          desc: "Kills the character. They stay on screen but are locked from all future actions.\nChoose a death style.", category: "character" },
-    { name: "resurrect",          desc: "Brings a dead character back to life, restoring them to a standing pose.", category: "character" },
+    { name: "injure",        desc: "Injures the character. They stay on screen and can still talk and move, but canned animations are locked.\nChoose: knock down or decapitate.", category: "character" },
+    { name: "stand up",     desc: "Brings a knocked-down character back to their feet.", category: "character" },
+    { name: "reform",       desc: "Restores a decapitated character's head (or body).", category: "character" },
 ];
 action_modal_disappear_style  = "pop";
 action_modal_disappear_speed  = 2;
@@ -498,11 +499,14 @@ quake_intensity               = 0;
 quake_direction               = "omni";
 quake_tied_to_chain           = false;
 quake_chain_start             = -1;
-action_modal_kill_style      = "sudden";
-action_modal_kill_speed           = 2; // index: 0=very slow .. 4=very fast; default NORMAL
-action_modal_resurrect_speed      = 2;
-action_modal_char_is_dead         = false;
-action_modal_char_death_style     = "";
+action_modal_injure_style         = "knock_down";   // "knock_down" or "decapitate"
+action_modal_knock_direction      = "forwards";     // "forwards" or "backwards"
+action_modal_decap_mode           = "remove_head";  // "remove_head" or "remove_body"
+action_modal_injure_speed         = 2;              // index: 0=very slow .. 4=very fast; default NORMAL
+action_modal_standup_speed        = 2;
+action_modal_char_is_injured      = false;
+action_modal_char_is_knocked_down = false;
+action_modal_char_is_decapitated  = false;
 action_modal_selected_anim_idx    = -1;  // index into canned_anim_get_data(), -1 = none
 action_modal_sa_scroll            = 0;
 action_modal_sa_sb_drag           = false;

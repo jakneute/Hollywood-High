@@ -88,7 +88,7 @@ function get_link_type(_block) {
         if (_aname == "jitters") return "jitter";
         if (variable_struct_exists(_block, "quake_intensity") || string_pos("quake", _aname) > 0) return "quake";
         if (string_pos("enter", _aname) > 0 || string_pos("exit", _aname) > 0 || string_pos("move", _aname) > 0) return "move";
-        if (variable_struct_exists(_block, "kill_style") || string_pos("resurrects", _aname) > 0) return "kill";
+        if (variable_struct_exists(_block, "injure_style") || string_pos("stands up", _aname) > 0 || string_pos("reforms", _aname) > 0 || string_pos("rolls over", _aname) > 0) return "injure";
         // Canned animations — allow linking with sfx
         var _cidx = variable_struct_exists(_block, "char_index") ? _block.char_index : -1;
         if (_cidx > 0 && canned_anim_find(_cidx, _block.action_name) != undefined) return "canned";

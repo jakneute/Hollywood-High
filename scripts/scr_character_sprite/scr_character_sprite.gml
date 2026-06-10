@@ -65,13 +65,90 @@ function get_character_sprite(_char_index) {
     return -1;
 }
 
-// Tiled character compositing.
-// Layers: [0] lower body, [1] blank face (05), [2] mouth (31+mood), [3] eyes (11+expr)
-// NEUTRAL / expressions 13-17: single full-body composite, other layers empty.
-// Facing: ALL characters store their natural direction at LOW suffixes.
-//   _use_high = (_facing_override * default_facing == -1) — correctly handles both
-//   left-natural (default_facing=1, e.g. Anna) and right-natural (default_facing=-1, e.g. Sid).
-// dx/dy deltas come from offsets.json (run extract_offsets.js to generate).
+// Returns an injury-aware axis-aligned bounding box for a preview_actor struct.
+// _layers: result of get_composite_character_sprite for this actor
+// _sc: scene scale factor ((scene_win_h * 1.5) / 450)
+// _ax_abs, _ay_abs: actor position in absolute screen coords (scene_win_x + act.x, scene_win_y + act.y)
+// Returns struct: { true_w, true_h, bb_left, bb_right, bb_top, bb_bottom }
+// The bbox accounts for decapitation layer filtering and knock-down rotation.
+function get_actor_bbox(_layers, _sc, _ax_abs, _ay_abs, _act) {
+    var _spr0 = _layers[0].spr;
+    if (_spr0 == -1) {
+        return { true_w: 10, true_h: 10, bb_left: _ax_abs - 5, bb_right: _ax_abs + 5, bb_top: _ay_abs - 5, bb_bottom: _ay_abs + 5 };
+    }
+    var _sw = sprite_get_width(_spr0);
+    var _sh = sprite_get_height(_spr0);
+    var _cw = _sw * _sc;
+    var _ch = _sh * _sc;
+
+    var _is_decap  = variable_struct_exists(_act, "is_decapitated") && _act.is_decapitated;
+    var _decap_mode = _is_decap ? (variable_struct_exists(_act, "decap_mode") ? _act.decap_mode : "remove_head") : "";
+    var _is_kd     = variable_struct_exists(_act, "is_knocked_down") && _act.is_knocked_down;
+    var _kangle    = _is_kd ? (variable_struct_exists(_act, "knock_angle") ? _act.knock_angle : 0) : 0;
+
+    // Compute unrotated bbox by iterating only visible layers
+    var _min_x = 0; var _max_x = _sw;
+    var _min_y = 0; var _max_y = _sh;
+    for (var _li = 0; _li < array_length(_layers); _li++) {
+        var _l = _layers[_li];
+        if (_l.spr == -1) continue;
+        if (_is_decap && _decap_mode == "remove_head" && _li > 0) continue;
+        if (_is_decap && _decap_mode == "remove_body" && _li == 0) continue;
+        var _lw = sprite_get_width(_l.spr);
+        var _lh = sprite_get_height(_l.spr);
+        _min_x = min(_min_x, _l.dx);
+        _max_x = max(_max_x, _l.dx + _lw);
+        _min_y = min(_min_y, _l.dy);
+        _max_y = max(_max_y, _l.dy + _lh);
+    }
+    var _true_w = (_max_x - _min_x) * _sc;
+    var _true_h = (_max_y - _min_y) * _sc;
+
+    var _bb_left; var _bb_right; var _bb_top; var _bb_bottom;
+
+    if (_is_kd && abs(_kangle) > 1) {
+        // Rotate the 4 upright corners around the pivot
+        // Pivot: for remove_body use face-layer center, otherwise foot (_ax_abs, _ay_abs)
+        var _rpx = _ax_abs; var _rpy = _ay_abs;
+        if (_is_decap && _decap_mode == "remove_body" && _layers[1].spr != -1) {
+            _rpx = _ax_abs + (_layers[1].dx + sprite_get_width(_layers[1].spr) * 0.5 - _sw * 0.5) * _sc;
+            _rpy = _ay_abs - (_sh - _layers[1].dy - sprite_get_height(_layers[1].spr) * 0.5) * _sc;
+        }
+        var _rac = dcos(_kangle); var _ras = dsin(_kangle);
+        // Upright bbox corners relative to draw origin (_ax_abs - _cw*0.5, _ay_abs - _ch)
+        var _ox = _ax_abs - _cw * 0.5;
+        var _oy = _ay_abs - _ch;
+        var _cx = [_ox + _min_x * _sc, _ox + _max_x * _sc, _ox + _min_x * _sc, _ox + _max_x * _sc];
+        var _cy = [_oy + _min_y * _sc, _oy + _min_y * _sc, _oy + _max_y * _sc, _oy + _max_y * _sc];
+        _bb_left = 99999; _bb_right = -99999; _bb_top = 99999; _bb_bottom = -99999;
+        for (var _ci = 0; _ci < 4; _ci++) {
+            var _vx = _cx[_ci] - _rpx; var _vy = _cy[_ci] - _rpy;
+            var _rx = _rpx + _vx * _rac + _vy * _ras;
+            var _ry = _rpy - _vx * _ras + _vy * _rac;
+            _bb_left   = min(_bb_left,   _rx);
+            _bb_right  = max(_bb_right,  _rx);
+            _bb_top    = min(_bb_top,    _ry);
+            _bb_bottom = max(_bb_bottom, _ry);
+        }
+    } else {
+        var _ox = _ax_abs - _cw * 0.5;
+        var _oy = _ay_abs - _ch;
+        _bb_left   = _ox + _min_x * _sc;
+        _bb_right  = _ox + _max_x * _sc;
+        _bb_top    = _oy + _min_y * _sc;
+        _bb_bottom = _oy + _max_y * _sc;
+    }
+
+    return {
+        true_w:    _true_w,
+        true_h:    _true_h,
+        bb_left:   _bb_left,
+        bb_right:  _bb_right,
+        bb_top:    _bb_top,
+        bb_bottom: _bb_bottom
+    };
+}
+
 function get_composite_character_sprite(_char_index, _pose, _expression, _facing_override = undefined) {
     var _null_layer = { spr: -1, dx: 0, dy: 0 };
 

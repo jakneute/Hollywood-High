@@ -396,16 +396,37 @@ function update_preview_actors_for_block(_idx, _inclusive) {
     if (active_scene_block_idx != -1) {
         var _scene = script_blocks[active_scene_block_idx];
         if (variable_struct_exists(_scene, "actors")) {
-            // Scan all blocks before this scene to find chars that were killed and not resurrected
-            var _dead_before = ds_map_create();
+            // Scan all blocks before this scene to find chars that were injured and track their state
+            var _injured_before = ds_map_create(); // char_index -> { is_knocked_down, knock_direction, is_decapitated, decap_mode }
             for (var _di = 0; _di < active_scene_block_idx; _di++) {
                 var _db = script_blocks[_di];
                 if (!variable_struct_exists(_db, "type") || _db.type != "action") continue;
                 if (!variable_struct_exists(_db, "char_index")) continue;
-                if (variable_struct_exists(_db, "kill_style")) {
-                    _dead_before[? _db.char_index] = true;
-                } else if (string_pos("resurrects", string_lower(_db.action_name)) > 0) {
-                    ds_map_delete(_dead_before, _db.char_index);
+                if (variable_struct_exists(_db, "injure_style")) {
+                    var _istate = ds_map_exists(_injured_before, _db.char_index) ? _injured_before[? _db.char_index] : { is_knocked_down: false, knock_direction: "forwards", is_decapitated: false, decap_mode: "remove_head", facing_flips: 0 };
+                    if (_db.injure_style == "knock_down") {
+                        _istate.is_knocked_down = true;
+                        _istate.knock_direction = variable_struct_exists(_db, "knock_direction") ? _db.knock_direction : "forwards";
+                    } else if (_db.injure_style == "decapitate") {
+                        _istate.is_decapitated = true;
+                        _istate.decap_mode = variable_struct_exists(_db, "decap_mode") ? _db.decap_mode : "remove_head";
+                    }
+                    _injured_before[? _db.char_index] = _istate;
+                } else if (string_pos("stands up", string_lower(_db.action_name)) > 0) {
+                    if (ds_map_exists(_injured_before, _db.char_index)) {
+                        _injured_before[? _db.char_index].is_knocked_down = false;
+                        _injured_before[? _db.char_index].knock_direction = "forwards";
+                    }
+                } else if (string_pos("reforms", string_lower(_db.action_name)) > 0) {
+                    if (ds_map_exists(_injured_before, _db.char_index)) {
+                        _injured_before[? _db.char_index].is_decapitated = false;
+                    }
+                } else if (string_pos("rolls over", string_lower(_db.action_name)) > 0) {
+                    if (ds_map_exists(_injured_before, _db.char_index)) {
+                        var _kd = _injured_before[? _db.char_index].knock_direction;
+                        _injured_before[? _db.char_index].knock_direction = (_kd == "forwards") ? "backwards" : "forwards";
+                        _injured_before[? _db.char_index].facing_flips = (variable_struct_exists(_injured_before[? _db.char_index], "facing_flips") ? _injured_before[? _db.char_index].facing_flips : 0) + 1;
+                    }
                 }
             }
             for (var a = 0; a < array_length(_scene.actors); a++) {
@@ -413,26 +434,54 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                 var _face = variable_struct_exists(_sa, "facing")     ? _sa.facing     : 1;
                 var _pose = variable_struct_exists(_sa, "pose")       ? _sa.pose       : 1;
                 var _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 21;
-                if (ds_map_exists(_dead_before, _sa.char_index)) {
-                    // Keep in preview_actors so panel shows dead state, but hidden from scene render
-                    array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr, dead: true, hidden: true });
+                // Injury state: merge prior-block state with state stored directly on the actor entry (staging/drag-in)
+                var _sa_kd    = variable_struct_exists(_sa, "is_knocked_down") && _sa.is_knocked_down;
+                var _sa_kdir  = _sa_kd ? (variable_struct_exists(_sa, "knock_direction") ? _sa.knock_direction : "forwards") : "forwards";
+                var _sa_decap = variable_struct_exists(_sa, "is_decapitated") && _sa.is_decapitated;
+                var _sa_dmode = _sa_decap ? (variable_struct_exists(_sa, "decap_mode") ? _sa.decap_mode : "remove_head") : "remove_head";
+                if (ds_map_exists(_injured_before, _sa.char_index)) {
+                    var _is = _injured_before[? _sa.char_index];
+                    // Actor-entry state overrides prior-block state (staging sets it explicitly)
+                    var _kd    = _sa_kd    || _is.is_knocked_down;
+                    var _kdir  = _sa_kd    ? _sa_kdir  : _is.knock_direction;
+                    var _decap = _sa_decap || _is.is_decapitated;
+                    var _dmode = _sa_decap ? _sa_dmode : _is.decap_mode;
+                    var _injured = _kd || _decap;
+                    var _flips = variable_struct_exists(_is, "facing_flips") ? _is.facing_flips : 0;
+                    var _eff_face = (_flips % 2 == 0) ? _face : -_face;
+                    array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _eff_face, pose: _pose, expression: _expr,
+                        injured: _injured, is_knocked_down: _kd, knock_direction: _kdir, knock_angle: _kd ? (_eff_face * 90) : 0,
+                        is_decapitated: _decap, decap_mode: _dmode });
+                    char_facings[_sa.char_index] = _eff_face;
+                } else if (_sa_kd || _sa_decap) {
+                    // Injury stored on actor entry only (staging or drag-in, no prior block)
+                    array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr,
+                        injured: true, is_knocked_down: _sa_kd, knock_direction: _sa_kdir, knock_angle: _sa_kd ? (_face * 90) : 0,
+                        is_decapitated: _sa_decap, decap_mode: _sa_dmode });
+                    char_facings[_sa.char_index] = _face;
                 } else {
                     array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
                     char_facings[_sa.char_index] = _face;
                 }
             }
-            // Also add dead chars not already in preview_actors so the panel can mark them
+            // Also add injured chars not already in preview_actors so the panel can mark them
             for (var _ci = 0; _ci < array_length(characters); _ci++) {
-                if (!ds_map_exists(_dead_before, _ci)) continue;
+                if (!ds_map_exists(_injured_before, _ci)) continue;
                 var _in_pa = false;
                 for (var _pi = 0; _pi < array_length(preview_actors); _pi++) {
                     if (preview_actors[_pi].char_index == _ci) { _in_pa = true; break; }
                 }
                 if (!_in_pa) {
-                    array_push(preview_actors, { char_index: _ci, x: 0, y: 0, is_base: false, facing: 1, pose: 1, expression: 21, dead: true, hidden: true });
+                    var _is2 = _injured_before[? _ci];
+                    var _flips2 = variable_struct_exists(_is2, "facing_flips") ? _is2.facing_flips : 0;
+                    var _def_face2 = variable_struct_exists(characters[_ci], "default_facing") ? characters[_ci].default_facing : 1;
+                    var _eff_face2 = (_flips2 % 2 == 0) ? _def_face2 : -_def_face2;
+                    array_push(preview_actors, { char_index: _ci, x: 0, y: 0, is_base: false, facing: _eff_face2, pose: 1, expression: 21,
+                        injured: true, is_knocked_down: _is2.is_knocked_down, knock_direction: _is2.knock_direction, knock_angle: _is2.is_knocked_down ? (_eff_face2 * 90) : 0,
+                        is_decapitated: _is2.is_decapitated, decap_mode: _is2.decap_mode, hidden: true });
                 }
             }
-            ds_map_destroy(_dead_before);
+            ds_map_destroy(_injured_before);
         }
 
         var _limit = _inclusive ? _idx : (_idx - 1);
@@ -452,7 +501,8 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                 }
 
                 if (_is_enter) {
-                    if (_act_idx == -1) {
+                    var _sc_is_hidden = (_act_idx != -1 && variable_struct_exists(preview_actors[_act_idx], "hidden") && preview_actors[_act_idx].hidden);
+                    if (_act_idx == -1 || _sc_is_hidden) {
                         var _spr = get_character_sprite(_b.char_index);
                         var _w = (_spr != -1) ? sprite_get_width(_spr) * ((scene_win_h * 1.5) / 450) : 100;
                         var _start_x  = _is_left ? (_w/2) + 20 : scene_win_w - (_w/2) - 20;
@@ -463,20 +513,39 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                         var _pose = variable_struct_exists(_b, "enter_pose")       ? _b.enter_pose       : (variable_struct_exists(_c, "pose")       ? _c.pose       : 1);
                         var _expr = variable_struct_exists(_b, "enter_expression") ? _b.enter_expression : (variable_struct_exists(_c, "expression") ? _c.expression : 21);
                         char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
-                        array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
+                        if (_sc_is_hidden) {
+                            // Unhide pre-injured actor, preserving injury state
+                            var _enter_face = char_facings[_b.char_index];
+                            preview_actors[_act_idx].hidden  = false;
+                            preview_actors[_act_idx].x       = _final_x;
+                            preview_actors[_act_idx].y       = _final_y;
+                            preview_actors[_act_idx].facing  = _enter_face;
+                            preview_actors[_act_idx].pose    = _pose;
+                            preview_actors[_act_idx].expression = _expr;
+                            if (variable_struct_exists(preview_actors[_act_idx], "is_knocked_down") && preview_actors[_act_idx].is_knocked_down) {
+                                preview_actors[_act_idx].knock_angle = _enter_face * 90;
+                            }
+                        } else {
+                            array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
+                        }
                     } else {
+                        var _act_is_kd_sc_ex = _act_idx != -1 && ((variable_struct_exists(preview_actors[_act_idx], "is_knocked_down") && preview_actors[_act_idx].is_knocked_down) || (variable_struct_exists(preview_actors[_act_idx], "is_decapitated") && preview_actors[_act_idx].is_decapitated));
                         if (variable_struct_exists(_b, "target_x")) {
-                            var _base_f = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
-                            preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                            if (!_act_is_kd_sc_ex) {
+                                var _base_f = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
+                                preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                            }
                             preview_actors[_act_idx].x = _b.target_x;
                             preview_actors[_act_idx].y = _b.target_y;
                         }
-                        if (string_pos("left", _aname) > 0) {
-                            var _base_f = -1; preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
-                        } else if (string_pos("right", _aname) > 0) {
-                            var _base_f = 1; preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                        if (!_act_is_kd_sc_ex) {
+                            if (string_pos("left", _aname) > 0) {
+                                var _base_f = -1; preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                            } else if (string_pos("right", _aname) > 0) {
+                                var _base_f = 1; preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                            }
+                            char_facings[_b.char_index] = preview_actors[_act_idx].facing;
                         }
-                        char_facings[_b.char_index] = preview_actors[_act_idx].facing;
                     }
                 } else if (_is_exit) {
                     if (_act_idx != -1) array_delete(preview_actors, _act_idx, 1);
@@ -484,11 +553,14 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                     if (_act_idx != -1) { preview_actors[_act_idx].facing *= -1; char_facings[_b.char_index] = preview_actors[_act_idx].facing; }
                 } else if (string_pos("moves", _aname) > 0) {
                     if (_act_idx != -1 && variable_struct_exists(_b, "target_x")) {
-                        var _base_f = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
-                        preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                        var _act_is_kd_sc_mv = (variable_struct_exists(preview_actors[_act_idx], "is_knocked_down") && preview_actors[_act_idx].is_knocked_down) || (variable_struct_exists(preview_actors[_act_idx], "is_decapitated") && preview_actors[_act_idx].is_decapitated);
+                        if (!_act_is_kd_sc_mv) {
+                            var _base_f = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
+                            preview_actors[_act_idx].facing = _moon ? -_base_f : _base_f;
+                            char_facings[_b.char_index] = preview_actors[_act_idx].facing;
+                        }
                         preview_actors[_act_idx].x = _b.target_x;
                         preview_actors[_act_idx].y = _b.target_y;
-                        char_facings[_b.char_index] = preview_actors[_act_idx].facing;
                     }
                 } else if (string_pos("expression:", _aname) > 0) {
                     if (_act_idx != -1) {
@@ -533,19 +605,50 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                     }
                 } else if (string_pos("disappears", _aname) > 0) {
                     if (_act_idx != -1) array_delete(preview_actors, _act_idx, 1);
-                } else if (variable_struct_exists(_b, "kill_style")) {
+                } else if (variable_struct_exists(_b, "injure_style")) {
                     if (_act_idx != -1) {
-                        var _kstyle = _b.kill_style;
-                        preview_actors[_act_idx].dead        = true;
-                        preview_actors[_act_idx].death_style = _kstyle;
+                        var _istyle = _b.injure_style;
                         var _rface = variable_struct_exists(preview_actors[_act_idx], "facing") ? preview_actors[_act_idx].facing : 1;
-                        preview_actors[_act_idx].death_angle = (_kstyle == "fall_forwards") ? (_rface * 90) : ((_kstyle == "fall_backwards") ? (-_rface * 90) : 0);
+                        preview_actors[_act_idx].injured = true;
+                        if (_istyle == "knock_down") {
+                            var _kdir = variable_struct_exists(_b, "knock_direction") ? _b.knock_direction : "forwards";
+                            preview_actors[_act_idx].is_knocked_down = true;
+                            preview_actors[_act_idx].knock_direction  = _kdir;
+                            preview_actors[_act_idx].knock_angle      = (_kdir == "forwards") ? (_rface * 90) : (-_rface * 90);
+                        } else if (_istyle == "decapitate") {
+                            preview_actors[_act_idx].is_decapitated = true;
+                            preview_actors[_act_idx].decap_mode = variable_struct_exists(_b, "decap_mode") ? _b.decap_mode : "remove_head";
+                        }
                     }
-                } else if (string_pos("resurrects", _aname) > 0) {
+                } else if (string_pos("stands up", _aname) > 0) {
                     if (_act_idx != -1) {
-                        preview_actors[_act_idx].dead        = false;
-                        preview_actors[_act_idx].death_style = "";
-                        preview_actors[_act_idx].death_angle = 0;
+                        preview_actors[_act_idx].is_knocked_down = false;
+                        preview_actors[_act_idx].knock_angle     = 0;
+                        preview_actors[_act_idx].knock_direction = "forwards";
+                        var _still_inj = variable_struct_exists(preview_actors[_act_idx], "is_decapitated") && preview_actors[_act_idx].is_decapitated;
+                        preview_actors[_act_idx].injured = _still_inj;
+                        // Snap y into valid vertical range now that character is upright
+                        var _su_spr2 = get_character_sprite(_b.char_index);
+                        if (_su_spr2 != -1) {
+                            var _su_sc2 = (scene_win_h * 1.5) / 450;
+                            var _su_sh2 = sprite_get_height(_su_spr2) * _su_sc2;
+                            preview_actors[_act_idx].y = clamp(preview_actors[_act_idx].y, _su_sh2 * 0.20, scene_win_h + _su_sh2 * 0.80);
+                        }
+                    }
+                } else if (string_pos("reforms", _aname) > 0) {
+                    if (_act_idx != -1) {
+                        preview_actors[_act_idx].is_decapitated = false;
+                        var _still_inj2 = variable_struct_exists(preview_actors[_act_idx], "is_knocked_down") && preview_actors[_act_idx].is_knocked_down;
+                        preview_actors[_act_idx].injured = _still_inj2;
+                    }
+                } else if (string_pos("rolls over", _aname) > 0) {
+                    if (_act_idx != -1 && variable_struct_exists(preview_actors[_act_idx], "knock_direction")) {
+                        var _cur_kdir = preview_actors[_act_idx].knock_direction;
+                        preview_actors[_act_idx].facing *= -1;
+                        char_facings[_b.char_index] = preview_actors[_act_idx].facing;
+                        var _new_kdir = (_cur_kdir == "forwards") ? "backwards" : "forwards";
+                        preview_actors[_act_idx].knock_direction = _new_kdir;
+                        preview_actors[_act_idx].knock_angle = (_new_kdir == "forwards") ? (preview_actors[_act_idx].facing * 90) : (-preview_actors[_act_idx].facing * 90);
                     }
                 }
             }

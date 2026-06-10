@@ -238,8 +238,7 @@ if (playing_block_index != -1) {
     var _asc_bl = (scene_win_h * 1.5) / 450;
     for (var _bli = 0; _bli < array_length(preview_actors); _bli++) {
         var _bla = preview_actors[_bli];
-        if (!variable_struct_exists(_bla, "dead") || !_bla.dead) continue;
-        if (!variable_struct_exists(_bla, "death_style") || _bla.death_style != "decapitate") continue;
+        if (!variable_struct_exists(_bla, "is_decapitated") || !_bla.is_decapitated) continue;
         if (!variable_struct_exists(_bla, "blood_timer")) _bla.blood_timer = 0;
         _bla.blood_timer++;
         var _btrig = 70 + irandom(60);
@@ -875,6 +874,7 @@ if (file_menu_open) {
                             file_text_write_string(_sf, "SCENE: " + string_upper(_bl.name) + "\n\n");
 
                         } else if (_btype == "action") {
+                            if (variable_struct_exists(_bl, "offscreen_pre") && _bl.offscreen_pre) continue;
                             var _aname = _bl.action_name;
                             var _aname_u = string_upper(_aname);
                             var _cn = (variable_struct_exists(_bl, "char_index") && _bl.char_index >= 0 && _bl.char_index < array_length(characters))
@@ -1120,14 +1120,16 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
                 var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined);
                 var _spr = _tl[0].spr;
                 if (_spr != -1) {
-                    var _sw = sprite_get_width(_spr);
-                    var _sh = sprite_get_height(_spr);
                     var _scale = (scene_win_h * 1.5) / 450;
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
-                    var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
-                    var _hit_top = _ay - (_sh + max(0, -_tl[1].dy)) * _scale;
-                    if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _hit_top && _my < _ay) {
+                    // Use get_actor_bbox so knocked-down rotation is accounted for
+                    var _pa_inj2 = _act;
+                    for (var _paj2 = 0; _paj2 < array_length(preview_actors); _paj2++) {
+                        if (preview_actors[_paj2].char_index == _act.char_index) { _pa_inj2 = preview_actors[_paj2]; break; }
+                    }
+                    var _hbox = get_actor_bbox(_tl, _scale, _ax, _ay, _pa_inj2);
+                    if (_mx > _hbox.bb_left && _mx < _hbox.bb_right && _my > _hbox.bb_top && _my < _hbox.bb_bottom) {
                         dragging_actor_idx = a;
                         scene_edit_selected_actor_idx = a; // Select on click
                         selected_character_index = _act.char_index; // Sync global selection
@@ -1168,49 +1170,25 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
             var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
             var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
             var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
-            var _spr = _layers[0].spr;
-            if (_spr != -1) {
-                var _sw = sprite_get_width(_spr);
-                var _sh = sprite_get_height(_spr);
-                var _sc = (scene_win_h * 1.5) / 450; 
-                var _cw = _sw * _sc;
-                var _ch = _sh * _sc;
-
-                var _min_x = 0; var _max_x = _sw;
-                var _min_y = 0; var _max_y = _sh;
-                for (var _li = 0; _li < array_length(_layers); _li++) {
-                    var _l = _layers[_li];
-                    if (_l.spr != -1) {
-                        var _lw = sprite_get_width(_l.spr);
-                        var _lh = sprite_get_height(_l.spr);
-                        _min_x = min(_min_x, _l.dx);
-                        _max_x = max(_max_x, _l.dx + _lw);
-                        _min_y = min(_min_y, _l.dy);
-                        _max_y = max(_max_y, _l.dy + _lh);
-                    }
-                }
-                var _true_w = (_max_x - _min_x) * _sc;
-                var _true_h = (_max_y - _min_y) * _sc;
-
-                var _ay_abs = scene_win_y + _act.y;
-                var _v_top = _ay_abs - _ch + _min_y * _sc;
-                var _v_bottom = _ay_abs - _ch + _max_y * _sc;
-                var _v_visible = max(0, min(_v_bottom, scene_win_y + scene_win_h) - max(_v_top, scene_win_y));
-
+            if (_layers[0].spr != -1) {
+                var _sc = (scene_win_h * 1.5) / 450;
                 var _ax_abs = scene_win_x + _act.x;
-                var _h_left  = _ax_abs - _cw / 2 + _min_x * _sc;
-                var _h_right = _ax_abs - _cw / 2 + _max_x * _sc;
+                var _ay_abs = scene_win_y + _act.y;
+                // Find live preview_actors entry for injury state
+                var _pa_inj = {};
+                for (var _paj = 0; _paj < array_length(preview_actors); _paj++) {
+                    if (preview_actors[_paj].char_index == _act.char_index) { _pa_inj = preview_actors[_paj]; break; }
+                }
+                var _bbox = get_actor_bbox(_layers, _sc, _ax_abs, _ay_abs, _pa_inj);
+                var _bb_w = _bbox.bb_right - _bbox.bb_left;
+                var _bb_h = _bbox.bb_bottom - _bbox.bb_top;
+                var _h_visible = max(0, min(_bbox.bb_right, scene_win_x + scene_win_w) - max(_bbox.bb_left, scene_win_x));
+                var _v_visible = max(0, min(_bbox.bb_bottom, scene_win_y + scene_win_h) - max(_bbox.bb_top, scene_win_y));
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _bb_w * 0.20) && (_v_visible >= _bb_h * 0.20);
 
-                var _h_intersect_l = max(_h_left, scene_win_x);
-                var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
-                var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
-                
-                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _true_w * 0.20) && (_v_visible >= _true_h * 0.20);
-                
                 if (!_in_live) {
                     array_delete(_scene.actors, dragging_actor_idx, 1);
                 } else {
-                    // Update selection to current actor
                     scene_edit_selected_actor_idx = dragging_actor_idx;
                 }
             }
@@ -1243,10 +1221,18 @@ if (!script_expanded && playing_block_index == -1 && current_scene_sprite != -1 
                     }
                 }
             } else {
-                // Script mode: insert "turns around" action block after focused block
+                // Script mode: insert "rolls over" if knocked down, otherwise "turns around"
                 var _ins = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
                 var _spliced = (focused_block != -1 && focused_block < array_length(script_blocks) - 1);
-                array_insert(script_blocks, _ins, { type: "action", char_index: selected_character_index, action_name: "turns around", height: 85 });
+                var _is_kd_ta = false;
+                for (var _ta_pa = 0; _ta_pa < array_length(preview_actors); _ta_pa++) {
+                    if (preview_actors[_ta_pa].char_index == selected_character_index) {
+                        _is_kd_ta = variable_struct_exists(preview_actors[_ta_pa], "is_knocked_down") && preview_actors[_ta_pa].is_knocked_down;
+                        break;
+                    }
+                }
+                var _ta_name = _is_kd_ta ? "rolls over" : "turns around";
+                array_insert(script_blocks, _ins, { type: "action", char_index: selected_character_index, action_name: _ta_name, height: 85 });
                 update_all_block_heights();
                 focused_block = _ins;
                 if (_spliced) {
@@ -1275,25 +1261,54 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                     var _scale = (scene_win_h * 1.5) / 450;
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
-                    var _hit_top = _ay - (_sh + max(0, -_tl[1].dy)) * _scale;
-                    var _is_dead_nd = variable_struct_exists(_act, "dead") && _act.dead;
-                    if (_mx > _ax - (_sw*_scale)/2 && _mx < _ax + (_sw*_scale)/2 && _my > _hit_top && _my < _ay) {
+                    var _is_injured_nd  = variable_struct_exists(_act, "is_knocked_down") && _act.is_knocked_down;
+                    var _kangle_nd      = _is_injured_nd ? (variable_struct_exists(_act, "knock_angle") ? _act.knock_angle : 0) : 0;
+                    var _is_decap_nd    = variable_struct_exists(_act, "is_decapitated") && _act.is_decapitated;
+                    var _decap_mode_nd  = _is_decap_nd ? (variable_struct_exists(_act, "decap_mode") ? _act.decap_mode : "remove_head") : "";
+                    // For hit testing: inverse-rotate mouse around the character pivot to get unrotated coords
+                    var _test_mx = _mx; var _test_my = _my;
+                    if (_kangle_nd != 0) {
+                        var _piv_x_nd; var _piv_y_nd;
+                        if (_is_decap_nd && _decap_mode_nd == "remove_body" && _tl[1].spr != -1) {
+                            _piv_x_nd = _ax + (_tl[1].dx + sprite_get_width(_tl[1].spr) * 0.5 - _sw * 0.5) * _scale;
+                            _piv_y_nd = _ay - (_sh - _tl[1].dy - sprite_get_height(_tl[1].spr) * 0.5) * _scale;
+                        } else {
+                            _piv_x_nd = _ax; _piv_y_nd = _ay;
+                        }
+                        var _inv_cos = dcos(-_kangle_nd); var _inv_sin = dsin(-_kangle_nd);
+                        var _dvx = _mx - _piv_x_nd; var _dvy = _my - _piv_y_nd;
+                        _test_mx = _piv_x_nd + _dvx * _inv_cos + _dvy * _inv_sin;
+                        _test_my = _piv_y_nd - _dvx * _inv_sin + _dvy * _inv_cos;
+                    }
+                    // For remove_body, hit test against head layers only
+                    var _hit_left_nd; var _hit_right_nd; var _hit_top_nd; var _hit_bot_nd;
+                    if (_is_decap_nd && _decap_mode_nd == "remove_body" && _tl[1].spr != -1) {
+                        var _fl = _tl[1];
+                        _hit_left_nd  = _ax + (_fl.dx - _sw * 0.5) * _scale;
+                        _hit_right_nd = _ax + (_fl.dx + sprite_get_width(_fl.spr) - _sw * 0.5) * _scale;
+                        _hit_top_nd   = _ay - (_sh - _fl.dy) * _scale;
+                        _hit_bot_nd   = _ay - (_sh - _fl.dy - sprite_get_height(_fl.spr)) * _scale;
+                    } else {
+                        _hit_left_nd  = _ax - (_sw * _scale) / 2;
+                        _hit_right_nd = _ax + (_sw * _scale) / 2;
+                        _hit_top_nd   = _ay - (_sh + max(0, -_tl[1].dy)) * _scale;
+                        _hit_bot_nd   = _ay;
+                    }
+                    if (_test_mx > _hit_left_nd && _test_mx < _hit_right_nd && _test_my > _hit_top_nd && _test_my < _hit_bot_nd) {
                         selected_character_index = _act.char_index;
                         if (particle_panel_mode) particle_panel_mode = false;
                         var _row = floor(selected_character_index / 2);
                         var _iy = _row * 135;
                         if (_iy + char_sel_scroll_y < 0) char_sel_scroll_y = -_iy;
                         else if (_iy + 135 + char_sel_scroll_y > char_sel_h - 35) char_sel_scroll_y = -( _iy - (char_sel_h - 170) );
-                        if (!_is_dead_nd) {
-                            dragging_preview_idx = a;
-                            drag_preview_char = _act.char_index;
-                            drag_preview_x = _act.x;
-                            drag_preview_y = _act.y;
-                            drag_start_x = _act.x;
-                            drag_start_y = _act.y;
-                            drag_off_x = _mx - _ax;
-                            drag_off_y = _my - _ay;
-                        }
+                        dragging_preview_idx = a;
+                        drag_preview_char = _act.char_index;
+                        drag_preview_x = _act.x;
+                        drag_preview_y = _act.y;
+                        drag_start_x = _act.x;
+                        drag_start_y = _act.y;
+                        drag_off_x = _mx - _ax;
+                        drag_off_y = _my - _ay;
                         break;
                     }
                 }
@@ -1319,64 +1334,39 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
             var _act = preview_actors[dragging_preview_idx];
             if (point_distance(_act.x, _act.y, drag_start_x, drag_start_y) > 5) {
                 var _insert_idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
-                
-                // Check if off-stage for exit (Standardized 25% V / 51% H)
+
                 var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
                 var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
                 var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
                 var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
-                var _spr = _layers[0].spr;
-                var _sw = sprite_get_width(_spr);
-                var _sh = sprite_get_height(_spr);
-                var _sc = (scene_win_h * 1.5) / 450; 
-                var _cw = _sw * _sc;
-                var _ch = _sh * _sc;
-
-                var _min_x = 0; var _max_x = _sw;
-                var _min_y = 0; var _max_y = _sh;
-                for (var _li = 0; _li < array_length(_layers); _li++) {
-                    var _l = _layers[_li];
-                    if (_l.spr != -1) {
-                        var _lw = sprite_get_width(_l.spr);
-                        var _lh = sprite_get_height(_l.spr);
-                        _min_x = min(_min_x, _l.dx);
-                        _max_x = max(_max_x, _l.dx + _lw);
-                        _min_y = min(_min_y, _l.dy);
-                        _max_y = max(_max_y, _l.dy + _lh);
-                    }
-                }
-                var _true_w = (_max_x - _min_x) * _sc;
-                var _true_h = (_max_y - _min_y) * _sc;
-
-                var _ay_abs = scene_win_y + _act.y;
-                var _v_top = _ay_abs - _ch + _min_y * _sc;
-                var _v_bottom = _ay_abs - _ch + _max_y * _sc;
-                var _v_visible = max(0, min(_v_bottom, scene_win_y + scene_win_h) - max(_v_top, scene_win_y));
-
+                var _sc = (scene_win_h * 1.5) / 450;
                 var _ax_abs = scene_win_x + _act.x;
-                var _h_left  = _ax_abs - _cw / 2 + _min_x * _sc;
-                var _h_right = _ax_abs - _cw / 2 + _max_x * _sc;
+                var _ay_abs = scene_win_y + _act.y;
+                var _bbox = get_actor_bbox(_layers, _sc, _ax_abs, _ay_abs, _act);
+                var _bb_w = _bbox.bb_right - _bbox.bb_left;
+                var _bb_h = _bbox.bb_bottom - _bbox.bb_top;
+                var _h_visible = max(0, min(_bbox.bb_right, scene_win_x + scene_win_w) - max(_bbox.bb_left, scene_win_x));
+                var _v_visible = max(0, min(_bbox.bb_bottom, scene_win_y + scene_win_h) - max(_bbox.bb_top, scene_win_y));
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _bb_w * 0.20) && (_v_visible >= _bb_h * 0.20);
 
-                var _h_intersect_l = max(_h_left, scene_win_x);
-                var _h_intersect_r = min(_h_right, scene_win_x + scene_win_w);
-                var _h_visible = max(0, _h_intersect_r - _h_intersect_l);
-                
-                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _true_w * 0.20) && (_v_visible >= _true_h * 0.20);
-
-                if (_v_visible < _true_h * 0.20) {
-                    // Out of upper/lower bounds in Live Action Mode: Snap back (revert)
+                if (_v_visible < _bb_h * 0.20) {
+                    // Vertically out of bounds — snap pivot to edge
+                    if (_bbox.bb_top < scene_win_y) {
+                        _act.y = _act.y + (scene_win_y - _bbox.bb_top);
+                    } else {
+                        _act.y = _act.y - (_bbox.bb_bottom - (scene_win_y + scene_win_h));
+                    }
                     _act.x = drag_start_x;
-                    _act.y = drag_start_y;
                 } else {
                     var _aname = "moves";
                     if (!_in_live) {
-                        _aname = (_ax_abs < scene_win_x + scene_win_w/2) ? "exits left" : "exits right";
+                        _aname = (_ax_abs < scene_win_x + scene_win_w * 0.5) ? "exits left" : "exits right";
                     }
-                
-                var _lbl = move_speed_labels[move_speed_index];
-                if (_lbl != "WALK") _aname += " (" + _lbl + ")";
-                if (moonwalk_enabled) _aname += " [MOONWALK]";
-                if (move_trick != "none") _aname += " [" + string_upper(move_trick) + "]";
+
+                    var _lbl = move_speed_labels[move_speed_index];
+                    if (_lbl != "WALK") _aname += " (" + _lbl + ")";
+                    if (moonwalk_enabled) _aname += " [MOONWALK]";
+                    if (move_trick != "none") _aname += " [" + string_upper(move_trick) + "]";
 
                     array_insert(script_blocks, _insert_idx, {
                         type: "action",
@@ -1799,20 +1789,23 @@ if (mouse_check_button_pressed(mb_left)) {
     // ADD VOICE Button
     if (!is_speaking && playing_block_index == -1 && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h) {
         selection_start = 0; selection_end = 0;
-        // Block voice creation for dead characters
-        var _vdead = false;
+        // Injured characters can still talk; only block if offstage/disappeared
+        var _vblocked = false;
         var _vcheck_limit = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
         for (var _vk = 0; _vk < _vcheck_limit; _vk++) {
             var _vb = script_blocks[_vk];
             if (!variable_struct_exists(_vb, "type")) continue;
             if (_vb.type == "action" && _vb.char_index == selected_character_index) {
                 var _vaname = string_lower(_vb.action_name);
-                if (variable_struct_exists(_vb, "kill_style"))                                      _vdead = true;
-                else if (string_pos("resurrects", _vaname) > 0)                                     _vdead = false;
-                else if (string_pos("exit", _vaname) > 0 || string_pos("disappears", _vaname) > 0) _vdead = false;
+                if (string_pos("exit", _vaname) > 0 || string_pos("disappears", _vaname) > 0) _vblocked = true;
+                else if (string_pos("enter", _vaname) > 0) _vblocked = false;
+            } else if (_vb.type == "scene" && variable_struct_exists(_vb, "actors")) {
+                for (var _va = 0; _va < array_length(_vb.actors); _va++) {
+                    if (_vb.actors[_va].char_index == selected_character_index) { _vblocked = false; break; }
+                }
             }
         }
-        if (_vdead) return;
+        if (_vblocked) return;
         var _c = characters[selected_character_index];
         var _idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
         array_insert(script_blocks, _idx, {
@@ -1841,17 +1834,16 @@ if (mouse_check_button_pressed(mb_left)) {
             action_modal_selected_idx = -1;
             action_modal_locked = false;
             
-            // Calculate onstage/dead context for the selected character
-            var _is_onstage = false;
-            var _is_dead    = false;
-            var _char_death_style = "";
+            // Calculate onstage/injured context for the selected character
+            var _is_onstage       = false;
+            var _is_knocked_down  = false;
+            var _is_decapitated   = false;
             var _limit = (action_modal_target_index == -1) ? array_length(script_blocks) : action_modal_target_index;
             for (var k = 0; k < _limit; k++) {
                 var _b = script_blocks[k];
                 if (variable_struct_exists(_b, "type")) {
                     if (_b.type == "scene") {
                         _is_onstage = false;
-                        _char_death_style = "";
                         if (variable_struct_exists(_b, "actors")) {
                             for (var a = 0; a < array_length(_b.actors); a++) {
                                 if (_b.actors[a].char_index == selected_character_index) {
@@ -1861,17 +1853,22 @@ if (mouse_check_button_pressed(mb_left)) {
                         }
                     } else if (_b.type == "action" && _b.char_index == selected_character_index) {
                         var _aname = string_lower(_b.action_name);
-                        if (string_pos("enter", _aname) > 0)       { _is_onstage = true;  _is_dead = false; _char_death_style = ""; }
-                        else if (string_pos("exit", _aname) > 0)        { _is_onstage = false; _is_dead = false; _char_death_style = ""; }
-                        else if (string_pos("disappears", _aname) > 0)  { _is_onstage = false; _is_dead = false; _char_death_style = ""; }
-                        else if (variable_struct_exists(_b, "kill_style"))         { _is_dead = true;  _char_death_style = _b.kill_style; }
-                        else if (string_pos("resurrects", _aname) > 0)            { _is_dead = false; _char_death_style = ""; }
+                        if (string_pos("enter", _aname) > 0)            { _is_onstage = true; }
+                        else if (string_pos("exit", _aname) > 0)        { _is_onstage = false; }
+                        else if (string_pos("disappears", _aname) > 0)  { _is_onstage = false; }
+                        else if (variable_struct_exists(_b, "injure_style")) {
+                            if (_b.injure_style == "knock_down")  _is_knocked_down = true;
+                            else if (_b.injure_style == "decapitate") _is_decapitated = true;
+                        }
+                        else if (string_pos("stands up", _aname) > 0)   { _is_knocked_down = false; }
+                        else if (string_pos("reforms", _aname) > 0)  { _is_decapitated = false; }
                     }
                 }
             }
-            action_modal_char_onstage    = _is_onstage;
-            action_modal_char_is_dead    = _is_dead;
-            action_modal_char_death_style = _char_death_style;
+            action_modal_char_onstage        = _is_onstage;
+            action_modal_char_is_knocked_down = _is_knocked_down;
+            action_modal_char_is_decapitated  = _is_decapitated;
+            action_modal_char_is_injured      = _is_knocked_down || _is_decapitated;
             
             scene_edit_mode = false;
         }
@@ -1948,8 +1945,8 @@ if (mouse_check_button_pressed(mb_left)) {
                 var _is_quake = variable_struct_exists(_block, "quake_intensity") || (string_pos("QUAKE", _aname_u) > 0);
                 var _is_disappear = (string_pos("DISAPPEARS", _aname_u) > 0);
                 var _is_jitter = (_aname_u == "JITTERS");
-                var _is_kill = variable_struct_exists(_block, "kill_style") || (string_pos("KILL", _aname_u) > 0);
-                var _is_resurrect = (string_pos("RESURRECTS", _aname_u) > 0);
+                var _is_injure2    = variable_struct_exists(_block, "injure_style");
+                var _is_stand_up2  = (string_pos("STANDS UP", _aname_u) > 0);
                 var _is_turn_around = (string_pos("TURNS AROUND", _aname_u) > 0);
                 
                 var _is_canned = (variable_struct_exists(_block, "char_index") && _block.char_index > 0 && canned_anim_find(_block.char_index, _block.action_name) != undefined);
@@ -1961,7 +1958,7 @@ if (mouse_check_button_pressed(mb_left)) {
                 var _is_pose = (!_is_expr_only) && (string_pos("poses ", _aname_lo) > 0 || _has_and_pose
                                     || (string_pos("pose ", _aname_lo) > 0 && string_pos("poses ", _aname_lo) == 0 && !_has_looks));
                 
-                if (_is_resurrect || _is_turn_around) {
+                if (_is_turn_around) {
                     _show_edit_btn = false;
                 } else {
                     _show_edit_btn = true;
@@ -1983,9 +1980,12 @@ if (mouse_check_button_pressed(mb_left)) {
                     } else if (_is_jitter) {
                         _edit_lbl = "EDIT JITTER";
                         _edit_w = 105;
-                    } else if (_is_kill) {
-                        _edit_lbl = "EDIT KILL METHOD";
-                        _edit_w = 150;
+                    } else if (_is_injure2) {
+                        _edit_lbl = "EDIT INJURY";
+                        _edit_w = 120;
+                    } else if (_is_stand_up2) {
+                        _edit_lbl = "EDIT STAND UP";
+                        _edit_w = 120;
                     } else if (_is_canned) {
                         _edit_lbl = "EDIT SPECIAL ANIMATION";
                         _edit_w = 205;
@@ -2062,18 +2062,21 @@ if (mouse_check_button_pressed(mb_left)) {
                     scene_modal_target_index = i;
                     scene_modal_edit_mode = true;
                 }
-                else if (_is_action && (string_pos("WAIT", string_upper(_block.action_name)) > 0 || string_pos("PLAY SFX", string_upper(_block.action_name)) > 0 || string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0 || string_pos("DISAPPEARS", string_upper(_block.action_name)) > 0 || variable_struct_exists(_block, "kill_style") || string_pos("RESURRECTS", string_upper(_block.action_name)) > 0)) {
+                else if (_is_action && (string_pos("WAIT", string_upper(_block.action_name)) > 0 || string_pos("PLAY SFX", string_upper(_block.action_name)) > 0 || string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0 || string_pos("DISAPPEARS", string_upper(_block.action_name)) > 0 || variable_struct_exists(_block, "injure_style") || variable_struct_exists(_block, "jitter_intensity") || variable_struct_exists(_block, "quake_intensity") || string_pos("STANDS UP", string_upper(_block.action_name)) > 0)) {
                     action_modal_open = true;
                     action_modal_target_index = i;
                     action_modal_edit_mode = true;
+                    if (variable_struct_exists(_block, "char_index") && _block.char_index > 0) {
+                        selected_character_index = _block.char_index;
+                    }
 
                     var _is_wait       = string_pos("WAIT",          string_upper(_block.action_name)) > 0;
                     var _is_title      = string_pos("DISPLAY TITLE", string_upper(_block.action_name)) > 0;
                     var _is_disappear  = string_pos("DISAPPEARS",    string_upper(_block.action_name)) > 0;
-                    var _is_jitter     = string_upper(_block.action_name) == "JITTERS";
+                    var _is_jitter     = variable_struct_exists(_block, "jitter_intensity");
                     var _is_quake      = variable_struct_exists(_block, "quake_intensity");
-                    var _is_kill       = variable_struct_exists(_block, "kill_style");
-                    var _is_resurrect  = string_pos("RESURRECTS",    string_upper(_block.action_name)) > 0;
+                    var _is_injure     = variable_struct_exists(_block, "injure_style");
+                    var _is_stand_up   = string_pos("STANDS UP",     string_upper(_block.action_name)) > 0;
                     if (_is_wait || _is_title) action_modal_wait_duration = variable_struct_exists(_block, "duration") ? _block.duration : 1.0;
 
                     if (_is_title) {
@@ -2095,9 +2098,9 @@ if (mouse_check_button_pressed(mb_left)) {
                          || (_is_disappear && all_actions[j].name == "disappear")
                          || (_is_jitter && all_actions[j].name == "jitter")
                          || (_is_quake && all_actions[j].name == "quake")
-                         || (_is_kill && all_actions[j].name == "kill")
-                         || (_is_resurrect && all_actions[j].name == "resurrect")
-                         || (!_is_wait && !_is_title && !_is_disappear && !_is_jitter && !_is_quake && !_is_kill && !_is_resurrect && all_actions[j].name == "play sfx")) {
+                         || (_is_injure && all_actions[j].name == "injure")
+                         || (_is_stand_up && all_actions[j].name == "stand up")
+                         || (!_is_wait && !_is_title && !_is_disappear && !_is_jitter && !_is_quake && !_is_injure && !_is_stand_up && all_actions[j].name == "play sfx")) {
                             action_modal_selected_idx = j;
                             action_modal_locked = true;
                             break;
@@ -2119,17 +2122,18 @@ if (mouse_check_button_pressed(mb_left)) {
                         action_modal_disappear_speed = variable_struct_exists(_block, "disappear_speed") ? _block.disappear_speed : 2;
                         action_modal_char_onstage = true;
                     }
-                    if (_is_kill) {
-                        action_modal_kill_style   = variable_struct_exists(_block, "kill_style") ? _block.kill_style : "sudden";
-                        action_modal_kill_speed   = variable_struct_exists(_block, "kill_speed") ? _block.kill_speed : 2;
-                        action_modal_char_onstage = true;
-                        action_modal_char_is_dead = false;
+                    if (_is_injure) {
+                        action_modal_injure_style    = variable_struct_exists(_block, "injure_style")    ? _block.injure_style    : "knock_down";
+                        action_modal_knock_direction = variable_struct_exists(_block, "knock_direction") ? _block.knock_direction : "forwards";
+                        action_modal_decap_mode      = variable_struct_exists(_block, "decap_mode")      ? _block.decap_mode      : "remove_head";
+                        action_modal_injure_speed    = variable_struct_exists(_block, "injure_speed")    ? _block.injure_speed    : 2;
+                        action_modal_char_onstage    = true;
+                        action_modal_char_is_injured = false;
                     }
-                    if (_is_resurrect) {
-                        action_modal_char_onstage     = true;
-                        action_modal_char_is_dead     = true;
-                        action_modal_resurrect_speed  = variable_struct_exists(_block, "resurrect_speed")           ? _block.resurrect_speed           : 2;
-                        action_modal_char_death_style = variable_struct_exists(_block, "resurrect_prev_death_style") ? _block.resurrect_prev_death_style : "";
+                    if (_is_stand_up) {
+                        action_modal_standup_speed        = variable_struct_exists(_block, "standup_speed") ? _block.standup_speed : 2;
+                        action_modal_char_onstage         = true;
+                        action_modal_char_is_knocked_down = true;
                     }
 
                     if (!_is_wait && !_is_title) {
@@ -2237,7 +2241,7 @@ if (mouse_check_button_pressed(mb_left)) {
                     } else if (variable_struct_exists(_block, "char_index") && _block.char_index > 0
                             && canned_anim_find(_block.char_index, _block.action_name) != undefined) {
                         action_modal_open = true; action_modal_target_index = i; action_modal_edit_mode = true;
-                        action_modal_char_onstage = true; action_modal_char_is_dead = false;
+                        action_modal_char_onstage = true; action_modal_char_is_injured = false;
                         action_modal_selected_anim_idx = -1; action_modal_sa_scroll = 0;
                         for (var _cj2 = 0; _cj2 < array_length(all_actions); _cj2++) {
                             if (all_actions[_cj2].name == "special animation") { action_modal_selected_idx = _cj2; action_modal_locked = true; break; }
@@ -2341,13 +2345,13 @@ if (mouse_check_button_pressed(mb_left)) {
                             var _dbl_is_expr_only = (string_pos("expression:", _dbl_aname_lo) > 0) || (_dbl_has_looks && !_dbl_has_and_pose);
                             var _dbl_is_pose      = (!_dbl_is_expr_only) && (string_pos("poses ", _dbl_aname_lo) > 0 || _dbl_has_and_pose
                                                     || (string_pos("pose ", _dbl_aname_lo) > 0 && string_pos("poses ", _dbl_aname_lo) == 0 && !_dbl_has_looks));
-                            var _dbl_is_kill      = variable_struct_exists(_block, "kill_style");
-                            var _dbl_is_resurrect = (string_pos("RESURRECTS", _dbl_aname_u) > 0);
+                            var _dbl_is_injure    = variable_struct_exists(_block, "injure_style");
+                            var _dbl_is_stand_up  = (string_pos("STANDS UP", _dbl_aname_u) > 0);
                             var _dbl_is_jitter    = (_dbl_aname_u == "JITTERS");
                             var _dbl_is_quake     = variable_struct_exists(_block, "quake_intensity");
                             var _dbl_is_gen = (string_pos("WAIT", _dbl_aname_u) > 0 || string_pos("PLAY SFX", _dbl_aname_u) > 0
                                            || string_pos("DISPLAY TITLE", _dbl_aname_u) > 0 || string_pos("DISAPPEARS", _dbl_aname_u) > 0
-                                           || _dbl_is_kill || _dbl_is_resurrect || _dbl_is_jitter || _dbl_is_quake);
+                                           || _dbl_is_injure || _dbl_is_stand_up || _dbl_is_jitter || _dbl_is_quake);
 
                             if (_dbl_is_move) {
                                 move_modal_open = true; move_modal_target_index = i; move_modal_edit_mode = true;
@@ -2386,27 +2390,28 @@ if (mouse_check_button_pressed(mb_left)) {
                                     action_modal_disappear_style = variable_struct_exists(_block, "disappear_style") ? _block.disappear_style : "pop";
                                     action_modal_disappear_speed = variable_struct_exists(_block, "disappear_speed") ? _block.disappear_speed : 2;
                                     action_modal_char_onstage = true;
-                                } else if (_dbl_is_kill) {
-                                    action_modal_kill_style   = variable_struct_exists(_block, "kill_style") ? _block.kill_style : "sudden";
-                                    action_modal_kill_speed   = variable_struct_exists(_block, "kill_speed") ? _block.kill_speed : 2;
-                                    action_modal_char_onstage = true; action_modal_char_is_dead = false;
-                                } else if (_dbl_is_resurrect) {
-                                    action_modal_char_onstage     = true; action_modal_char_is_dead = true;
-                                    action_modal_resurrect_speed  = variable_struct_exists(_block, "resurrect_speed")           ? _block.resurrect_speed           : 2;
-                                    action_modal_char_death_style = variable_struct_exists(_block, "resurrect_prev_death_style") ? _block.resurrect_prev_death_style : "";
+                                } else if (_dbl_is_injure) {
+                                    action_modal_injure_style    = variable_struct_exists(_block, "injure_style")    ? _block.injure_style    : "knock_down";
+                                    action_modal_knock_direction = variable_struct_exists(_block, "knock_direction") ? _block.knock_direction : "forwards";
+                                    action_modal_decap_mode      = variable_struct_exists(_block, "decap_mode")      ? _block.decap_mode      : "remove_head";
+                                    action_modal_injure_speed    = variable_struct_exists(_block, "injure_speed")    ? _block.injure_speed    : 2;
+                                    action_modal_char_onstage    = true; action_modal_char_is_injured = false;
+                                } else if (_dbl_is_stand_up) {
+                                    action_modal_standup_speed        = variable_struct_exists(_block, "standup_speed") ? _block.standup_speed : 2;
+                                    action_modal_char_onstage         = true; action_modal_char_is_knocked_down = true;
                                 }
                                 for (var _dj = 0; _dj < array_length(all_actions); _dj++) {
                                     if ((_aw2 && all_actions[_dj].name == "wait") || (_at2 && all_actions[_dj].name == "display title")
                                      || (_ad2 && all_actions[_dj].name == "disappear")
                                      || (_dbl_is_jitter && all_actions[_dj].name == "jitter")
                                      || (_dbl_is_quake && all_actions[_dj].name == "quake")
-                                     || (_dbl_is_kill && all_actions[_dj].name == "kill")
-                                     || (_dbl_is_resurrect && all_actions[_dj].name == "resurrect")
-                                     || (!_aw2 && !_at2 && !_ad2 && !_dbl_is_jitter && !_dbl_is_quake && !_dbl_is_kill && !_dbl_is_resurrect && all_actions[_dj].name == "play sfx")) {
+                                     || (_dbl_is_injure && all_actions[_dj].name == "injure")
+                                     || (_dbl_is_stand_up && all_actions[_dj].name == "stand up")
+                                     || (!_aw2 && !_at2 && !_ad2 && !_dbl_is_jitter && !_dbl_is_quake && !_dbl_is_injure && !_dbl_is_stand_up && all_actions[_dj].name == "play sfx")) {
                                         action_modal_selected_idx = _dj; action_modal_locked = true; break;
                                     }
                                 }
-                                if (!_aw2 && !_at2 && !_ad2 && !_dbl_is_kill && !_dbl_is_resurrect) { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; }
+                                if (!_aw2 && !_at2 && !_ad2 && !_dbl_is_injure && !_dbl_is_stand_up) { refresh_sfx_folders(); action_modal_sfx_folder_idx = -1; action_modal_sfx_file_idx = -1; }
                             } else if (_dbl_is_pose || _dbl_is_expr_only) {
                                 selected_character_index = _block.char_index;
                                 pose_expr_modal_open = true;
@@ -2425,7 +2430,7 @@ if (mouse_check_button_pressed(mb_left)) {
                             } else if (variable_struct_exists(_block, "char_index") && _block.char_index > 0
                                     && canned_anim_find(_block.char_index, _block.action_name) != undefined) {
                                 action_modal_open = true; action_modal_target_index = i; action_modal_edit_mode = true;
-                                action_modal_char_onstage = true; action_modal_char_is_dead = false;
+                                action_modal_char_onstage = true; action_modal_char_is_injured = false;
                                 action_modal_selected_anim_idx = -1; action_modal_sa_scroll = 0;
                                 for (var _cj3 = 0; _cj3 < array_length(all_actions); _cj3++) {
                                     if (all_actions[_cj3].name == "special animation") { action_modal_selected_idx = _cj3; action_modal_locked = true; break; }
@@ -2941,16 +2946,8 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                         if (_scene.actors[a].char_index == dragging_char_index) { _dup_idx = a; break; }
                     }
                     if (_dup_idx == -1) {
-                        // Block adding a character who was killed before this scene
-                        var _char_dead_stage = false;
-                        for (var _dds = 0; _dds < active_scene_block_idx; _dds++) {
-                            var _ddb = script_blocks[_dds];
-                            if (!variable_struct_exists(_ddb, "type") || _ddb.type != "action") continue;
-                            if (!variable_struct_exists(_ddb, "char_index") || _ddb.char_index != dragging_char_index) continue;
-                            if (variable_struct_exists(_ddb, "kill_style")) _char_dead_stage = true;
-                            else if (string_pos("resurrects", string_lower(_ddb.action_name)) > 0) _char_dead_stage = false;
-                        }
-                        if (!_char_dead_stage) {
+                        // Injured characters can still be placed in scenes; no blocking needed
+                        if (true) {
                         // Auto-flip for entrance
                         var _is_left = (_mx < scene_win_x + (scene_win_w / 2));
                         _face = _is_left ? -1 : 1;
@@ -2963,7 +2960,32 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                         var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
                         var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
 
-                        array_push(_scene.actors, { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face, pose: _pose, expression: _expr });
+                        // Carry injury state from any hidden pre-injured preview actor
+                        var _sa_new = { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face, pose: _pose, expression: _expr };
+                        for (var _hpi = 0; _hpi < array_length(preview_actors); _hpi++) {
+                            var _hpa = preview_actors[_hpi];
+                            if (_hpa.char_index == dragging_char_index && variable_struct_exists(_hpa, "hidden") && _hpa.hidden) {
+                                if (variable_struct_exists(_hpa, "is_knocked_down") && _hpa.is_knocked_down) {
+                                    _sa_new.is_knocked_down  = true;
+                                    _sa_new.knock_direction  = variable_struct_exists(_hpa, "knock_direction") ? _hpa.knock_direction : "forwards";
+                                    _sa_new.knock_angle      = _face * 90;
+                                }
+                                if (variable_struct_exists(_hpa, "is_decapitated") && _hpa.is_decapitated) {
+                                    _sa_new.is_decapitated = true;
+                                    _sa_new.decap_mode     = variable_struct_exists(_hpa, "decap_mode") ? _hpa.decap_mode : "remove_head";
+                                }
+                                // Unhide and place the preview actor
+                                _hpa.hidden  = false;
+                                _hpa.x       = _nx;
+                                _hpa.y       = _ny;
+                                _hpa.facing  = _face;
+                                if (variable_struct_exists(_hpa, "is_knocked_down") && _hpa.is_knocked_down) {
+                                    _hpa.knock_angle = _face * 90;
+                                }
+                                break;
+                            }
+                        }
+                        array_push(_scene.actors, _sa_new);
                         scene_edit_selected_actor_idx = array_length(_scene.actors) - 1;
                         }
                     } else {
@@ -2976,7 +2998,10 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                 var _onstage = false;
                 if (active_scene_block_idx != -1) {
                     for (var pa = 0; pa < array_length(preview_actors); pa++) {
-                        if (preview_actors[pa].char_index == dragging_char_index) { _onstage = true; break; }
+                        if (preview_actors[pa].char_index == dragging_char_index
+                            && !(variable_struct_exists(preview_actors[pa], "hidden") && preview_actors[pa].hidden)) {
+                            _onstage = true; break;
+                        }
                     }
                 }
                 
