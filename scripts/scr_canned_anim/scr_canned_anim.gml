@@ -9,7 +9,7 @@ function canned_anim_get_data(_char_index) {
     if (ds_map_exists(char_anim_cache, _name)) return char_anim_cache[? _name];
 
     var _data = load_config_json(_name, "animations.json");
-    if (_data == undefined) _data = [];
+    _data ??= [];
     ds_map_add(char_anim_cache, _name, _data);
     return _data;
 }

@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_canned_anim",
+  "%Name":"scr_draw_modals",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_canned_anim",
+  "name":"scr_draw_modals",
   "parent":{
     "name":"Scripts",
     "path":"folders/Scripts.yy",

@@ -1,9 +1,9 @@
 {
   "$GMScript":"v1",
-  "%Name":"scr_canned_anim",
+  "%Name":"scr_step_effects",
   "isCompatibility":false,
   "isDnD":false,
-  "name":"scr_canned_anim",
+  "name":"scr_step_effects",
   "parent":{
     "name":"Scripts",
     "path":"folders/Scripts.yy",

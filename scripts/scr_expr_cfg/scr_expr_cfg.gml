@@ -265,7 +265,7 @@ function open_expr_configurator(_char_idx) {
     var _c_oc = characters[_char_idx];
     var _folder_oc = datafiles_path + "actors/" + _c_oc.name + "/config/";
     var _existing = load_config_json(_c_oc.name, "expressions.json");
-    if (_existing == undefined) _existing = {};
+    _existing ??= {};
     for (var _p2 = 1; _p2 <= 4; _p2++) {
         for (var _d2 = 0; _d2 <= 1; _d2++) {
             var _k2 = "pose_" + string(_p2) + "_" + (_d2 == 1 ? "high" : "low");
