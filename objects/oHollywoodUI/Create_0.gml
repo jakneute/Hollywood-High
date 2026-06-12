@@ -469,6 +469,7 @@ action_modal_sfx_search_scroll_y = 0;
 action_modal_sfx_last_click_idx = -1;
 action_modal_sfx_last_click_time = -1;
 action_modal_sfx_bksp_held = 0;
+action_modal_sfx_caret_timer = 0;
 action_modal_sfx_show_actors = false;
 test_sfx_sound = -1;
 test_sfx_buffer = -1;
@@ -559,6 +560,11 @@ scene_modal_target_index = -1;
 scene_modal_edit_mode = false;
 scene_sb_dragging = false;
 scene_sb_drag_offset = 0;
+scene_modal_search = "";
+scene_modal_search_focused = false;
+scene_modal_filtered = [];
+scene_modal_bksp_held = 0;
+scene_modal_caret_timer = 0;
 
 // --- 3bb. SCENE EDITING STATE ---
 scene_edit_mode = false;

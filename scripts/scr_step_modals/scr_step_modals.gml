@@ -1470,9 +1470,11 @@ function step_modal_action() {
                     refresh_sfx_search("");
                     action_modal_sfx_bksp_held = 0;
                     action_modal_sfx_search_focused = true;
+                    action_modal_sfx_caret_timer = 0;
                     keyboard_string = "";
                 } else {
                     action_modal_sfx_search_focused = true;
+                    action_modal_sfx_caret_timer = 0;
                     keyboard_string = "";
                 }
             } else {
@@ -1775,6 +1777,7 @@ function step_modal_action() {
 
         // Keyboard input for search box
         if (action_modal_sfx_search_focused) {
+            action_modal_sfx_caret_timer++;
             if (string_length(keyboard_string) > 0) {
                 action_modal_sfx_search += keyboard_string;
                 keyboard_string = "";

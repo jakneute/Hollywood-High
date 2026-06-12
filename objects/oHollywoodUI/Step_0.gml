@@ -668,16 +668,16 @@ if (edit_mode) {
 
 //// --- 2b. SCENE SELECTION MODAL ---
 if (scene_modal_open) {
-    var _m_w = 700; var _m_h = 450;
+    var _m_w = 700; var _m_h = 490;
     var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
-    var _max_visible_h = 320;
+    var _max_visible_h = 315;
     var _list_w = 300;
-    var _list_h = array_length(all_scenes) * 40;
+    var _list_h = array_length(scene_modal_filtered) * 40;
 
     // Scrollbar geometry
     var _sb_x = _m_x + 20 + _list_w + 5;
     var _sb_w = 10;
-    var _sb_track_y = _m_y + 60;
+    var _sb_track_y = _m_y + 95;
     var _sb_bar_h = (_list_h > 0) ? max(20, (_max_visible_h / _list_h) * _max_visible_h) : _max_visible_h;
     var _sb_max_top = _sb_track_y + _max_visible_h - _sb_bar_h;
     var _sb_bar_y = (_list_h > 0) ? clamp(_sb_track_y + (-scene_modal_scroll_y / _list_h) * _max_visible_h, _sb_track_y, _sb_max_top) : _sb_track_y;
@@ -685,6 +685,22 @@ if (scene_modal_open) {
 
     if (mouse_check_button_pressed(mb_left)) {
         var _sb_clicked = false;
+
+        // Search box: focus or clear
+        var _srx2 = _m_x + 20; var _sry2 = _m_y + 58; var _srw2 = 300; var _srh2 = 28;
+        if (_mx > _srx2 && _mx < _srx2 + _srw2 && _my > _sry2 && _my < _sry2 + _srh2) {
+            if (_mx > _srx2 + _srw2 - 22 && scene_modal_search != "") {
+                scene_modal_search = "";
+                scene_modal_scroll_y = 0;
+                scene_modal_filtered = [];
+                for (var _fi = 0; _fi < array_length(all_scenes); _fi++) array_push(scene_modal_filtered, all_scenes[_fi]);
+            }
+            scene_modal_search_focused = true;
+            scene_modal_caret_timer = 0;
+            keyboard_string = "";
+            return;
+        }
+        scene_modal_search_focused = false;
 
         // Scrollbar interaction
         if (_sb_visible && _mx >= _sb_x - 2 && _mx <= _sb_x + _sb_w + 2 && _my >= _sb_track_y && _my <= _sb_track_y + _max_visible_h) {
@@ -700,11 +716,11 @@ if (scene_modal_open) {
 
         if (!_sb_clicked) {
             // Option selection
-            if (_mx > _m_x + 20 && _mx < _m_x + 20 + _list_w && _my > _m_y + 60 && _my < _m_y + 60 + _max_visible_h) {
-                for (var i = 0; i < array_length(all_scenes); i++) {
-                    var _by = _m_y + 60 + (i * 40) + scene_modal_scroll_y;
+            if (_mx > _m_x + 20 && _mx < _m_x + 20 + _list_w && _my > _m_y + 95 && _my < _m_y + 95 + _max_visible_h) {
+                for (var i = 0; i < array_length(scene_modal_filtered); i++) {
+                    var _by = _m_y + 95 + (i * 40) + scene_modal_scroll_y;
                     if (_my > _by && _my < _by + 35) {
-                        var _data = all_scenes[i];
+                        var _data = scene_modal_filtered[i];
                         var _target_idx = scene_modal_target_index;
 
                         if (scene_modal_edit_mode) {
@@ -768,15 +784,49 @@ if (scene_modal_open) {
         if (_list_h > _max_visible_h) scene_modal_scroll_y = max(-(_list_h - _max_visible_h), scene_modal_scroll_y - 40);
     }
 
-    // Keyboard navigation
-    var _page_size = floor(_max_visible_h / 40) * 40;
-    if (keyboard_check_pressed(vk_pageup)) scene_modal_scroll_y = min(0, scene_modal_scroll_y + _page_size);
-    if (keyboard_check_pressed(vk_pagedown)) {
-        if (_list_h > _max_visible_h) scene_modal_scroll_y = max(-(_list_h - _max_visible_h), scene_modal_scroll_y - _page_size);
+    // Keyboard navigation (suppressed when search is focused)
+    if (!scene_modal_search_focused) {
+        var _page_size = floor(_max_visible_h / 40) * 40;
+        if (keyboard_check_pressed(vk_pageup)) scene_modal_scroll_y = min(0, scene_modal_scroll_y + _page_size);
+        if (keyboard_check_pressed(vk_pagedown)) {
+            if (_list_h > _max_visible_h) scene_modal_scroll_y = max(-(_list_h - _max_visible_h), scene_modal_scroll_y - _page_size);
+        }
+        if (keyboard_check_pressed(vk_home)) scene_modal_scroll_y = 0;
+        if (keyboard_check_pressed(vk_end)) {
+            if (_list_h > _max_visible_h) scene_modal_scroll_y = -(_list_h - _max_visible_h);
+        }
     }
-    if (keyboard_check_pressed(vk_home)) scene_modal_scroll_y = 0;
-    if (keyboard_check_pressed(vk_end)) {
-        if (_list_h > _max_visible_h) scene_modal_scroll_y = -(_list_h - _max_visible_h);
+
+    // Search keyboard input
+    if (scene_modal_search_focused) {
+        scene_modal_caret_timer++;
+        var _search_changed = false;
+        if (string_length(keyboard_string) > 0) {
+            scene_modal_search += keyboard_string;
+            keyboard_string = "";
+            _search_changed = true;
+        }
+        if (keyboard_check_pressed(vk_backspace) && string_length(scene_modal_search) > 0) {
+            scene_modal_search = string_copy(scene_modal_search, 1, string_length(scene_modal_search) - 1);
+            _search_changed = true;
+        }
+        if (keyboard_check(vk_backspace)) {
+            scene_modal_bksp_held++;
+            if (scene_modal_bksp_held >= 45 && scene_modal_search != "") {
+                scene_modal_search = "";
+                scene_modal_bksp_held = 0;
+                _search_changed = true;
+            }
+        } else { scene_modal_bksp_held = 0; }
+        if (_search_changed) {
+            scene_modal_scroll_y = 0;
+            scene_modal_filtered = [];
+            var _sq_up = string_upper(scene_modal_search);
+            for (var _fi = 0; _fi < array_length(all_scenes); _fi++) {
+                if (_sq_up == "" || string_pos(_sq_up, string_upper(all_scenes[_fi].name)) > 0)
+                    array_push(scene_modal_filtered, all_scenes[_fi]);
+            }
+        }
     }
 
     return;
@@ -1128,7 +1178,7 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
 }
 
 // --- 2e. IN-SCENE DRAGGING & DROPPING ---
-if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && !trans_in_picker_open && !trans_out_picker_open && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     _scene = script_blocks[active_scene_block_idx];
 
     // Start dragging actor already in scene / or just Click to open menu
@@ -1184,11 +1234,14 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && active_sc
             var _act = _scene.actors[dragging_actor_idx];
             var _spr = get_character_sprite(_act.char_index);
             var _csh = (_spr != -1) ? sprite_get_height(_spr) : 100;
-            var _scale = (scene_win_h * 1.5) / 450; 
-            
-            _act.x = _mx - scene_win_x - drag_off_x;
-            _act.y = _my - scene_win_y - drag_off_y;
-            
+            var _scale = (scene_win_h * 1.5) / 450;
+
+            // Only update if mouse is inside the scene window; toolbar clicks can't drag actors off-screen
+            if (_my >= scene_win_y) {
+                _act.x = _mx - scene_win_x - drag_off_x;
+                _act.y = _my - scene_win_y - drag_off_y;
+            }
+
             // Removed clamps: Characters can turn red and be removed if out of bounds
         } else {
             var _act = _scene.actors[dragging_actor_idx];
@@ -1283,7 +1336,7 @@ if (!script_expanded && playing_block_index == -1 && current_scene_sprite != -1 
 }
 
 // --- 2f. LIVE MOVE DRAGGING (When NOT in edit mode) ---
-if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_open && !is_speaking && playing_block_index == -1 && active_scene_block_idx != -1) {
+if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_open && !trans_in_picker_open && !trans_out_picker_open && !is_speaking && playing_block_index == -1 && active_scene_block_idx != -1) {
     if (mouse_check_button_pressed(mb_left)) {
         if (_mx > scene_win_x && _mx < scene_win_x + scene_win_w && _my > scene_win_y && _my < scene_win_y + scene_win_h) {
             for (var a = array_length(preview_actors) - 1; a >= 0; a--) {
@@ -1521,11 +1574,13 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
         var _in_btn_x_op  = _fx_btn_x + _fx_btn_w + 10;
         var _out_btn_x_op = _in_btn_x_op + 88 + 5;
         if (_mx > _in_btn_x_op && _mx < _in_btn_x_op + 88 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
+            dragging_actor_idx = -1; dragging_char_index = -1;
             trans_in_picker_open  = true;
             trans_out_picker_open = false;
             return;
         }
         if (_mx > _out_btn_x_op && _mx < _out_btn_x_op + 90 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
+            dragging_actor_idx = -1; dragging_char_index = -1;
             trans_out_picker_open = true;
             trans_in_picker_open  = false;
             return;
@@ -1970,6 +2025,8 @@ if (mouse_check_button_pressed(mb_left)) {
     if (!is_speaking && playing_block_index == -1 && _mx > btn_add_scene_x && _mx < btn_add_scene_x + btn_add_scene_w && _my > btn_add_scene_y && _my < btn_add_scene_y + btn_add_scene_h) {
         selection_start = 0; selection_end = 0;
         scene_modal_open = true;
+        scene_modal_search = ""; scene_modal_search_focused = false; scene_modal_scroll_y = 0; scene_modal_bksp_held = 0;
+        scene_modal_filtered = []; for (var _sfi = 0; _sfi < array_length(all_scenes); _sfi++) array_push(scene_modal_filtered, all_scenes[_sfi]);
         scene_modal_target_index = (focused_block != -1) ? focused_block + 1 : -1;
         scene_edit_mode = false;
         return;
@@ -2150,6 +2207,8 @@ if (mouse_check_button_pressed(mb_left)) {
                 }
                 else if (_is_scene) {
                     scene_modal_open = true;
+                    scene_modal_search = ""; scene_modal_search_focused = false; scene_modal_scroll_y = 0; scene_modal_bksp_held = 0;
+                    scene_modal_filtered = []; for (var _sfi = 0; _sfi < array_length(all_scenes); _sfi++) array_push(scene_modal_filtered, all_scenes[_sfi]);
                     scene_modal_target_index = i;
                     scene_modal_edit_mode = true;
                 }

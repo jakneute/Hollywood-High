@@ -3606,51 +3606,72 @@ if (edit_mode) {
 
 if (scene_modal_open) {
     draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    var _mw = 700; var _mh = 450; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
+    var _mw = 700; var _mh = 490; var _mxo = (1280-_mw)/2; var _myo = (800-_mh)/2;
     draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 12, 12, false);
     draw_set_color(make_color_rgb(196, 213, 20));
     draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+52, 12, 12, false);
     draw_rectangle(_mxo, _myo+32, _mxo+_mw, _myo+52, false);
     draw_set_color(make_color_rgb(148, 162, 14)); draw_roundrect_ext(_mxo, _myo, _mxo+_mw, _myo+_mh, 12, 12, true);
     draw_set_color(c_black); draw_text(_mxo+20, _myo+18, "SELECT SCENE");
-    
+
+    // Search box
+    var _srx = _mxo+20; var _sry = _myo+58; var _srw = 300; var _srh = 28;
+    draw_set_color(scene_modal_search_focused ? make_color_rgb(14,55,20) : make_color_rgb(8,30,12));
+    draw_roundrect_ext(_srx, _sry, _srx+_srw, _sry+_srh, 4, 4, false);
+    draw_set_color(scene_modal_search_focused ? make_color_rgb(148,200,30) : make_color_rgb(60,100,25));
+    draw_roundrect_ext(_srx, _sry, _srx+_srw, _sry+_srh, 4, 4, true);
+    var _sq_d = scene_modal_search;
+    var _show_caret = scene_modal_search_focused && ((scene_modal_caret_timer div 30) % 2 == 0);
+    if (_sq_d == "" && !scene_modal_search_focused) {
+        draw_set_color(make_color_rgb(80,110,50));
+        draw_text(_srx+7, _sry+6, "Search scenes...");
+    } else {
+        draw_set_color(c_white);
+        draw_text(_srx+7, _sry+6, string_upper(_sq_d) + (_show_caret ? "|" : ""));
+    }
+    if (_sq_d != "") {
+        var _cx_hov = (_mx > _srx+_srw-22 && _mx < _srx+_srw && _my > _sry && _my < _sry+_srh);
+        draw_set_color(_cx_hov ? c_white : make_color_rgb(180,80,80));
+        draw_text(_srx+_srw-16, _sry+6, "X");
+    }
+
     if (array_length(all_scenes) == 0) {
         draw_set_color(c_white);
         draw_set_halign(fa_center);
         draw_text_ext(_mxo + _mw/2, _myo + _mh/2 - 40, "No background scenes found!\n\nIf you just packed the scenes, please reload this project in GameMaker IDE (File -> Recent Projects -> Hollywood High) so the IDE registers the new 'scenes.pack' included file.", 22, 600);
         draw_set_halign(fa_left);
     }
-    
-    var _max_h = 320; var _list_h = array_length(all_scenes) * 40; var _lw = 300;
+
+    var _max_h = 315; var _list_h = array_length(scene_modal_filtered) * 40; var _lw = 300;
     var _hov_idx = -1;
-    gpu_set_scissor(_mxo+20, _myo+60, _lw, _max_h);
-    for (var i = 0; i < array_length(all_scenes); i++) {
-        var _by = _myo + 60 + (i * 40) + scene_modal_scroll_y;
-        if (_by + 35 < _myo+60 || _by > _myo+60+_max_h) continue;
+    gpu_set_scissor(_mxo+20, _myo+95, _lw, _max_h);
+    for (var i = 0; i < array_length(scene_modal_filtered); i++) {
+        var _by = _myo + 95 + (i * 40) + scene_modal_scroll_y;
+        if (_by + 35 < _myo+95 || _by > _myo+95+_max_h) continue;
         var _hov = (_mx > _mxo+20 && _mx < _mxo+20+_lw && _my > _by && _my < _by+35);
         if (_hov) _hov_idx = i;
         draw_set_color(_hov ? make_color_rgb(18, 65, 25) : make_color_rgb(10, 40, 15));
         draw_roundrect_ext(_mxo+20, _by, _mxo+20+_lw, _by+35, 5, 5, false);
-        draw_set_color(c_white); draw_text(_mxo+30, _by+8, all_scenes[i].name);
+        draw_set_color(c_white); draw_text(_mxo+30, _by+8, scene_modal_filtered[i].name);
     }
     gpu_set_scissor(0,0,1280,960);
-    
+
     // Scrollbar for Scene Modal
     if (_list_h > _max_h) {
         var _bar_h = max(20, (_max_h / _list_h) * _max_h);
-        var _sb_max_top = (_myo+60) + _max_h - _bar_h;
-        var _bar_y = clamp((_myo+60) + (-scene_modal_scroll_y / _list_h) * _max_h, _myo+60, _sb_max_top);
+        var _sb_max_top = (_myo+95) + _max_h - _bar_h;
+        var _bar_y = clamp((_myo+95) + (-scene_modal_scroll_y / _list_h) * _max_h, _myo+95, _sb_max_top);
         var _bar_hov = (_mx >= _mxo+20+_lw+3 && _mx <= _mxo+20+_lw+17 && _my >= _bar_y && _my <= _bar_y + _bar_h);
         draw_set_color(make_color_rgb(8, 30, 12));
-        draw_rectangle(_mxo+20+_lw+5, _myo+60, _mxo+20+_lw+15, _myo+60+_max_h, false); // Track
+        draw_rectangle(_mxo+20+_lw+5, _myo+95, _mxo+20+_lw+15, _myo+95+_max_h, false); // Track
         draw_set_color(scene_sb_dragging ? make_color_rgb(215, 232, 85) : (_bar_hov ? make_color_rgb(185, 205, 60) : make_color_rgb(148, 162, 35)));
         draw_rectangle(_mxo+20+_lw+5, _bar_y, _mxo+20+_lw+15, _bar_y + _bar_h, false); // Bar
     }
-    
-    var _pre_x = _mxo + 350; var _pre_y = _myo + 60; var _pre_w = 320; var _pre_h = 320;
+
+    var _pre_x = _mxo + 350; var _pre_y = _myo + 95; var _pre_w = 320; var _pre_h = 315;
     draw_set_color(c_black); draw_rectangle(_pre_x, _pre_y, _pre_x+_pre_w, _pre_y+_pre_h, false);
     if (_hov_idx != -1) {
-        var _iname = all_scenes[_hov_idx].internal_name;
+        var _iname = scene_modal_filtered[_hov_idx].internal_name;
         var _spr = get_scene_sprite(_iname);
         var _mask_spr = get_scene_sprite(_iname + "_mask");
         if (_spr != -1) {
@@ -3817,9 +3838,14 @@ if (action_modal_open) {
             draw_set_color(_sr_focused ? c_yellow : c_ltgray);
             draw_rectangle(_srx, _sry, _srx + _srw, _sry + _srh, true);
             var _sq = action_modal_sfx_search;
-            var _sq_disp = (_sq == "") ? "Search..." : (string_upper(_sq) + (_sr_focused ? "|" : ""));
-            draw_set_color((_sq == "") ? make_color_rgb(80, 80, 100) : c_white);
-            draw_text(_srx + 6, _sry + 4, _sq_disp);
+            var _sfx_show_caret = _sr_focused && ((action_modal_sfx_caret_timer div 30) % 2 == 0);
+            if (_sq == "" && !_sr_focused) {
+                draw_set_color(make_color_rgb(80, 80, 100));
+                draw_text(_srx + 6, _sry + 4, "Search...");
+            } else {
+                draw_set_color(c_white);
+                draw_text(_srx + 6, _sry + 4, string_upper(_sq) + (_sfx_show_caret ? "|" : ""));
+            }
             if (_sq != "") {
                 var _cx_hov = (_mx > _srx + _srw - 22 && _mx < _srx + _srw && _my > _sry && _my < _sry + _srh);
                 draw_set_color(_cx_hov ? c_white : make_color_rgb(180, 80, 80));
