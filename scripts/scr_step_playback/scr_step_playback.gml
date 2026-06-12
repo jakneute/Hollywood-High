@@ -2,6 +2,17 @@
 ///              subtitle scroll, action animation, completion checks, sequence advance.
 
 function step_tts_playback() {
+    // --- SCENE TRANSITION UPDATE ---
+    if (scene_transition_active && playing_block_index != -1 && !theater_paused) {
+        scene_transition_frames++;
+        scene_transition_progress = min(1.0, scene_transition_frames / max(1, scene_transition_duration));
+        if (scene_transition_progress >= 1.0) {
+            scene_transition_active = false;
+            if (scene_transition_dir == "in") scene_transition_progress = 0.0;
+            // "out": keep progress=1.0 (full black) until new scene loads and clears it
+        }
+    }
+
     // --- TTS SCROLL & PROGRESS ---
     if (playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
         var _scroll_idx = playing_block_index;
@@ -413,17 +424,20 @@ function step_tts_playback() {
 
     // --- AUTO-STOP (last block is scene/action) ---
     if (!is_speaking && !action_animating && playing_block_index != -1 && playing_block_index < array_length(script_blocks)) {
-        if (speaking_pause_timer <= 0 && speaking_pause_timer != -1) {
+        if (speaking_pause_timer <= 0 && speaking_pause_timer != -1 && !scene_transition_active) {
             var _lb_idx = (playing_linked_index != -1) ? playing_linked_index : playing_block_index;
             var _lb = script_blocks[_lb_idx];
             var _lb_is_scene    = (variable_struct_exists(_lb, "type") && _lb.type == "scene");
             var _lb_is_action   = (variable_struct_exists(_lb, "type") && _lb.type == "action");
             var _lb_is_particle = (variable_struct_exists(_lb, "type") && _lb.type == "particle");
             if ((_lb_is_scene || _lb_is_action || _lb_is_particle) && _lb_idx >= array_length(script_blocks) - 1) {
-                if (theater_mode) {
-                    theater_subtitles = ""; theater_active_char = -1;
-                    theater_paused = true; play_from_index(0); playing_block_index = -1;
-                } else { stop_playback(); }
+                var _lb_tout = _lb_is_scene && variable_struct_exists(_lb, "transition_out") ? _lb.transition_out : "none";
+                if (_lb_tout == "none") {
+                    if (theater_mode) {
+                        theater_subtitles = ""; theater_active_char = -1;
+                        theater_paused = true; play_from_index(0); playing_block_index = -1;
+                    } else { stop_playback(); }
+                }
             }
         }
     }
@@ -431,6 +445,34 @@ function step_tts_playback() {
     // --- SEQUENCE ADVANCE ---
     if (!is_speaking && !action_animating && playing_block_index != -1 && !theater_paused) {
         if (speaking_pause_timer <= 0 || speaking_pause_timer == -1) {
+
+            // Out-transition: intercept before advancing to a new scene block (or at end of script)
+            if (speaking_pause_timer <= 0 && speaking_pause_timer != -1 && !scene_out_transitioning && active_scene_block_idx != -1 && !(scene_transition_active && scene_transition_dir == "in")) {
+                var _look_next = (playing_linked_index != -1) ? playing_linked_index + 1 : playing_block_index + 1;
+                var _outb = script_blocks[active_scene_block_idx];
+                var _tout = variable_struct_exists(_outb, "transition_out") ? _outb.transition_out : "none";
+                if (_tout != "none") {
+                    var _fire_out = (_look_next >= array_length(script_blocks));
+                    if (!_fire_out) {
+                        var _look_b = script_blocks[_look_next];
+                        if (variable_struct_exists(_look_b, "type") && _look_b.type == "scene") _fire_out = true;
+                    }
+                    if (_fire_out) {
+                        var _tdur_out = variable_struct_exists(_outb, "transition_out_speed") ? _outb.transition_out_speed : 60;
+                        scene_transition_active   = true;
+                        scene_transition_type     = _tout;
+                        scene_transition_dir      = "out";
+                        scene_transition_frames   = 0;
+                        scene_transition_progress = 0.0;
+                        scene_transition_duration = _tdur_out;
+                        scene_out_transitioning   = true;
+                        speaking_pause_timer      = _tdur_out + 2;
+                        return;
+                    }
+                }
+            }
+            scene_out_transitioning = false;
+
             if (speaking_pause_timer <= 0 && speaking_pause_timer != -1) {
                 var _next_idx = (playing_linked_index != -1) ? playing_linked_index + 1 : playing_block_index + 1;
                 if (_next_idx < array_length(script_blocks)) {
@@ -479,6 +521,27 @@ function step_tts_playback() {
                             array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
                             char_facings[_act.char_index] = _face;
                         }
+                    }
+                    // Start in-transition (clear any leftover out-overlay first)
+                    var _tin = variable_struct_exists(_b, "transition_in") ? _b.transition_in : "none";
+                    if (_tin != "none") {
+                        var _tin_dur = variable_struct_exists(_b, "transition_in_speed") ? _b.transition_in_speed : 60;
+                        scene_transition_active   = true;
+                        scene_transition_type     = _tin;
+                        scene_transition_dir      = "in";
+                        scene_transition_frames   = 0;
+                        scene_transition_progress = 0.0;
+                        scene_transition_duration = _tin_dur;
+                    } else if (scene_transition_progress > 0) {
+                        // No configured transition_in but came from an out-transition — auto-mirror it
+                        // scene_transition_type + scene_transition_duration still hold the out values
+                        scene_transition_active   = true;
+                        scene_transition_dir      = "in";
+                        scene_transition_frames   = 0;
+                        scene_transition_progress = 0.0;
+                    } else {
+                        scene_transition_active   = false;
+                        scene_transition_progress = 0.0;
                     }
                 } else if (_is_action) {
                     var _aname    = string_lower(_b.action_name);

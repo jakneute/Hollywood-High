@@ -642,6 +642,26 @@ function play_from_index(_idx) {
     action_modal_edit_mode     = false;
     scene_modal_open           = false;
     scene_modal_edit_mode      = false;
+    // Pre-init transition so the overlay is black from frame 1 (before step_tts_playback runs)
+    scene_transition_active   = false;
+    scene_transition_progress = 0.0;
+    scene_out_transitioning   = false;
+    trans_in_picker_open      = false;
+    trans_out_picker_open     = false;
+    if (_idx >= 0 && _idx < array_length(script_blocks)) {
+        var _pfi_b = script_blocks[_idx];
+        if (variable_struct_exists(_pfi_b, "type") && _pfi_b.type == "scene") {
+            var _pfi_tin = variable_struct_exists(_pfi_b, "transition_in") ? _pfi_b.transition_in : "none";
+            if (_pfi_tin != "none") {
+                scene_transition_active   = true;
+                scene_transition_type     = _pfi_tin;
+                scene_transition_dir      = "in";
+                scene_transition_frames   = 0;
+                scene_transition_progress = 0.0;
+                scene_transition_duration = variable_struct_exists(_pfi_b, "transition_in_speed") ? _pfi_b.transition_in_speed : 60;
+            }
+        }
+    }
     update_preview_actors_for_block(_idx, false);
     playing_block_index  = _idx;
     playing_linked_index = -1;
@@ -694,6 +714,11 @@ function stop_playback() {
     active_shots         = [];
     waiting_for_shots    = false;
     quake_x = 0; quake_y = 0; quake_frames = 0; quake_tied_to_chain = false; quake_chain_start = -1;
+    scene_transition_active   = false;
+    scene_transition_progress = 0.0;
+    scene_out_transitioning   = false;
+    trans_in_picker_open      = false;
+    trans_out_picker_open     = false;
     for (var _pai = 0; _pai < array_length(preview_actors); _pai++) {
         preview_actors[_pai].jitter_x = 0;
         preview_actors[_pai].jitter_y = 0;

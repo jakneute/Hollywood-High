@@ -82,6 +82,15 @@ fx_picker_open          = false;
 fx_picker_scroll        = 0;      // top item index currently visible
 fx_picker_sb_dragging   = false;
 fx_picker_sb_drag_offset = 0;
+trans_in_picker_open    = false;
+trans_out_picker_open   = false;
+scene_transition_active   = false;
+scene_transition_type     = "none";
+scene_transition_dir      = "in";
+scene_transition_progress = 0.0;
+scene_transition_frames   = 0;
+scene_transition_duration = 30;
+scene_out_transitioning   = false;
 heat_surface = -1;
 btn_theater_x = 880; btn_theater_y = 15; btn_theater_w = 140; btn_theater_h = 35;
 

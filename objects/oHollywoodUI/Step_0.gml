@@ -257,6 +257,7 @@ if (playing_block_index != -1) {
     for (var _bli = 0; _bli < array_length(preview_actors); _bli++) {
         var _bla = preview_actors[_bli];
         if (!variable_struct_exists(_bla, "is_decapitated") || !_bla.is_decapitated) continue;
+        if (variable_struct_exists(_bla, "is_knocked_down") && _bla.is_knocked_down) continue;
         if (!variable_struct_exists(_bla, "blood_timer")) _bla.blood_timer = 0;
         _bla.blood_timer++;
         var _btrig = 70 + irandom(60);
@@ -1457,6 +1458,49 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
         return;
     }
 
+    // --- IN / OUT transition picker item click ---
+    if (trans_in_picker_open || trans_out_picker_open) {
+        var _tr_names_s  = ["none","fade","iris","wipe_left","wipe_right","wipe_top","wipe_bottom","barn_door"];
+        var _tr_count_s  = array_length(_tr_names_s);
+        var _tr_item_h_s = 22;
+        var _tr_sep_s    = 5;
+        var _tr_spd_h_s  = 28;
+        var _tr_w_s      = 140;
+        var _tr_h_s      = _tr_count_s * _tr_item_h_s + _tr_sep_s + _tr_spd_h_s;
+        var _in_btn_x_s  = _fx_btn_x + _fx_btn_w + 10;
+        var _out_btn_x_s = _in_btn_x_s + 88 + 5;
+        var _open_in_s   = trans_in_picker_open;
+        var _tr_bx_s     = _open_in_s ? _in_btn_x_s : _out_btn_x_s;
+        var _tr_by_s     = scene_win_y - 10;
+        var _tkey_s      = _open_in_s ? "transition_in"       : "transition_out";
+        var _tspk_s      = _open_in_s ? "transition_in_speed"  : "transition_out_speed";
+        if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+            var _trb_s = script_blocks[active_scene_block_idx];
+            // Effect rows
+            if (_mx > _tr_bx_s && _mx < _tr_bx_s + _tr_w_s && _my > _tr_by_s && _my < _tr_by_s + _tr_count_s * _tr_item_h_s) {
+                var _picked_tr = floor((_my - _tr_by_s) / _tr_item_h_s);
+                if (_picked_tr >= 0 && _picked_tr < _tr_count_s)
+                    variable_struct_set(_trb_s, _tkey_s, _tr_names_s[_picked_tr]);
+            }
+            // Speed buttons
+            var _tspd_by_s = _tr_by_s + _tr_count_s * _tr_item_h_s + _tr_sep_s;
+            var _spd_bw_s  = floor((_tr_w_s - 10) / 3);
+            var _spd_vals_s = [30, 60, 90];
+            for (var _spi = 0; _spi < 3; _spi++) {
+                var _sbx_s = _tr_bx_s + 5 + _spi * _spd_bw_s;
+                if (_mx > _sbx_s && _mx < _sbx_s + _spd_bw_s - 1 && _my > _tspd_by_s && _my < _tspd_by_s + _tr_spd_h_s - 4)
+                    variable_struct_set(_trb_s, _tspk_s, _spd_vals_s[_spi]);
+            }
+        }
+        // Only close if click was outside picker bounds
+        var _in_picker_s = (_mx > _tr_bx_s && _mx < _tr_bx_s + _tr_w_s && _my > _tr_by_s && _my < _tr_by_s + _tr_h_s);
+        if (!_in_picker_s) {
+            trans_in_picker_open  = false;
+            trans_out_picker_open = false;
+        }
+        return;
+    }
+
     // --- STAGING label click → exit staging ---
     if (_mx > _ind_x && _mx < _ind_x + 110 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
         scene_edit_mode = false;
@@ -1471,8 +1515,24 @@ if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
             return;
         }
     }
+
+    // --- IN / OUT button clicks → open pickers ---
+    if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+        var _in_btn_x_op  = _fx_btn_x + _fx_btn_w + 10;
+        var _out_btn_x_op = _in_btn_x_op + 88 + 5;
+        if (_mx > _in_btn_x_op && _mx < _in_btn_x_op + 88 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
+            trans_in_picker_open  = true;
+            trans_out_picker_open = false;
+            return;
+        }
+        if (_mx > _out_btn_x_op && _mx < _out_btn_x_op + 90 && _my > scene_win_y - 45 && _my < scene_win_y - 10) {
+            trans_out_picker_open = true;
+            trans_in_picker_open  = false;
+            return;
+        }
+    }
 }
-if (!scene_edit_mode) { fx_picker_open = false; fx_picker_scroll = 0; }
+if (!scene_edit_mode) { fx_picker_open = false; fx_picker_scroll = 0; trans_in_picker_open = false; trans_out_picker_open = false; }
 
 // --- FX picker scroll wheel + scrollbar drag (runs every step) ---
 if (fx_picker_open) {
@@ -2994,9 +3054,9 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                         var _nx = _px;
                         var _ny = _py;
 
-                        var _c = characters[dragging_char_index];
-                        var _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
-                        var _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
+                        _c = characters[dragging_char_index];
+                        _pose = variable_struct_exists(_c, "pose") ? _c.pose : 1;
+                        _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
 
                         // Carry injury state from any hidden pre-injured preview actor
                         var _sa_new = { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face, pose: _pose, expression: _expr };
