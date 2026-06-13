@@ -768,6 +768,12 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
     }
 }
 
+// Reset staging injury defaults when scene changes — injuries don't carry between scenes
+if (active_scene_block_idx != prev_active_scene_block_idx) {
+    char_entry_knock_state      = array_create(22, 0);
+    char_entry_decap_state      = array_create(22, 0);
+    prev_active_scene_block_idx = active_scene_block_idx;
+}
 // --- SCALE PANEL INTERACTION (staging + off-stage entry scale, mutually exclusive with particle edit) ---
 if (particle_edit_mode || current_scene_sprite == -1
     || (selected_character_index != -1 && characters[selected_character_index].name == "NARRATOR")) staging_scale_drag = false;
@@ -854,6 +860,61 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
             }
         } else {
             scale_key_repeat_timer = 0;
+        }
+    }
+    // Injury state panel click
+    if (mouse_check_button_pressed(mb_left)) {
+        var _inj_pw2 = 72; var _inj_ph2 = 208;
+        var _inj_px2 = _sp2_on_right ? (_sp2_px - _inj_pw2 - 4) : (_sp2_px + _sp2_pw + 4);
+        var _inj_py2 = scene_win_y + (scene_win_h - _inj_ph2) / 2;
+        var _inj_ci2 = selected_character_index;
+        for (var _fi2 = 0; _fi2 < 3; _fi2++) {
+            var _fy2 = _inj_py2 + 42 + _fi2 * 24;
+            if (_mx > _inj_px2 + 2 && _mx < _inj_px2 + _inj_pw2 - 2 && _my > _fy2 && _my < _fy2 + 18) {
+                char_entry_knock_state[_inj_ci2] = _fi2;
+                if (scene_edit_mode && _sp2_act_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                    var _inj_sb = script_blocks[active_scene_block_idx];
+                    if (variable_struct_exists(_inj_sb, "actors")) {
+                        for (var _inj_ai = 0; _inj_ai < array_length(_inj_sb.actors); _inj_ai++) {
+                            if (_inj_sb.actors[_inj_ai].char_index == _inj_ci2) {
+                                var _inj_sa = _inj_sb.actors[_inj_ai];
+                                if (_fi2 == 0) {
+                                    _inj_sa.is_knocked_down = false;
+                                } else {
+                                    _inj_sa.is_knocked_down = true;
+                                    _inj_sa.knock_direction = (_fi2 == 1) ? "forwards" : "backwards";
+                                    var _inj_kface = variable_struct_exists(preview_actors[_sp2_act_idx], "facing") ? preview_actors[_sp2_act_idx].facing : 1;
+                                    _inj_sa.knock_angle = (_inj_sa.knock_direction == "forwards") ? (_inj_kface * 90) : (-_inj_kface * 90);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        for (var _di2 = 0; _di2 < 3; _di2++) {
+            var _dy2 = _inj_py2 + 136 + _di2 * 24;
+            if (_mx > _inj_px2 + 2 && _mx < _inj_px2 + _inj_pw2 - 2 && _my > _dy2 && _my < _dy2 + 18) {
+                char_entry_decap_state[_inj_ci2] = _di2;
+                if (scene_edit_mode && _sp2_act_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                    var _inj_sb2 = script_blocks[active_scene_block_idx];
+                    if (variable_struct_exists(_inj_sb2, "actors")) {
+                        for (var _inj_ai2 = 0; _inj_ai2 < array_length(_inj_sb2.actors); _inj_ai2++) {
+                            if (_inj_sb2.actors[_inj_ai2].char_index == _inj_ci2) {
+                                var _inj_sa2 = _inj_sb2.actors[_inj_ai2];
+                                if (_di2 == 0) {
+                                    _inj_sa2.is_decapitated = false;
+                                } else {
+                                    _inj_sa2.is_decapitated = true;
+                                    _inj_sa2.decap_mode = (_di2 == 1) ? "remove_head" : "remove_body";
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -1618,6 +1679,20 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                                     _hpa.knock_angle = (_hpa_kdir == "forwards") ? (_hpa_face * 90) : (-_hpa_face * 90);
                                 }
                                 break;
+                            }
+                        }
+                        // Apply char_entry staging injury if no hidden actor provided it
+                        if (!variable_struct_exists(_sa_new, "is_knocked_down") && !variable_struct_exists(_sa_new, "is_decapitated")) {
+                            var _drop_ks = char_entry_knock_state[dragging_char_index];
+                            var _drop_ds = char_entry_decap_state[dragging_char_index];
+                            if (_drop_ks > 0) {
+                                _sa_new.is_knocked_down = true;
+                                _sa_new.knock_direction = (_drop_ks == 1) ? "forwards" : "backwards";
+                                _sa_new.knock_angle = (_sa_new.knock_direction == "forwards") ? (_face * 90) : (-_face * 90);
+                            }
+                            if (_drop_ds > 0) {
+                                _sa_new.is_decapitated = true;
+                                _sa_new.decap_mode = (_drop_ds == 1) ? "remove_head" : "remove_body";
                             }
                         }
                         array_push(_scene.actors, _sa_new);

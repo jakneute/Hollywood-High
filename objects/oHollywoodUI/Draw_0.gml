@@ -1610,6 +1610,59 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
     draw_set_color(_sp_rst_hov ? make_color_rgb(180, 60, 30) : make_color_rgb(120, 35, 20));
     draw_roundrect_ext(_sp_px + 4, _sp_rst_y, _sp_px + _sp_pw - 4, _sp_rst_y + 22, 3, 3, false);
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_sp_cx, _sp_rst_y + 5, "RST"); draw_set_halign(fa_left);
+    // --- INJURY STATE PANEL ---
+    var _inj_pw = 72; var _inj_ph = 208;
+    var _inj_px = _sp_on_right ? (_sp_px - _inj_pw - 4) : (_sp_px + _sp_pw + 4);
+    var _inj_py = scene_win_y + (scene_win_h - _inj_ph) / 2;
+    var _inj_cx = _inj_px + _inj_pw / 2;
+    var _inj_ks = char_entry_knock_state[selected_character_index];
+    var _inj_ds = char_entry_decap_state[selected_character_index];
+    if (_sp_act_idx != -1 && scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+        var _inj_scene = script_blocks[active_scene_block_idx];
+        if (variable_struct_exists(_inj_scene, "actors")) {
+            for (var _isai = 0; _isai < array_length(_inj_scene.actors); _isai++) {
+                if (_inj_scene.actors[_isai].char_index == selected_character_index) {
+                    var _isa = _inj_scene.actors[_isai];
+                    _inj_ks = (variable_struct_exists(_isa, "is_knocked_down") && _isa.is_knocked_down)
+                            ? ((variable_struct_exists(_isa, "knock_direction") && _isa.knock_direction == "backwards") ? 2 : 1) : 0;
+                    _inj_ds = (variable_struct_exists(_isa, "is_decapitated") && _isa.is_decapitated)
+                            ? ((variable_struct_exists(_isa, "decap_mode") && _isa.decap_mode == "remove_body") ? 2 : 1) : 0;
+                    break;
+                }
+            }
+        }
+    }
+    draw_set_color(make_color_rgb(38, 18, 18)); draw_set_alpha(0.88);
+    draw_rectangle(_inj_px, _inj_py, _inj_px + _inj_pw, _inj_py + _inj_ph, false);
+    draw_set_alpha(1.0);
+    draw_set_color(make_color_rgb(140, 45, 22));
+    draw_rectangle(_inj_px, _inj_py, _inj_px + _inj_pw, _inj_py + _inj_ph, true);
+    draw_set_color(make_color_rgb(220, 130, 55));
+    draw_set_halign(fa_center); draw_text(_inj_cx, _inj_py + 6, "INJURY"); draw_set_halign(fa_left);
+    draw_set_color(make_color_rgb(180, 100, 40));
+    draw_set_halign(fa_center); draw_text(_inj_cx, _inj_py + 24, "FALL"); draw_set_halign(fa_left);
+    var _fall_lbls = ["NONE", "FWD", "BCK"];
+    for (var _fi = 0; _fi < 3; _fi++) {
+        var _fy = _inj_py + 42 + _fi * 24;
+        var _fsel = (_inj_ks == _fi);
+        var _fhov = (_mx > _inj_px + 2 && _mx < _inj_px + _inj_pw - 2 && _my > _fy && _my < _fy + 18);
+        draw_set_color(_fsel ? make_color_rgb(190, 55, 22) : (_fhov ? make_color_rgb(90, 35, 20) : make_color_rgb(50, 22, 16)));
+        draw_roundrect_ext(_inj_px + 2, _fy, _inj_px + _inj_pw - 2, _fy + 18, 3, 3, false);
+        draw_set_color(_fsel ? c_white : make_color_rgb(190, 130, 80));
+        draw_set_halign(fa_center); draw_text(_inj_cx, _fy + 4, _fall_lbls[_fi]); draw_set_halign(fa_left);
+    }
+    draw_set_color(make_color_rgb(180, 100, 40));
+    draw_set_halign(fa_center); draw_text(_inj_cx, _inj_py + 120, "DECAP"); draw_set_halign(fa_left);
+    var _decap_lbls = ["NONE", "HEAD", "BODY"];
+    for (var _di = 0; _di < 3; _di++) {
+        var _dy = _inj_py + 136 + _di * 24;
+        var _dsel = (_inj_ds == _di);
+        var _dhov = (_mx > _inj_px + 2 && _mx < _inj_px + _inj_pw - 2 && _my > _dy && _my < _dy + 18);
+        draw_set_color(_dsel ? make_color_rgb(190, 55, 22) : (_dhov ? make_color_rgb(90, 35, 20) : make_color_rgb(50, 22, 16)));
+        draw_roundrect_ext(_inj_px + 2, _dy, _inj_px + _inj_pw - 2, _dy + 18, 3, 3, false);
+        draw_set_color(_dsel ? c_white : make_color_rgb(190, 130, 80));
+        draw_set_halign(fa_center); draw_text(_inj_cx, _dy + 4, _decap_lbls[_di]); draw_set_halign(fa_left);
+    }
 }
 
 // --- PARTICLE EDIT MODE OVERLAY ---
@@ -2459,9 +2512,26 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         }
         _drag_inj_src ??= _dsa;
     } else if (dragging_char_index != -1) {
-        // Look up this character's injury state from preview_actors
         for (var _dpi2 = 0; _dpi2 < array_length(preview_actors); _dpi2++) {
             if (preview_actors[_dpi2].char_index == dragging_char_index) { _drag_inj_src = preview_actors[_dpi2]; break; }
+        }
+        // Fallback: char_entry staging state for characters not yet on stage
+        if (_drag_inj_src == undefined) {
+            var _dci_ks = char_entry_knock_state[dragging_char_index];
+            var _dci_ds = char_entry_decap_state[dragging_char_index];
+            if (_dci_ks > 0 || _dci_ds > 0) {
+                _drag_inj_src = {};
+                if (_dci_ks > 0) {
+                    _drag_inj_src.is_knocked_down = true;
+                    var _dci_kdir = (_dci_ks == 1) ? "forwards" : "backwards";
+                    _drag_inj_src.knock_direction = _dci_kdir;
+                    _drag_inj_src.knock_angle = (_dci_kdir == "forwards") ? (_drag_face * 90) : (-_drag_face * 90);
+                }
+                if (_dci_ds > 0) {
+                    _drag_inj_src.is_decapitated = true;
+                    _drag_inj_src.decap_mode = (_dci_ds == 1) ? "remove_head" : "remove_body";
+                }
+            }
         }
     }
     if (_drag_inj_src != undefined) {

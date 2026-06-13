@@ -341,11 +341,16 @@ if (mouse_check_button_pressed(mb_left)) {
                 var _b = script_blocks[k];
                 if (variable_struct_exists(_b, "type")) {
                     if (_b.type == "scene") {
-                        _is_onstage = false;
+                        _is_onstage      = false;
+                        _is_knocked_down = false;
+                        _is_decapitated  = false;
                         if (variable_struct_exists(_b, "actors")) {
                             for (var a = 0; a < array_length(_b.actors); a++) {
                                 if (_b.actors[a].char_index == selected_character_index) {
-                                    _is_onstage = true; break;
+                                    _is_onstage = true;
+                                    _is_knocked_down = variable_struct_exists(_b.actors[a], "is_knocked_down") && _b.actors[a].is_knocked_down;
+                                    _is_decapitated  = variable_struct_exists(_b.actors[a], "is_decapitated")  && _b.actors[a].is_decapitated;
+                                    break;
                                 }
                             }
                         }

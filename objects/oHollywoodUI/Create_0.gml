@@ -581,8 +581,11 @@ drag_off_y = 0;
 active_scene_block_idx = 0; // The index of the scene block currently being viewed
 insertion_idx = -1; // -1 means add to end, >=0 means insert AFTER this index
 char_entry_scales  = array_create(22, 1.0);
-staging_scale_drag       = false;
-scale_key_repeat_timer   = 0;
+staging_scale_drag          = false;
+scale_key_repeat_timer      = 0;
+char_entry_knock_state      = array_create(22, 0);  // 0=none  1=fwd  2=bck
+char_entry_decap_state      = array_create(22, 0);  // 0=none  1=head  2=body
+prev_active_scene_block_idx = -1;
 
 // --- 3bc. SCENE EDIT CONTEXT MENU ---
 scene_edit_menu_open = false;
