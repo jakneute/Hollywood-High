@@ -354,7 +354,7 @@ if (scene_modal_open) {
             if (_mx > _m_x + 20 && _mx < _m_x + _m_w - 20 && _my > _c_y && _my < _c_y + 35) {
                 scene_modal_edit_mode = false;
                 scene_sb_dragging = false;
-                scene_modal_open = false; return;
+                scene_modal_open = false; insertion_idx = -1; return;
             }
         }
     }
@@ -772,6 +772,7 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
 if (active_scene_block_idx != prev_active_scene_block_idx) {
     char_entry_knock_state      = array_create(22, 0);
     char_entry_decap_state      = array_create(22, 0);
+    char_entry_foreground       = array_create(22, false);
     prev_active_scene_block_idx = active_scene_block_idx;
 }
 // --- SCALE PANEL INTERACTION (staging + off-stage entry scale, mutually exclusive with particle edit) ---
@@ -840,7 +841,7 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
     }
     // Arrow key fine adjust when slider is hovered or being dragged
     var _sp2_hover = (_mx > _sp2_px && _mx < _sp2_px + _sp2_pw && _my > _sp2_track_top - 12 && _my < _sp2_track_bot + 12);
-    if (staging_scale_drag || _sp2_hover) {
+    if (staging_scale_drag || _sp2_hover || scene_edit_mode) {
         var _sp2_kup = keyboard_check(vk_up);
         var _sp2_kdn = keyboard_check(vk_down);
         if (_sp2_kup || _sp2_kdn) {
@@ -862,9 +863,9 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
             scale_key_repeat_timer = 0;
         }
     }
-    // Injury state panel click
-    if (mouse_check_button_pressed(mb_left)) {
-        var _inj_pw2 = 72; var _inj_ph2 = 208;
+    // Injury state panel click (staging mode only)
+    if (scene_edit_mode && mouse_check_button_pressed(mb_left)) {
+        var _inj_pw2 = 72; var _inj_ph2 = 252;
         var _inj_px2 = _sp2_on_right ? (_sp2_px - _inj_pw2 - 4) : (_sp2_px + _sp2_pw + 4);
         var _inj_py2 = scene_win_y + (scene_win_h - _inj_ph2) / 2;
         var _inj_ci2 = selected_character_index;
@@ -911,6 +912,22 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
                                 }
                                 break;
                             }
+                        }
+                    }
+                }
+            }
+        }
+        // FG toggle
+        var _fgy2 = _inj_py2 + 224;
+        if (_mx > _inj_px2 + 2 && _mx < _inj_px2 + _inj_pw2 - 2 && _my > _fgy2 && _my < _fgy2 + 18) {
+            char_entry_foreground[_inj_ci2] = !char_entry_foreground[_inj_ci2];
+            if (_sp2_act_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                var _fg_sb = script_blocks[active_scene_block_idx];
+                if (variable_struct_exists(_fg_sb, "actors")) {
+                    for (var _fg_ai = 0; _fg_ai < array_length(_fg_sb.actors); _fg_ai++) {
+                        if (_fg_sb.actors[_fg_ai].char_index == _inj_ci2) {
+                            _fg_sb.actors[_fg_ai].is_foreground = char_entry_foreground[_inj_ci2];
+                            break;
                         }
                     }
                 }
@@ -1005,7 +1022,8 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && !trans_in
                 var _bb_h = _bbox.bb_bottom - _bbox.bb_top;
                 var _h_visible = max(0, min(_bbox.bb_right, scene_win_x + scene_win_w) - max(_bbox.bb_left, scene_win_x));
                 var _v_visible = max(0, min(_bbox.bb_bottom, scene_win_y + scene_win_h) - max(_bbox.bb_top, scene_win_y));
-                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _bb_w * 0.20) && (_v_visible >= _bb_h * 0.20);
+                // Cap at 80px so large-scale actors (200%+) whose bbox extends outside scene don't get deleted
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= min(_bb_w * 0.20, 80)) && (_v_visible >= min(_bb_h * 0.20, 80));
 
                 if (!_in_live) {
                     array_delete(_scene.actors, dragging_actor_idx, 1);
@@ -1175,9 +1193,11 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                 var _bb_h = _bbox.bb_bottom - _bbox.bb_top;
                 var _h_visible = max(0, min(_bbox.bb_right, scene_win_x + scene_win_w) - max(_bbox.bb_left, scene_win_x));
                 var _v_visible = max(0, min(_bbox.bb_bottom, scene_win_y + scene_win_h) - max(_bbox.bb_top, scene_win_y));
-                var _in_live = (current_scene_sprite != -1) && (_h_visible >= _bb_w * 0.20) && (_v_visible >= _bb_h * 0.20);
+                // Cap at 80px so large-scale actors don't snap/exit when mostly above scene
+                var _in_live = (current_scene_sprite != -1) && (_h_visible >= min(_bb_w * 0.20, 80)) && (_v_visible >= min(_bb_h * 0.20, 80));
+                var _v_snap_thresh = min(_bb_h * 0.20, 80);
 
-                if (_v_visible < _bb_h * 0.20) {
+                if (_v_visible < _v_snap_thresh) {
                     // Vertically out of bounds — snap pivot to edge
                     if (_bbox.bb_top < scene_win_y) {
                         _act.y = _act.y + (scene_win_y - _bbox.bb_top);
@@ -1694,6 +1714,9 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                                 _sa_new.is_decapitated = true;
                                 _sa_new.decap_mode = (_drop_ds == 1) ? "remove_head" : "remove_body";
                             }
+                        }
+                        if (char_entry_foreground[dragging_char_index]) {
+                            _sa_new.is_foreground = true;
                         }
                         array_push(_scene.actors, _sa_new);
                         scene_edit_selected_actor_idx = array_length(_scene.actors) - 1;

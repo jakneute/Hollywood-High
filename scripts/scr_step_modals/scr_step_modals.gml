@@ -1027,7 +1027,7 @@ function step_modal_movement() {
             move_modal_open = false;
         }
         if (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            move_modal_edit_mode = false; move_modal_open = false;
+            move_modal_edit_mode = false; move_modal_open = false; insertion_idx = -1;
         }
     }
     // End Scale slider — continuous drag
@@ -1145,7 +1145,7 @@ function step_modal_pose() {
             pose_modal_open = false; pose_modal_edit_mode = false;
         }
         if (_mx > _m_x + 440 && _mx < _m_x + 590 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            pose_modal_open = false; pose_modal_edit_mode = false;
+            pose_modal_open = false; pose_modal_edit_mode = false; insertion_idx = -1;
         }
     }
 }
@@ -1208,7 +1208,7 @@ function step_modal_expression() {
             expression_modal_open = false; expression_modal_edit_mode = false;
         }
         if (_mx > _m_x + 525 && _mx < _m_x + 675 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
-            expression_modal_open = false; expression_modal_edit_mode = false;
+            expression_modal_open = false; expression_modal_edit_mode = false; insertion_idx = -1;
         }
     }
 }
@@ -1318,6 +1318,7 @@ function step_modal_pose_expr() {
         if (_mx > _cx_pe && _mx < _cx_pe + _btn_w_pe && _my > _btn_y_pe && _my < _btn_y_pe + _btn_h_pe) {
             pose_expr_modal_open = false;
             pose_modal_edit_mode = false; expression_modal_edit_mode = false;
+            insertion_idx = -1;
             return;
         }
     }
@@ -1816,7 +1817,7 @@ function step_modal_action() {
             }
         }
         if (_mx > _mxo+_mw-130 && _mx < _mxo+_mw-20 && _my > _myo+_mh-50 && _my < _myo+_mh-15) {
-            action_modal_edit_mode = false; action_modal_open = false; return;
+            action_modal_edit_mode = false; action_modal_open = false; insertion_idx = -1; return;
         }
     }
 

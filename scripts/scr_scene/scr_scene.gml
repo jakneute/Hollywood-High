@@ -414,6 +414,9 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                     _pa_base.is_decapitated = true;
                     _pa_base.decap_mode = variable_struct_exists(_sa, "decap_mode") ? _sa.decap_mode : "remove_head";
                 }
+                if (variable_struct_exists(_sa, "is_foreground") && _sa.is_foreground) {
+                    _pa_base.is_foreground = true;
+                }
                 array_push(preview_actors, _pa_base);
                 char_facings[_sa.char_index] = _face;
             }

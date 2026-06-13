@@ -545,6 +545,9 @@ function step_tts_playback() {
                                 _pa.decap_mode = variable_struct_exists(_act, "decap_mode") ? _act.decap_mode : "remove_head";
                                 _pa.injured = true;
                             }
+                            if (variable_struct_exists(_act, "is_foreground") && _act.is_foreground) {
+                                _pa.is_foreground = true;
+                            }
                             array_push(preview_actors, _pa);
                             char_facings[_act.char_index] = _face;
                         }

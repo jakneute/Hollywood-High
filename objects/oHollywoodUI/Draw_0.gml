@@ -158,7 +158,7 @@ if (theater_mode) {
 		_mask_sprite = get_scene_sprite(_mask_name);
 	}
 
-	var draw_theater_actors = function(_stg_w, _stg_h, _stg_x, _stg_y, target_surface = -1, _scale_filter = 0) {
+	var draw_theater_actors = function(_stg_w, _stg_h, _stg_x, _stg_y, target_surface = -1, _scale_filter = 0, _fg_filter = 0) {
 		gpu_set_texfilter(false);
 		var _draw_order = [];
 		for (var _sdi = 0; _sdi < array_length(preview_actors); _sdi++) {
@@ -178,6 +178,9 @@ if (theater_mode) {
 			var _act_scale_th = _act[$ "scale"] ?? 1.0;
 			if (_scale_filter == -1 && _act_scale_th > 1.0) continue;
 			if (_scale_filter ==  1 && _act_scale_th <= 1.0) continue;
+			var _act_is_fg_th = variable_struct_exists(_act, "is_foreground") && _act.is_foreground;
+			if (_fg_filter == -1 && _act_is_fg_th) continue;
+			if (_fg_filter ==  1 && !_act_is_fg_th) continue;
 			var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
 			var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 21;
 			var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
@@ -415,7 +418,7 @@ if (theater_mode) {
 		}
 		surface_set_target(o_char_surface);
 		draw_clear_alpha(c_black, 0);
-		draw_theater_actors(_stage_w, _stage_h, _stage_x, _stage_y, o_char_surface, 0);
+		draw_theater_actors(_stage_w, _stage_h, _stage_x, _stage_y, o_char_surface, 0, -1);
 		surface_reset_target();
 
 		if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != _stage_w || surface_get_height(o_mask_surface) != _stage_h) {
@@ -623,6 +626,9 @@ if (theater_mode) {
         gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
         var _mq_x = quake_x * (_stage_w / scene_win_w); var _mq_y = quake_y * (_stage_h / scene_win_h);
         draw_sprite_ext(_mask_sprite, 0, _stage_x + _mq_x, _stage_y + _mq_y, _bg_sc, _bg_sc, 0, c_white, 1);
+        // FG-tagged actors drawn on top of foreground sprite (bypass mask clipping)
+        gpu_set_scissor(_stage_x, _stage_y, _stage_w, _stage_h);
+        draw_theater_actors(_stage_w, _stage_h, _stage_x, _stage_y, -1, 0, 1);
         gpu_set_scissor(0, 0, 1280, 960);
     }
 
@@ -840,7 +846,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	}
 
 	// --- Actor Drawing Logic ---
-	var draw_editor_actors = function(_s, target_surface = -1, _draw_outline = true, _draw_sprite = true, _scale_filter = 0) {
+	var draw_editor_actors = function(_s, target_surface = -1, _draw_outline = true, _draw_sprite = true, _scale_filter = 0, _fg_filter = 0) {
 		if (variable_struct_exists(_s, "actors")) {
 			gpu_set_texfilter(false);
 			var _ed_order = [];
@@ -861,6 +867,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 				var _act_scale_ed = _act[$ "scale"] ?? 1.0;
 				if (_scale_filter == -1 && _act_scale_ed > 1.0) continue;
 				if (_scale_filter ==  1 && _act_scale_ed <= 1.0) continue;
+				var _act_is_fg_ed = variable_struct_exists(_act, "is_foreground") && _act.is_foreground;
+				if (_fg_filter == -1 && _act_is_fg_ed) continue;
+				if (_fg_filter ==  1 && !_act_is_fg_ed) continue;
 
 				var _is_being_dragged = false;
 				if (dragging_actor_idx != -1 && dragging_actor_idx < array_length(_s.actors) && _s.actors[dragging_actor_idx].char_index == _act.char_index) _is_being_dragged = true;
@@ -1130,7 +1139,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		}
 		surface_set_target(o_char_surface);
 		draw_clear_alpha(c_black, 0);
-		draw_editor_actors(_scene, o_char_surface, false, true, 0);
+		draw_editor_actors(_scene, o_char_surface, false, true, 0, -1);
 		surface_reset_target();
 
 		if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != scene_win_w || surface_get_height(o_mask_surface) != scene_win_h) {
@@ -1352,6 +1361,9 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		var _fg_scale_x = scene_win_w / sprite_get_width(_mask_sprite);
 		var _fg_scale_y = scene_win_h / sprite_get_height(_mask_sprite);
 		draw_sprite_ext(_mask_sprite, 0, scene_win_x + quake_x, scene_win_y + quake_y, _fg_scale_x, _fg_scale_y, 0, c_white, 1);
+		// FG-tagged actors drawn on top of foreground sprite (bypass mask clipping)
+		gpu_set_scissor(scene_win_x, scene_win_y, scene_win_w, scene_win_h);
+		draw_editor_actors(_scene, -1, false, true, 0, 1);
 		gpu_set_scissor(0, 0, 1280, 960);
 	}
 
@@ -1610,14 +1622,16 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
     draw_set_color(_sp_rst_hov ? make_color_rgb(180, 60, 30) : make_color_rgb(120, 35, 20));
     draw_roundrect_ext(_sp_px + 4, _sp_rst_y, _sp_px + _sp_pw - 4, _sp_rst_y + 22, 3, 3, false);
     draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_sp_cx, _sp_rst_y + 5, "RST"); draw_set_halign(fa_left);
-    // --- INJURY STATE PANEL ---
-    var _inj_pw = 72; var _inj_ph = 208;
+    // --- INJURY STATE PANEL (staging mode only) ---
+    if (scene_edit_mode) {
+    var _inj_pw = 72; var _inj_ph = 252;
     var _inj_px = _sp_on_right ? (_sp_px - _inj_pw - 4) : (_sp_px + _sp_pw + 4);
     var _inj_py = scene_win_y + (scene_win_h - _inj_ph) / 2;
     var _inj_cx = _inj_px + _inj_pw / 2;
     var _inj_ks = char_entry_knock_state[selected_character_index];
     var _inj_ds = char_entry_decap_state[selected_character_index];
-    if (_sp_act_idx != -1 && scene_edit_mode && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+    var _inj_fg = char_entry_foreground[selected_character_index];
+    if (_sp_act_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
         var _inj_scene = script_blocks[active_scene_block_idx];
         if (variable_struct_exists(_inj_scene, "actors")) {
             for (var _isai = 0; _isai < array_length(_inj_scene.actors); _isai++) {
@@ -1627,6 +1641,7 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
                             ? ((variable_struct_exists(_isa, "knock_direction") && _isa.knock_direction == "backwards") ? 2 : 1) : 0;
                     _inj_ds = (variable_struct_exists(_isa, "is_decapitated") && _isa.is_decapitated)
                             ? ((variable_struct_exists(_isa, "decap_mode") && _isa.decap_mode == "remove_body") ? 2 : 1) : 0;
+                    _inj_fg = variable_struct_exists(_isa, "is_foreground") && _isa.is_foreground;
                     break;
                 }
             }
@@ -1663,6 +1678,16 @@ if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && pl
         draw_set_color(_dsel ? c_white : make_color_rgb(190, 130, 80));
         draw_set_halign(fa_center); draw_text(_inj_cx, _dy + 4, _decap_lbls[_di]); draw_set_halign(fa_left);
     }
+    // --- FG toggle ---
+    draw_set_color(make_color_rgb(60, 100, 180));
+    draw_set_halign(fa_center); draw_text(_inj_cx, _inj_py + 206, "FORE"); draw_set_halign(fa_left);
+    var _fgy = _inj_py + 224;
+    var _fghov = (_mx > _inj_px + 2 && _mx < _inj_px + _inj_pw - 2 && _my > _fgy && _my < _fgy + 18);
+    draw_set_color(_inj_fg ? make_color_rgb(40, 100, 200) : (_fghov ? make_color_rgb(35, 55, 100) : make_color_rgb(22, 30, 60)));
+    draw_roundrect_ext(_inj_px + 2, _fgy, _inj_px + _inj_pw - 2, _fgy + 18, 3, 3, false);
+    draw_set_color(_inj_fg ? c_white : make_color_rgb(100, 140, 210));
+    draw_set_halign(fa_center); draw_text(_inj_cx, _fgy + 4, _inj_fg ? "ON" : "OFF"); draw_set_halign(fa_left);
+    } // end scene_edit_mode injury panel
 }
 
 // --- PARTICLE EDIT MODE OVERLAY ---

@@ -585,6 +585,7 @@ staging_scale_drag          = false;
 scale_key_repeat_timer      = 0;
 char_entry_knock_state      = array_create(22, 0);  // 0=none  1=fwd  2=bck
 char_entry_decap_state      = array_create(22, 0);  // 0=none  1=head  2=body
+char_entry_foreground       = array_create(22, false);
 prev_active_scene_block_idx = -1;
 
 // --- 3bc. SCENE EDIT CONTEXT MENU ---
