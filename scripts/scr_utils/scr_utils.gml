@@ -79,6 +79,82 @@ function get_text_pos(_txt, _target_pos, _wrap_w, _line_h) {
     return { x: _tx, y: _ty };
 }
 
+// Fast caret-from-click: single pass through text, checks word-wrap once per word,
+// exits early once we've passed the clicked line. O(line_length) vs O(n^2) for get_text_pos loop.
+function get_caret_at_pos(_txt, _rx, _ry, _wrap_w, _line_h) {
+    var _n = string_length(_txt);
+    var _best_p = 0;
+    var _min_d  = point_distance(_rx, _ry, 0, 0);
+    var _px = 0; var _py = 0;
+    var _word_checked = false;
+    for (var _ci = 1; _ci <= _n; _ci++) {
+        var _c  = string_char_at(_txt, _ci);
+        var _cw = string_width(_c);
+        if (_c == " " || _c == "\n") {
+            _px += _cw;
+            if (_c == "\n") { _px = 0; _py += _line_h; }
+            _word_checked = false;
+        } else {
+            if (!_word_checked) {
+                var _nsp  = string_pos_ext(" ",  _txt, _ci);
+                var _nnl  = string_pos_ext("\n", _txt, _ci);
+                var _wend = _n;
+                if (_nsp > 0) _wend = min(_wend, _nsp - 1);
+                if (_nnl > 0) _wend = min(_wend, _nnl - 1);
+                var _word = string_copy(_txt, _ci, _wend - _ci + 1);
+                if (_px + string_width(_word) > _wrap_w && _px > 0) { _px = 0; _py += _line_h; }
+                _word_checked = true;
+            }
+            _px += _cw;
+        }
+        var _d = point_distance(_rx, _ry, _px, _py);
+        if (_d < _min_d) { _min_d = _d; _best_p = _ci; }
+        if (_py > _ry + _line_h) break; // past clicked line, can't improve
+    }
+    return _best_p;
+}
+
+// Find the caret position on a specific wrapped line closest in x to target_x.
+// Returns -1 if the target line doesn't exist in the text.
+function get_caret_on_line(_txt, _target_y, _target_x, _wrap_w, _line_h) {
+    var _n = string_length(_txt);
+    var _px = 0; var _py = 0;
+    var _word_checked = false;
+    var _best_p = -1; var _min_dx = 999999;
+    var _found = false;
+    // Check position 0 if target is first line
+    if (_target_y == 0) { _best_p = 0; _min_dx = abs(_target_x); }
+    for (var _ci = 1; _ci <= _n; _ci++) {
+        var _c = string_char_at(_txt, _ci);
+        var _cw = string_width(_c);
+        if (_c == " " || _c == "\n") {
+            _px += _cw;
+            if (_c == "\n") { _px = 0; _py += _line_h; }
+            _word_checked = false;
+        } else {
+            if (!_word_checked) {
+                var _nsp = string_pos_ext(" ",  _txt, _ci);
+                var _nnl = string_pos_ext("\n", _txt, _ci);
+                var _wend = _n;
+                if (_nsp > 0) _wend = min(_wend, _nsp - 1);
+                if (_nnl > 0) _wend = min(_wend, _nnl - 1);
+                var _word = string_copy(_txt, _ci, _wend - _ci + 1);
+                if (_px + string_width(_word) > _wrap_w && _px > 0) { _px = 0; _py += _line_h; }
+                _word_checked = true;
+            }
+            _px += _cw;
+        }
+        if (_py == _target_y) {
+            var _dx = abs(_target_x - _px);
+            if (_dx < _min_dx) { _min_dx = _dx; _best_p = _ci; }
+            _found = true;
+        } else if (_found) {
+            break; // past target line
+        }
+    }
+    return _best_p;
+}
+
 function get_link_type(_block) {
     if (variable_struct_exists(_block, "type") && _block.type == "action") {
         var _aname = string_lower(_block.action_name);
@@ -103,7 +179,7 @@ function get_link_type(_block) {
 function has_driving_event_in_chain(_blocks_to_start) {
     for (var _i = 0; _i < array_length(_blocks_to_start); _i++) {
         var _ctype = get_link_type(_blocks_to_start[_i]);
-        if (_ctype == "sfx" || _ctype == "move" || _ctype == "canned" || _ctype == "kill") {
+        if (_ctype == "sfx" || _ctype == "move" || _ctype == "canned" || _ctype == "kill" || _ctype == "injure") {
             return true;
         }
         if (variable_struct_exists(_blocks_to_start[_i], "action_name") && string_pos("wait", string_lower(_blocks_to_start[_i].action_name)) > 0) {

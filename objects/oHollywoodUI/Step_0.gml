@@ -508,12 +508,19 @@ if (file_menu_open) {
                     ds_map_clear(char_offsets_cache);
                     ds_map_clear(char_expr_cache);
                     ds_map_clear(mouth_anim_cache);
-                    update_all_block_heights();
+                    // Heights are stored in the file; only recompute blocks that are missing one (old saves)
+                    for (var _bhi = 0; _bhi < array_length(script_blocks); _bhi++) {
+                        if (!variable_struct_exists(script_blocks[_bhi], "height")) update_block_height(_bhi);
+                    }
                     focused_block = -1; playing_block_index = -1; playing_linked_index = -1;
                     scene_edit_mode = false; insertion_idx = -1;
                     selection_start = 0; selection_end = 0; is_selecting = false;
                     is_speaking = false; audio_stop_all(); tts_stop(); block_scroll_y = 0;
-                    if (array_length(script_blocks) > 0) { play_from_index(0); playing_block_index = -1; }
+                    active_animations = []; active_particles = []; active_emitters = [];
+                    active_beams = []; active_explosions = []; active_decap_heads = []; active_shots = [];
+                    action_animating = false; waiting_for_shots = false;
+                    quake_x = 0; quake_y = 0; quake_frames = 0;
+                    if (array_length(script_blocks) > 0) { update_preview_actors_for_block(0, false); }
                     else { preview_actors = []; current_scene_sprite = -1; set_scene_dimensions(-1); }
                 } catch(_e) { show_message("Error loading script file! Invalid format."); }
                 script_dirty = false;
@@ -526,13 +533,15 @@ if (file_menu_open) {
             if (_file != "") {
                 var _sf = file_text_open_write(_file);
                 if (_sf != -1) {
-                    file_text_write_string(_sf, "FADE IN:\n\n\n");
                     for (var _bi = 0; _bi < array_length(script_blocks); _bi++) {
                         var _bl = script_blocks[_bi];
                         var _btype = variable_struct_exists(_bl, "type") ? _bl.type : "voice";
 
                         if (_btype == "scene") {
-                            file_text_write_string(_sf, "SCENE: " + string_upper(_bl.name) + "\n\n");
+                            var _sname = string_upper(_bl.name);
+                            var _custom_pos = string_pos(" (CUSTOM)", _sname);
+                            if (_custom_pos > 0) _sname = string_copy(_sname, 1, _custom_pos - 1);
+                            file_text_write_string(_sf, "SCENE: " + _sname + "\n\n");
 
                         } else if (_btype == "action") {
                             if (variable_struct_exists(_bl, "offscreen_pre") && _bl.offscreen_pre) continue;
@@ -543,8 +552,26 @@ if (file_menu_open) {
                             if (string_pos("WAIT", _aname_u) > 0) {
                                 // Silent pause — omit from screenplay prose
                             } else if (string_pos("PLAY SFX", _aname_u) > 0) {
-                                var _sfx = variable_struct_exists(_bl, "sfx_path") ? _bl.sfx_path : "";
-                                file_text_write_string(_sf, "(SOUND EFFECT: " + _sfx + ")\n\n");
+                                var _sfx_raw = variable_struct_exists(_bl, "sfx_path") ? _bl.sfx_path : "";
+                                var _sfx_name = _sfx_raw;
+                                // Strip directory path
+                                var _sfx_len = string_length(_sfx_name);
+                                for (var _pi = _sfx_len; _pi >= 1; _pi--) {
+                                    var _pc = string_char_at(_sfx_name, _pi);
+                                    if (_pc == "/" || _pc == "\\") { _sfx_name = string_copy(_sfx_name, _pi + 1, _sfx_len - _pi); break; }
+                                }
+                                // Strip extension
+                                for (var _pi = string_length(_sfx_name); _pi >= 1; _pi--) {
+                                    if (string_char_at(_sfx_name, _pi) == ".") { _sfx_name = string_copy(_sfx_name, 1, _pi - 1); break; }
+                                }
+                                // Strip trailing _NNN numeric suffix (removes both the underscore and the digits)
+                                var _ni = string_length(_sfx_name);
+                                while (_ni >= 1 && ord(string_char_at(_sfx_name, _ni)) >= 48 && ord(string_char_at(_sfx_name, _ni)) <= 57) _ni--;
+                                if (_ni < string_length(_sfx_name) && _ni >= 1 && string_char_at(_sfx_name, _ni) == "_") _sfx_name = string_copy(_sfx_name, 1, _ni - 1);
+                                // Strip any remaining leading/trailing underscores
+                                while (string_length(_sfx_name) > 0 && string_char_at(_sfx_name, 1) == "_") _sfx_name = string_copy(_sfx_name, 2, string_length(_sfx_name) - 1);
+                                while (string_length(_sfx_name) > 0 && string_char_at(_sfx_name, string_length(_sfx_name)) == "_") _sfx_name = string_copy(_sfx_name, 1, string_length(_sfx_name) - 1);
+                                file_text_write_string(_sf, "(SOUND EFFECT: " + _sfx_name + ")\n\n");
                             } else if (string_pos("DISPLAY TITLE", _aname_u) > 0) {
                                 var _ttl = variable_struct_exists(_bl, "title_text") ? _bl.title_text : "";
                                 if (_ttl != "") file_text_write_string(_sf, "                    TITLE CARD: \"" + _ttl + "\"\n\n");
@@ -564,6 +591,8 @@ if (file_menu_open) {
                                 }
                                 if (string_pos("FELL FORWARDS", _aname_u) > 0)  _display_aname = "falls forwards";
                                 else if (string_pos("FELL BACKWARDS", _aname_u) > 0) _display_aname = "falls backwards";
+                                var _mw_pos = string_pos(" [MOONWALK]", string_upper(_display_aname));
+                                if (_mw_pos > 0) _display_aname = string_copy(_display_aname, 1, _mw_pos - 1);
                                 var _sent = _cn + " " + _display_aname;
                                 _sent = string_upper(string_char_at(_sent, 1)) + string_copy(_sent, 2, string_length(_sent) - 1);
                                 var _lc = string_char_at(_sent, string_length(_sent));
@@ -592,7 +621,7 @@ if (file_menu_open) {
                             }
                         }
                     }
-                    file_text_write_string(_sf, "\n\nFADE OUT.\n\nTHE END\n");
+                    file_text_write_string(_sf, "\n");
                     file_text_close(_sf);
                 }
             }
@@ -1404,12 +1433,7 @@ if (playing_block_index == -1 && is_selecting && focused_block != -1) {
         for (var i = 0; i < focused_block; i++) _calc_y += script_blocks[i].height + 20;
         
         var _rx = _mx - (box_x + 60); var _ry = _my - (_calc_y + 32);
-        var _best_p = 0; var _min_d = 999999;
-        for (var c = 0; c <= string_length(_b.text); c++) {
-            var _pos = get_text_pos(_b.text, c, _wrap_w, 28);
-            var _d = point_distance(_rx, _ry, _pos.x, _pos.y);
-            if (_d < _min_d) { _min_d = _d; _best_p = c; }
-        }
+        var _best_p = get_caret_at_pos(_b.text, _rx, _ry, _wrap_w, 28);
         selection_end = _best_p;
         _b.caret_pos = _best_p;
         cursor_timer = 0; cursor_visible = true; // Keep caret solid while dragging
@@ -1900,25 +1924,12 @@ if (playing_block_index == -1 && !is_speaking && focused_block >= 0) {
             if (_repeat_key == vk_up || _repeat_key == vk_down) {
                 var _cur_p = get_text_pos(_b.text, _b.caret_pos, _wrap_w, 28);
                 var _target_y = _cur_p.y + (_repeat_key == vk_up ? -28 : 28);
-                
-                // Calculate the last character's position to define vertical bounds
-                var _last_p = get_text_pos(_b.text, string_length(_b.text), _wrap_w, 28);
-                
                 if (_target_y < 0) {
                     _b.caret_pos = 0;
-                } else if (_target_y > _last_p.y) {
-                    _b.caret_pos = string_length(_b.text);
                 } else {
-                    var _best_p = _b.caret_pos; var _min_dx = 999999;
-                    var _found_on_line = false;
-                    for (var c = 0; c <= string_length(_b.text); c++) {
-                        var _pos = get_text_pos(_b.text, c, _wrap_w, 28);
-                        if (_pos.y == _target_y) {
-                            var _dx = abs(_cur_p.x - _pos.x);
-                            if (_dx < _min_dx) { _min_dx = _dx; _best_p = c; _found_on_line = true; }
-                        }
-                    }
-                    if (_found_on_line) _b.caret_pos = _best_p;
+                    var _found_p = get_caret_on_line(_b.text, _target_y, _cur_p.x, _wrap_w, 28);
+                    if (_found_p >= 0) _b.caret_pos = _found_p;
+                    else _b.caret_pos = string_length(_b.text);
                 }
             }
             if (_repeat_key == vk_backspace && _b.caret_pos > 0) { _b.text = string_delete(_b.text, _b.caret_pos, 1); _b.caret_pos--; update_block_height(focused_block); }

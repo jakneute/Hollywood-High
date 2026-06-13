@@ -1013,12 +1013,7 @@ if (mouse_check_button_pressed(mb_left)) {
 
                             keyboard_string = "";
                             var _rx = _mx - (box_x + 60); var _ry = _my - (_cy + 32);
-                            var _best_p = 0; var _min_d = 999999;
-                            for (var c = 0; c <= string_length(_block.text); c++) {
-                                var _pos = get_text_pos(_block.text, c, _wrap_w, 28);
-                                var _d = point_distance(_rx, _ry, _pos.x, _pos.y);
-                                if (_d < _min_d) { _min_d = _d; _best_p = c; }
-                            }
+                            var _best_p = get_caret_at_pos(_block.text, _rx, _ry, _wrap_w, 28);
                             _block.caret_pos = _best_p;
                             selection_start = _best_p;
                             selection_end = _best_p;
@@ -1132,6 +1127,11 @@ if (mouse_check_button_pressed(mb_left)) {
                     // Different-character blocks are fine
                     else if (_diff_char && (_other_ca == "voice" || _other_ca == "move" || _other_ca == "charaction" || _other_ca == "canned")) _base_valid = true;
                 }
+                else if (_b1_type == "injure" || _b2_type == "injure") {
+                    var _other_inj = (_b1_type == "injure") ? _b2_type : _b1_type;
+                    if (_other_inj == "sfx" || _other_inj == "voice" || _other_inj == "quake" || _other_inj == "particle") _base_valid = true;
+                    else if (_diff_char) _base_valid = true;
+                }
 
                 var _is_linked = variable_struct_exists(_b1, "linked") && _b1.linked;
                 var _chain_valid = true;
@@ -1157,7 +1157,7 @@ if (mouse_check_button_pressed(mb_left)) {
                         if (_bk_type == "particle") _particle_in_chain++;
                         if (_bk_type == "quake")    _quake_in_chain++;
 
-                        if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned") {
+                        if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned" || _bk_type == "injure") {
                             for (var j = k + 1; j <= _end_idx; j++) {
                                 var _bj = script_blocks[j];
                                 if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
@@ -1174,6 +1174,9 @@ if (mouse_check_button_pressed(mb_left)) {
                                     // Canned animation: same character cannot also talk, do other char-actions, or run another canned anim
                                     if (_bk_type == "canned" && (_bj_type == "voice" || _bj_type == "charaction" || _bj_type == "canned")) { _chain_valid = false; break; }
                                     if (_bj_type == "canned" && (_bk_type == "voice" || _bk_type == "charaction")) { _chain_valid = false; break; }
+                                    // Injure: same character cannot also move, disappear, get another injury, or do a canned anim
+                                    if (_bk_type == "injure" && (_bj_type == "injure" || _bj_type == "move" || _bj_type == "charaction" || _bj_type == "canned")) { _chain_valid = false; break; }
+                                    if (_bj_type == "injure" && (_bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned")) { _chain_valid = false; break; }
                                 }
                             }
                         }

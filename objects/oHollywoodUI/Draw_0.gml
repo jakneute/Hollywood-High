@@ -2956,6 +2956,8 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 var _pn2 = real(string_copy(_aname_lo_blk, string_pos("pose ", _aname_lo_blk) + 5, 1));
                 _display_act = string_upper(get_pose_label(_block.char_index, _pn2));
             }
+            var _mw_pos = string_pos(" [MOONWALK]", _display_act);
+            if (_mw_pos > 0) _display_act = string_copy(_display_act, 1, _mw_pos - 1);
             _act_str += characters[_block.char_index].name + " " + _display_act;
         }
         draw_set_color(c_black); draw_text(box_x + 55, _box_y + 30, _act_str);
@@ -3017,7 +3019,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
         var _is_v = !variable_struct_exists(_block, "type") || _block.type == "voice";
         var _is_alt = _is_v && (variable_struct_exists(_block, "is_altered") ? _block.is_altered : (_block.voice_id != _c_ref.voice_id || _block.pitch != _c_ref.pitch || _block.speed != _c_ref.speed || _block.mode != _c_ref.mode || _block.style != _c_ref.style || (_block[$ "glottal"] ?? -1) != (_c_ref[$ "glottal"] ?? -1) || _block.tweaked != _c_ref.tweaked));
         
-        var _char_name = string_upper(_c_ref.name);
+        var _char_name = (_block.char_index == 0) ? "NARRATOR" : string_upper(_c_ref.name);
         if (_is_alt) _char_name += " (altered voice)";
         if (!_is_onstage && _block.char_index != 0) _char_name += " (offstage)";
         
@@ -3172,6 +3174,11 @@ for (var b = 0; b < array_length(script_blocks); b++) {
             // Different-character blocks are fine
             else if (_diff_char && (_other_ct == "voice" || _other_ct == "move" || _other_ct == "charaction" || _other_ct == "canned")) _base_valid = true;
         }
+        else if (_b1_type == "injure" || _b2_type == "injure") {
+            var _other_inj = (_b1_type == "injure") ? _b2_type : _b1_type;
+            if (_other_inj == "sfx" || _other_inj == "voice" || _other_inj == "quake" || _other_inj == "particle") _base_valid = true;
+            else if (_diff_char) _base_valid = true;
+        }
 
         var _chain_valid = true;
 
@@ -3196,7 +3203,7 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                 if (_bk_type == "particle") _particle_in_chain++;
                 if (_bk_type == "quake")    _quake_in_chain++;
 
-                if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned") {
+                if (_bk_type == "kill" || _bk_type == "jitter" || _bk_type == "voice" || _bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned" || _bk_type == "injure") {
                     for (var j = k + 1; j <= _end_idx; j++) {
                         var _bj = script_blocks[j];
                         if (real(variable_struct_exists(_bj, "char_index") ? _bj.char_index : 0) == _c_idx) {
@@ -3213,6 +3220,9 @@ for (var b = 0; b < array_length(script_blocks); b++) {
                             // Canned animation: same character cannot also talk, do other char-actions, or run another canned anim
                             if (_bk_type == "canned" && (_bj_type == "voice" || _bj_type == "charaction" || _bj_type == "canned")) { _chain_valid = false; break; }
                             if (_bj_type == "canned" && (_bk_type == "voice" || _bk_type == "charaction")) { _chain_valid = false; break; }
+                            // Injure: same character cannot also move, disappear, get another injury, or do a canned anim
+                            if (_bk_type == "injure" && (_bj_type == "injure" || _bj_type == "move" || _bj_type == "charaction" || _bj_type == "canned")) { _chain_valid = false; break; }
+                            if (_bj_type == "injure" && (_bk_type == "move" || _bk_type == "charaction" || _bk_type == "canned")) { _chain_valid = false; break; }
                         }
                     }
                 }

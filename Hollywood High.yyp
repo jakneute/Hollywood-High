@@ -22,6 +22,7 @@
   "IncludedFiles":[
     {"$GMIncludedFile":"","%Name":"actors.pack","CopyToMask":-1,"filePath":"datafiles","name":"actors.pack","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"scenes.pack","CopyToMask":-1,"filePath":"datafiles","name":"scenes.pack","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
+    {"$GMIncludedFile":"","%Name":"Blank.png","CopyToMask":-1,"filePath":"datafiles/scenes","name":"Blank.png","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"sounds.pack","CopyToMask":-1,"filePath":"datafiles","name":"sounds.pack","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"clretwrc.dll","CopyToMask":-1,"filePath":"datafiles/talkit","name":"clretwrc.dll","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
     {"$GMIncludedFile":"","%Name":"clrgc.dll","CopyToMask":-1,"filePath":"datafiles/talkit","name":"clrgc.dll","resourceType":"GMIncludedFile","resourceVersion":"2.0",},
