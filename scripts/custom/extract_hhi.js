@@ -3,9 +3,6 @@ const path = require('path');
 const { Jimp } = require('jimp');
 const readline = require('readline');
 
-// =========================================================
-// 1. DIRECTORY CONFIGURATION
-// =========================================================
 const baseOutDir = path.join(__dirname, 'extracted_assets');
 const actorsDir = path.join(baseOutDir, 'actors');
 const scenesDir = path.join(baseOutDir, 'scenes');
@@ -14,14 +11,9 @@ const mainDir = path.join(baseOutDir, 'main');
 const dumpDir = path.join(baseOutDir, 'dump');
 
 [baseOutDir, actorsDir, scenesDir, soundsDir, mainDir, dumpDir].forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// =========================================================
-// 2. HARDCODED CONFIGURATION & LOOKUP MAPS
-// =========================================================
 const ACTOR_NAMES = {
     1: "Larry", 2: "Sid", 3: "Tiffanie", 4: "Artie", 5: "Charlotte",
     6: "Chuck", 7: "Billie", 8: "JJ", 9: "Bev", 10: "Lucille",
@@ -30,7 +22,7 @@ const ACTOR_NAMES = {
     21: "Anna", 22: "Ed"
 };
 
-// Hardcoded per-ID overrides for poses that were misindexed on the original CD-ROM
+// Per-ID overrides for poses misindexed on the original CD-ROM
 const ACTOR_ID_OVERRIDES = {
     300:   "Charlotte",
     1000:  "Artie",    1002:  "Artie",    1003:  "Charlotte", 1106:  "Lucille",  1410:  "Artie",
@@ -62,122 +54,46 @@ const ACTOR_ID_OVERRIDES = {
     22002: "Anna",     22723: "Anna",
 };
 
-// Hardcoded rerouting map to fix original CD-ROM compilation index misalignments
+// Rerouting map to fix CD-ROM compilation index misalignments
 const SCENE_REROUTES = {
-    352: 52, // national park foreground
-    360: 35, // bathroom foreground
-    362: 47, // bowling alley foreground
-    370: 36, // arcade foreground
-    380: 37, // cafe foreground
-    381: 40, // garage foreground
-    390: 38, // living room day background
-    410: 39, // living room night foreground
-    420: 41, // basketball gym foreground
-    432: 43, // dance gym foreground
-    440: 68, // pyramid foreground
-    450: 42, // cheerleader gym foreground
-    460: 45, // the burbs background
-    470: 44, // locker foreground
-    472: 49, // clothing store foreground
-    480: 46, // haunted house foreground
-    490: 48, // movie theater lobby foreground
-    491: 38, // living room day foreground
-    500: 49, // clothing store background
-    501: 45, // the burbs foreground
-    510: 50, // pyramid background
-    511: 68, // music store background
-    531: 67, // leaning tower background
-    532: 66, // silent movie background
-    550: 58, // lookout point foreground
-    560: 67, // leaning tower foreground
-    570: 59, // city street background
-    571: 55, // orthodontist foreground
-    580: 62, // movies foreground
-    591: 54, // beach foreground
-    600: 56, // fastfood counter foreground
-    610: 60, // classroom_60 foreground
-    620: 61, // airplane foreground
-    630: 57, // mall foreground
-    632: 57, // mall background
-    640: 63, // Eye of the storm background
+    352: 52, 360: 35, 362: 47, 370: 36, 380: 37, 381: 40,
+    390: 38, 410: 39, 420: 41, 432: 43, 440: 68, 450: 42,
+    460: 45, 470: 44, 472: 49, 480: 46, 490: 48, 491: 38,
+    500: 49, 501: 45, 510: 50, 511: 68, 531: 67, 532: 66,
+    550: 58, 560: 67, 570: 59, 571: 55, 580: 62, 591: 54,
+    600: 56, 610: 60, 620: 61, 630: 57, 632: 57, 640: 63,
 };
 
-// Manual dictionary to assign friendly names to scene groups
 const MANUAL_SCENE_NAMES = {
-    15: "jungle",
-    29: "alley",
-    50: "music store",
-    66: "silent movie",
-    67: "leaning tower",
-    68: "pyramid",
+    15: "jungle", 29: "alley", 50: "music store",
+    66: "silent movie", 67: "leaning tower", 68: "pyramid",
 };
 
 const SCENE_SOUND_MAPPING = {
-    1519: "Art Gallery",
-    1518: "School Cafeteria",
-    1517: "Classroom_16",
-    1511: "Car",
-    1516: "Jungle",
-    1514: "Kitchen",
-    1515: "Mad Scientist's Lab",
-    1513: "Auditorium",
-    1512: "Spaceship",
-    1520: "Alien Planet",
-    1524: "Stadium",
-    1526: "Diner",
-    1521: "Car",
-    1522: "Dining Room",
-    1527: "Operating Room",
-    1528: "Talk Show",
-    1525: "Messy Room",
-    1529: "News Room",
-    1523: "Wild West Saloon",
-    1537: "Arcade",
-    1536: "Bathroom",
-    1538: "Cafe",
-    1535: "Cheerleader's Gym",
-    1539: "Living Room Day",
-    1547: "Dance Gym",
-    1541: "Garage",
-    1544: "Garage",
-    1548: "Haunted House",
-    1540: "Living Room Night",
-    1545: "Locker",
-    1549: "Movie Theater Lobby",
-    1543: "National Park",
-    1546: "The Burbs",
-    1556: "Beach",
-    1550: "Bowling Alley",
-    1557: "Fast Food Counter",
-    1555: "Classroom_60",
-    1551: "Clothing Store",
-    1558: "Orthodontist",
-    1559: "Mall",
-    1554: "Leaning Tower",
-    1552: "Pyramid",
-    1560: "Airplane",
-    1562: "Lookout Point",
-    1561: "City Street",
-    1567: "Basketball Gym",
-    17567: "Basketball Gym"
+    1519: "Art Gallery",         1518: "School Cafeteria",    1517: "Classroom_16",
+    1511: "Car",                 1516: "Jungle",              1514: "Kitchen",
+    1515: "Mad Scientist's Lab", 1513: "Auditorium",          1512: "Spaceship",
+    1520: "Alien Planet",        1524: "Stadium",             1526: "Diner",
+    1521: "Car",                 1522: "Dining Room",         1527: "Operating Room",
+    1528: "Talk Show",           1525: "Messy Room",          1529: "News Room",
+    1523: "Wild West Saloon",    1537: "Arcade",              1536: "Bathroom",
+    1538: "Cafe",                1535: "Cheerleader's Gym",   1539: "Living Room Day",
+    1547: "Dance Gym",           1541: "Garage",              1544: "Garage",
+    1548: "Haunted House",       1540: "Living Room Night",   1545: "Locker",
+    1549: "Movie Theater Lobby", 1543: "National Park",       1546: "The Burbs",
+    1556: "Beach",               1550: "Bowling Alley",       1557: "Fast Food Counter",
+    1555: "Classroom_60",        1551: "Clothing Store",      1558: "Orthodontist",
+    1559: "Mall",                1554: "Leaning Tower",       1552: "Pyramid",
+    1560: "Airplane",            1562: "Lookout Point",       1561: "City Street",
+    1567: "Basketball Gym",      17567: "Basketball Gym"
 };
 
-// Mutable Globals loaded at runtime
 let globalPalette = null;
 let colorMappings = {};
 let sceneGroupNames = {};
 let sceneGroupCrops = {};
 let sceneLabels = {};
 
-// =========================================================
-// 3. BINARY DECODERS & UTILITIES
-// =========================================================
-
-/**
- * PackBits Decompressor (used for Im08 image chunks)
- * @param {Buffer} compressedBuffer 
- * @returns {Buffer} Decompressed data buffer
- */
 function decompressPackBits(compressedBuffer) {
     const out = [];
     let inPtr = 0;
@@ -186,33 +102,22 @@ function decompressPackBits(compressedBuffer) {
         if (header >= 0 && header <= 127) {
             const count = header + 1;
             for (let i = 0; i < count; i++) {
-                if (inPtr < compressedBuffer.length) {
-                    out.push(compressedBuffer[inPtr++]);
-                }
+                if (inPtr < compressedBuffer.length) out.push(compressedBuffer[inPtr++]);
             }
         } else if (header >= -127 && header <= -1) {
             const count = 1 - header;
             if (inPtr < compressedBuffer.length) {
                 const val = compressedBuffer[inPtr++];
-                for (let i = 0; i < count; i++) {
-                    out.push(val);
-                }
+                for (let i = 0; i < count; i++) out.push(val);
             }
         }
     }
     return Buffer.from(out);
 }
 
-/**
- * Extract Global Palette from ACTORS1.RF
- * @param {string} drive 
- * @returns {Array<{r: number, g: number, b: number}>} Loaded color palette
- */
 function getGlobalPalette(drive) {
     const palettePath = `${drive}:\\ACTORS1.RF`;
-    if (!fs.existsSync(palettePath)) {
-        throw new Error(`Palette file not found at ${palettePath}`);
-    }
+    if (!fs.existsSync(palettePath)) throw new Error(`Palette file not found at ${palettePath}`);
     const fd = fs.openSync(palettePath, 'r');
     const palBuf = Buffer.alloc(2048);
     try {
@@ -220,7 +125,6 @@ function getGlobalPalette(drive) {
     } finally {
         fs.closeSync(fd);
     }
-
     const palette = [];
     for (let i = 0; i < 256; i++) {
         const idx = i * 8;
@@ -233,99 +137,57 @@ function getGlobalPalette(drive) {
     return palette;
 }
 
-/**
- * Helper to sanitize filenames for Windows OS safety
- * @param {string} name 
- * @returns {string} Sanitized string
- */
 function sanitizeFilename(name) {
     if (!name) return '';
     return name.replace(/[\\/:*?"<>|]/g, '_').trim();
 }
 
-/**
- * Decode Macintosh 80-bit extended floats to standard double sampling rates
- * @param {Buffer} buf 
- * @param {number} offset 
- * @returns {number} Decoded sample rate
- */
+// Decode Macintosh 80-bit extended floats to standard sample rates
 function decodeExtendedFloat(buf, offset = 0) {
     if (buf.length < offset + 10) return 22050;
     const exponent = buf.readUInt16BE(offset) & 0x7FFF;
     const mantissaHi = buf.readUInt32BE(offset + 2);
     const mantissaLo = buf.readUInt32BE(offset + 6);
-
     if (exponent === 0 && mantissaHi === 0 && mantissaLo === 0) return 0;
-
     const mantissaDouble = mantissaHi * Math.pow(2, -31) + mantissaLo * Math.pow(2, -63);
     const value = mantissaDouble * Math.pow(2, exponent - 16383);
-
     const rounded = Math.round(value);
-    if (Math.abs(rounded - 22255) < 300) return 22050; // Map standard 22254 Hz Mac rate to standard 22050 Hz
-    if (Math.abs(rounded - 11127) < 200) return 11025; // Map standard 11127 Hz Mac rate to standard 11025 Hz
+    if (Math.abs(rounded - 22255) < 300) return 22050; // 22254 Hz Mac rate → 22050 Hz
+    if (Math.abs(rounded - 11127) < 200) return 11025; // 11127 Hz Mac rate → 11025 Hz
     return rounded;
 }
 
-/**
- * Helper to write standard 44-byte RIFF/WAV header along with audio data
- * @param {Buffer} pcmData 
- * @param {number} sampleRate 
- * @param {number} bitDepth 
- * @param {string} outPath 
- */
 function writeWav(pcmData, sampleRate, bitDepth, outPath) {
-    const numChannels = 1;
-    const byteRate = (sampleRate * numChannels * bitDepth) / 8;
-    const blockAlign = (numChannels * bitDepth) / 8;
+    const byteRate = (sampleRate * bitDepth) / 8;
+    const blockAlign = bitDepth / 8;
     const wavHeader = Buffer.alloc(44);
-
     wavHeader.write('RIFF', 0);
     wavHeader.writeUInt32LE(36 + pcmData.length, 4);
     wavHeader.write('WAVE', 8);
-
     wavHeader.write('fmt ', 12);
     wavHeader.writeUInt32LE(16, 16);
-    wavHeader.writeUInt16LE(1, 20); // Uncompressed PCM Format
-    wavHeader.writeUInt16LE(numChannels, 22);
+    wavHeader.writeUInt16LE(1, 20); // PCM
+    wavHeader.writeUInt16LE(1, 22); // mono
     wavHeader.writeUInt32LE(sampleRate, 24);
     wavHeader.writeUInt32LE(byteRate, 28);
     wavHeader.writeUInt16LE(blockAlign, 32);
     wavHeader.writeUInt16LE(bitDepth, 34);
-
     wavHeader.write('data', 36);
     wavHeader.writeUInt32LE(pcmData.length, 40);
-
-    const outFd = fs.openSync(outPath, 'w');
-    try {
-        fs.writeSync(outFd, wavHeader);
-        fs.writeSync(outFd, pcmData);
-    } finally {
-        fs.closeSync(outFd);
-    }
+    fs.writeFileSync(outPath, Buffer.concat([wavHeader, pcmData]));
 }
 
-/**
- * Format internal asset names into friendly titles
- * @param {string} name 
- * @returns {string} Formatted folder name
- */
 function formatFolderName(name) {
     if (!name) return '';
-
     let formatted = name;
-
-    // Normalize Day/Night parentheticals and clear weird punctuation from internal names
     formatted = formatted.replace(/\s*\(\s*Day\s*\)/gi, " Day");
     formatted = formatted.replace(/\s*\(\s*Night\s*\)/gi, " Night");
-    formatted = formatted.replace(/[();]/g, ""); // Strip any remaining rogue parentheses or semicolons
-    formatted = formatted.replace(/\s+/g, " ").trim(); // Collapse multiple spaces
-
+    formatted = formatted.replace(/[();]/g, "");
+    formatted = formatted.replace(/\s+/g, " ").trim();
     formatted = formatted.replace(/\b\w/g, (char, index, str) => {
         if (index > 0 && str[index - 1] === "'") return char.toLowerCase();
         return char.toUpperCase();
     });
-
-    // Formatting typos and normalizing specific characters
     formatted = formatted.replace(/Cheerleaders.*?Gym/gi, "Cheerleader's Gym");
     formatted = formatted.replace(/Fastfood.*?Counter/gi, "Fast Food Counter");
     formatted = formatted.replace(/Burps/gi, "Burp's");
@@ -334,7 +196,7 @@ function formatFolderName(name) {
     formatted = formatted.replace(/Cheerleader.*?Gym/gi, "Cheerleader's Gym");
     formatted = formatted.replace(/Scientist.*?Lab/gi, "Scientist's Lab");
 
-    // Reconcile underlying internal image TOC names with the target audio folder taxonomy
+    // Internal image TOC names → audio folder taxonomy
     const reconciliations = {
         "Movie Lobby": "Movie Theater Lobby",
         "Cafeteria": "School Cafeteria",
@@ -353,38 +215,22 @@ function formatFolderName(name) {
         "Pisa": "Leaning Tower",
         "Saloon": "Wild West Saloon"
     };
-
     if (reconciliations[formatted]) formatted = reconciliations[formatted];
     if (/scientist.*?lab/i.test(formatted)) formatted = "Mad Scientist's Lab";
     if (formatted.toLowerCase().includes("classroom_16")) formatted = "Classroom_16";
     if (formatted.toLowerCase().includes("classroom_60")) formatted = "Classroom_60";
-
     return formatted.trim();
 }
 
-// =========================================================
-// 4. RESOURCE ARCHIVE FILE TOC PARSER
-// =========================================================
-
-/**
- * Reads the general header and parses the Table of Contents (TOC) of a .RF file.
- * Returns metadata structures and a string lookup utility.
- * @param {number} fd File descriptor
- * @returns {object} TOC structure including tags and name resolver
- */
 function readRFTOC(fd) {
     const header = Buffer.alloc(16);
     fs.readSync(fd, header, 0, 16, 0);
-
     const tocOffset = header.readUInt32BE(4);
     const tocSize = header.readUInt32BE(12);
-
     const tocBuffer = Buffer.alloc(tocSize);
     fs.readSync(fd, tocBuffer, 0, tocSize, tocOffset);
-
     const namesOffset = tocBuffer.readUInt16BE(26);
-    const numTypesMinus1 = tocBuffer.readUInt16BE(28);
-    const numTypes = numTypesMinus1 + 1;
+    const numTypes = tocBuffer.readUInt16BE(28) + 1;
 
     function getString(offset) {
         if (offset === 0xffff || offset >= tocBuffer.length - namesOffset) return '';
@@ -403,16 +249,9 @@ function readRFTOC(fd) {
         types.push({ tag, count, typeOffset });
         offsetInTOC += 8;
     }
-
     return { types, tocOffset, tocBuffer, namesOffset, getString };
 }
 
-/**
- * Decides standard file extension based on Resource tags.
- * @param {string} tag Resource tag
- * @param {boolean} isDump Whether this is a full raw dump
- * @returns {string} File extension starting with dot
- */
 function getExtensionForTag(tag, isDump) {
     if (['TEXT', 'STR ', 'STR#'].includes(tag)) return '.txt';
     if (tag === 'scpt') return isDump ? '.scpt' : '.txt';
@@ -423,20 +262,9 @@ function getExtensionForTag(tag, isDump) {
     return safeExt ? '.' + safeExt : '.bin';
 }
 
-// =========================================================
-// 5. METADATA READERS & UNIFIED EXTRACTION HELPERS
-// =========================================================
-
-/**
- * Read the 48-byte image resource metadata block
- * @param {number} fd 
- * @param {number} dataOffset 
- * @returns {object} Extracted image size parameters
- */
 function readImageResourceHeader(fd, dataOffset) {
     const sizeBuf = Buffer.alloc(48);
     fs.readSync(fd, sizeBuf, 0, 48, dataOffset);
-
     return {
         dataCompressedSize: sizeBuf.readUInt32BE(0),
         y_offset: sizeBuf.readUInt16BE(4),
@@ -446,62 +274,34 @@ function readImageResourceHeader(fd, dataOffset) {
     };
 }
 
-/**
- * Read the sound resource header
- * @param {number} fd 
- * @param {number} dataOffset 
- * @returns {object} Extracted sound parameters
- */
 function readSoundResourceHeader(fd, dataOffset) {
     const sizeBuf = Buffer.alloc(48);
     fs.readSync(fd, sizeBuf, 0, 48, dataOffset);
-    return {
-        dataCompressedSize: sizeBuf.readUInt32BE(0)
-    };
+    return { dataCompressedSize: sizeBuf.readUInt32BE(0) };
 }
 
-/**
- * Read generic resource size block (4-byte size header)
- * @param {number} fd 
- * @param {number} dataOffset 
- * @returns {object} Extracted size
- */
 function readGenericResourceHeader(fd, dataOffset) {
     const sizeBuf = Buffer.alloc(4);
     fs.readSync(fd, sizeBuf, 0, 4, dataOffset);
-    return {
-        dataSize: sizeBuf.readUInt32BE(0)
-    };
+    return { dataSize: sizeBuf.readUInt32BE(0) };
 }
 
-/**
- * Decompresses PackBits, applies palette color mappings, handles transparency routing,
- * crops layouts if specified, and writes png canvas buffer out.
- */
 async function extractAndSaveImage(fd, {
     id, dataOffset, dataCompressedSize, width, height, x_offset, y_offset,
     isScene, activeRemap, outPath, cropInfo
 }) {
     const compressedData = Buffer.alloc(dataCompressedSize);
     fs.readSync(fd, compressedData, 0, dataCompressedSize, dataOffset + 48);
-
     const decompressed = decompressPackBits(compressedData);
 
-    let canvasWidth = width;
-    let canvasHeight = height;
-    let renderX = 0;
-    let renderY = 0;
-
+    let canvasWidth = width, canvasHeight = height, renderX = 0, renderY = 0;
     if (isScene) {
-        canvasWidth = 500;
-        canvasHeight = 250;
-        renderX = x_offset;
-        renderY = y_offset;
+        canvasWidth = 500; canvasHeight = 250;
+        renderX = x_offset; renderY = y_offset;
     }
 
     const image = new Jimp({ width: canvasWidth, height: canvasHeight });
     const rowBytes = Math.ceil(width / 4) * 4;
-
     let minX = canvasWidth, minY = canvasHeight, maxX = 0, maxY = 0;
     let hasVisiblePixels = false;
 
@@ -515,23 +315,16 @@ async function extractAndSaveImage(fd, {
                     const mapped = activeRemap[paletteIdx].color;
                     color = { r: mapped[0], g: mapped[1], b: mapped[2] };
                 }
-
-                const destX = x + renderX;
-                const destY = y + renderY;
+                const destX = x + renderX, destY = y + renderY;
                 if (destX >= 0 && destX < canvasWidth && destY >= 0 && destY < canvasHeight) {
                     const dataIdx = (destY * canvasWidth + destX) * 4;
-
                     if (paletteIdx === 255) {
-                        image.bitmap.data[dataIdx] = 0;
-                        image.bitmap.data[dataIdx + 1] = 0;
-                        image.bitmap.data[dataIdx + 2] = 0;
-                        image.bitmap.data[dataIdx + 3] = 0;
+                        image.bitmap.data.fill(0, dataIdx, dataIdx + 4);
                     } else {
                         image.bitmap.data[dataIdx] = color.r;
                         image.bitmap.data[dataIdx + 1] = color.g;
                         image.bitmap.data[dataIdx + 2] = color.b;
                         image.bitmap.data[dataIdx + 3] = 255;
-
                         if (!isScene) {
                             if (destX < minX) minX = destX;
                             if (destX > maxX) maxX = destX;
@@ -550,81 +343,45 @@ async function extractAndSaveImage(fd, {
             image.crop({ x: cropInfo.minX, y: cropInfo.minY, w: cropInfo.maxX - cropInfo.minX + 1, h: cropInfo.maxY - cropInfo.minY + 1 });
         }
     } else if (hasVisiblePixels) {
-        const cropW = maxX - minX + 1;
-        const cropH = maxY - minY + 1;
-        if (cropW > 0 && cropH > 0) {
-            image.crop({ x: minX, y: minY, w: cropW, h: cropH });
-        }
+        const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
+        if (cropW > 0 && cropH > 0) image.crop({ x: minX, y: minY, w: cropW, h: cropH });
     }
 
     const pngBuf = await image.getBuffer('image/png');
     fs.writeFileSync(outPath, pngBuf);
 }
 
-/**
- * Extracts native uncompressed Macintosh sound headers, decodes extended float sampleRates,
- * maps samples, switches big-endian to little-endian formats, and writes wav.
- */
-function extractAndSaveSound(fd, {
-    dataOffset, dataCompressedSize, outPath
-}) {
+function extractAndSaveSound(fd, { dataOffset, dataCompressedSize, outPath }) {
     const rawData = Buffer.alloc(dataCompressedSize - 48);
     fs.readSync(fd, rawData, 0, rawData.length, dataOffset + 48);
-
     const sampleRate = decodeExtendedFloat(rawData, 2);
     const sampleSize = rawData.length >= 26 ? rawData.readUInt16BE(24) : 16;
-
     const pcmBig = rawData.slice(40);
     let pcmData;
-
     if (sampleSize === 16) {
         pcmData = Buffer.alloc(pcmBig.length);
         for (let j = 0; j < pcmBig.length; j += 2) {
-            if (j + 1 < pcmBig.length) {
-                pcmData.writeUInt16LE(pcmBig.readUInt16BE(j), j);
-            }
+            if (j + 1 < pcmBig.length) pcmData.writeUInt16LE(pcmBig.readUInt16BE(j), j);
         }
     } else {
         pcmData = pcmBig;
     }
-
     writeWav(pcmData, sampleRate, sampleSize, outPath);
 }
 
-/**
- * Writes raw text and binary chunks directly into folders with proper extension resolution.
- */
-function extractAndSaveGeneric(fd, {
-    dataOffset, dataSize, tag, getString, nameOff, id, targetDir, isDump
-}) {
+function extractAndSaveGeneric(fd, { dataOffset, dataSize, tag, getString, nameOff, id, targetDir, isDump }) {
     if (dataSize <= 0 || dataSize > 50000000) return false;
-
     const rawData = Buffer.alloc(dataSize);
     fs.readSync(fd, rawData, 0, dataSize, dataOffset + 4);
-
-    if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
-    }
-
+    if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
     const name = getString(nameOff);
     const safeTag = sanitizeFilename(tag.trim()) || 'UNKNOWN';
     const cleanName = sanitizeFilename(name) || `${safeTag}_${id}`;
-
     const ext = getExtensionForTag(tag, isDump);
-    const outPath = path.join(targetDir, `${cleanName}${ext}`);
-    fs.writeFileSync(outPath, rawData);
+    fs.writeFileSync(path.join(targetDir, `${cleanName}${ext}`), rawData);
     return true;
 }
 
-// =========================================================
-// 6. SCENE PRE-SCANNING & DYNAMIC LAYER ANALYSIS
-// =========================================================
-
-/**
- * Pre-scan all scene files to find named scene resources and automatically label visual layers.
- * @param {string} drive 
- * @returns {object} Discovered friendly names by group ID
- */
 function preScanSceneNames(drive) {
     const foundNames = {};
     const resourcesByGroup = {};
@@ -638,69 +395,44 @@ function preScanSceneNames(drive) {
 
     for (const filePath of sceneFiles) {
         if (!fs.existsSync(filePath)) continue;
-
         const fd = fs.openSync(filePath, 'r');
-        const { types, getString, tocOffset, tocBuffer } = readRFTOC(fd);
+        const { types, getString, tocBuffer } = readRFTOC(fd);
 
         const typeEntry = types.find(t => t.tag === 'Im08');
         if (typeEntry) {
             const actualStart = 30 + typeEntry.typeOffset;
-            const entrySize = 12;
             for (let i = 0; i < typeEntry.count; i++) {
-                const entryOffset = actualStart + i * entrySize;
-                const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
+                const chunk = tocBuffer.slice(actualStart + i * 12, actualStart + i * 12 + 12);
                 const nameOff = chunk.readUInt16BE(0);
                 const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
                 const id = chunk.readUInt16BE(10);
-
                 const dataOffset = 256 + relativeOffset;
                 const { y_offset, x_offset, height, width } = readImageResourceHeader(fd, dataOffset);
 
-                resourceMetadata[id] = {
-                    file: filePath,
-                    offset: dataOffset,
-                    x_off: x_offset,
-                    y_off: y_offset,
-                    w: width,
-                    h: height
-                };
+                resourceMetadata[id] = { file: filePath, offset: dataOffset, x_off: x_offset, y_off: y_offset, w: width, h: height };
 
-                const name = getString(nameOff);
-                const cleanName = name ? sanitizeFilename(name) : '';
-
+                const cleanName = sanitizeFilename(getString(nameOff));
                 const groupId = SCENE_REROUTES[id] !== undefined ? SCENE_REROUTES[id] : Math.floor(id / 10);
-                if (cleanName) {
-                    foundNames[groupId] = cleanName;
-                }
-
-                if (!resourcesByGroup[groupId]) {
-                    resourcesByGroup[groupId] = [];
-                }
+                if (cleanName) foundNames[groupId] = cleanName;
+                if (!resourcesByGroup[groupId]) resourcesByGroup[groupId] = [];
                 resourcesByGroup[groupId].push({ id, width, height, lastDigit: id % 10 });
             }
         }
 
-        // SCNE friendly name parser
         const typeEntrySCNE = types.find(t => t.tag === 'SCNE');
         if (typeEntrySCNE) {
             const actualStart = 30 + typeEntrySCNE.typeOffset;
-            const entrySize = 12;
             for (let i = 0; i < typeEntrySCNE.count; i++) {
-                const entryOffset = actualStart + i * entrySize;
-                const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
+                const chunk = tocBuffer.slice(actualStart + i * 12, actualStart + i * 12 + 12);
                 const nameOff = chunk.readUInt16BE(0);
                 const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
-
-                const name = getString(nameOff);
-                const cleanName = name ? sanitizeFilename(name) : '';
+                const cleanName = sanitizeFilename(getString(nameOff));
                 if (cleanName) {
                     const dataOffset = 256 + relativeOffset;
                     const scneData = Buffer.alloc(12);
                     fs.readSync(fd, scneData, 0, 12, dataOffset);
                     const scneImgGroupId = scneData.readUInt16BE(10);
-                    if (scneImgGroupId > 0 && scneImgGroupId < 100) {
-                        foundNames[scneImgGroupId] = cleanName;
-                    }
+                    if (scneImgGroupId > 0 && scneImgGroupId < 100) foundNames[scneImgGroupId] = cleanName;
                 }
             }
         }
@@ -708,19 +440,14 @@ function preScanSceneNames(drive) {
         fs.closeSync(fd);
     }
 
-    // Assign labels dynamically for each group based on visual layers (width >= 200)
+    // Assign background/foreground/mask labels based on visual layer heights (width >= 200)
     for (const groupId in resourcesByGroup) {
         const list = resourcesByGroup[groupId];
         const visualLayers = list.filter(r => r.width >= 200);
         if (visualLayers.length === 0) continue;
 
-        // Find the maximum height among all visual layers in this group
         const maxVisualHeight = Math.max(...visualLayers.map(v => v.height));
-
-        // Tallest layers are backgrounds
         const backgrounds = visualLayers.filter(v => v.height === maxVisualHeight);
-
-        // Shorter layers are foregrounds/masks, sorted by height descending
         const overlays = visualLayers.filter(v => v.height < maxVisualHeight);
         overlays.sort((a, b) => {
             if (b.height !== a.height) return b.height - a.height;
@@ -728,49 +455,36 @@ function preScanSceneNames(drive) {
             return a.lastDigit - b.lastDigit;
         });
 
-        // Label all backgrounds
-        for (const bg of backgrounds) {
-            sceneLabels[bg.id] = 'background';
-        }
-
-        // Label overlays sequentially
-        if (overlays.length > 0) {
-            sceneLabels[overlays[0].id] = 'foreground';
-        }
+        for (const bg of backgrounds) sceneLabels[bg.id] = 'background';
+        if (overlays.length > 0) sceneLabels[overlays[0].id] = 'foreground';
         for (let i = 1; i < overlays.length; i++) {
             sceneLabels[overlays[i].id] = i === 1 ? 'mask' : `mask_${i}`;
         }
     }
 
-    // Calculate group-wide crops based on backgrounds
+    // Calculate group-wide crop bounds from background pixel data
     for (const groupId in resourcesByGroup) {
         const list = resourcesByGroup[groupId];
         const backgrounds = list.filter(r => sceneLabels[r.id] === 'background');
-
-        let minX = 500, minY = 250, maxX = 0, maxY = 0;
-        let foundAny = false;
+        let minX = 500, minY = 250, maxX = 0, maxY = 0, foundAny = false;
 
         for (const bgInfo of backgrounds) {
             const meta = resourceMetadata[bgInfo.id];
             if (!meta) continue;
-
             const fd = fs.openSync(meta.file, 'r');
             try {
                 const sizeBuf = Buffer.alloc(4);
                 fs.readSync(fd, sizeBuf, 0, 4, meta.offset);
                 const dataCompressedSize = sizeBuf.readUInt32BE(0);
-
                 const compressedData = Buffer.alloc(dataCompressedSize);
                 fs.readSync(fd, compressedData, 0, dataCompressedSize, meta.offset + 48);
-
                 const decompressed = decompressPackBits(compressedData);
                 const rowBytes = Math.ceil(meta.w / 4) * 4;
                 for (let y = 0; y < meta.h; y++) {
                     for (let x = 0; x < meta.w; x++) {
                         const srcIdx = y * rowBytes + x;
                         if (srcIdx < decompressed.length && decompressed[srcIdx] !== 255) {
-                            const destX = x + meta.x_off;
-                            const destY = y + meta.y_off;
+                            const destX = x + meta.x_off, destY = y + meta.y_off;
                             if (destX >= 0 && destX < 500 && destY >= 0 && destY < 250) {
                                 if (destX < minX) minX = destX;
                                 if (destX > maxX) maxX = destX;
@@ -788,7 +502,7 @@ function preScanSceneNames(drive) {
         if (foundAny) sceneGroupCrops[groupId] = { minX, minY, maxX, maxY };
     }
 
-    // Resolve case-insensitive name collisions before manual overrides
+    // Resolve case-insensitive name collisions
     const lowerNames = {};
     for (const groupId in foundNames) {
         const name = foundNames[groupId];
@@ -802,21 +516,10 @@ function preScanSceneNames(drive) {
         }
     }
 
-    // Apply manual name overrides last so they always win
-    for (const id in MANUAL_SCENE_NAMES) {
-        foundNames[id] = MANUAL_SCENE_NAMES[id];
-    }
-
+    for (const id in MANUAL_SCENE_NAMES) foundNames[id] = MANUAL_SCENE_NAMES[id];
     return foundNames;
 }
 
-// =========================================================
-// 7. SPECIFIC ASSET TYPE EXTRACTION SUB-PIPELINES
-// =========================================================
-
-/**
- * Handle Image (Im08) Resource Extraction Pipeline
- */
 async function processImageExtraction(fd, types, filePath, mode, getString, tocOffset, tocBuffer) {
     const isActorFile = mode === 'actors';
     const isSceneFile = mode === 'scenes';
@@ -826,13 +529,10 @@ async function processImageExtraction(fd, types, filePath, mode, getString, tocO
     if (!typeEntry) return;
 
     const actualStart = 30 + typeEntry.typeOffset;
-    const entrySize = 12;
     let extractedCount = 0;
 
     for (let i = 0; i < typeEntry.count; i++) {
-        const entryOffset = actualStart + i * entrySize;
-        const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
-
+        const chunk = tocBuffer.slice(actualStart + i * 12, actualStart + i * 12 + 12);
         const nameOff = chunk.readUInt16BE(0);
         const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
         const id = chunk.readUInt16BE(10);
@@ -842,61 +542,37 @@ async function processImageExtraction(fd, types, filePath, mode, getString, tocO
 
         try {
             const { dataCompressedSize, y_offset, x_offset, height, width } = readImageResourceHeader(fd, dataOffset);
-
             if (dataCompressedSize <= 0 || dataCompressedSize > 10000000) continue;
             if (width <= 0 || height <= 0 || width > 2000 || height > 2000) continue;
-
-            // Skip small thumbnail / low-res mask images under 200px wide
-            if (isSceneFile && width < 200) continue;
+            if (isSceneFile && width < 200) continue; // Skip thumbnails
 
             let outPath = '';
             const activeRemap = colorMappings;
-            let typeSuffix = 'actor';
-            let groupName = '';
 
             if (isActorFile) {
                 const characterName = ACTOR_ID_OVERRIDES[id] || ACTOR_NAMES[Math.floor(id / 1000)] || "Unknown";
-                
                 const characterDir = path.join(actorsDir, characterName);
-                if (!fs.existsSync(characterDir)) {
-                    fs.mkdirSync(characterDir, { recursive: true });
-                }
+                if (!fs.existsSync(characterDir)) fs.mkdirSync(characterDir, { recursive: true });
                 outPath = path.join(characterDir, `pose_${id}.png`);
             } else if (isSceneFile) {
                 const groupId = SCENE_REROUTES[id] !== undefined ? SCENE_REROUTES[id] : Math.floor(id / 10);
                 const lastDigit = id % 10;
-
-                // Determine the group name
-                groupName = MANUAL_SCENE_NAMES[groupId] || sceneGroupNames[groupId] || `scene_group_${groupId}`;
+                let groupName = MANUAL_SCENE_NAMES[groupId] || sceneGroupNames[groupId] || `scene_group_${groupId}`;
                 groupName = formatFolderName(groupName);
-
-                // Determine the file type suffix dynamically or fall back to last digit
-                typeSuffix = sceneLabels[id] || '';
+                let typeSuffix = sceneLabels[id] || '';
                 if (!typeSuffix) {
-                    if (lastDigit === 0) {
-                        typeSuffix = 'walkmask';
-                    } else if (lastDigit === 1) {
-                        typeSuffix = 'background';
-                    } else if (lastDigit === 2) {
-                        typeSuffix = 'foreground';
-                    } else if (lastDigit === 3) {
-                        typeSuffix = 'mask';
-                    } else {
-                        typeSuffix = 'unknown';
-                    }
+                    if (lastDigit === 0) typeSuffix = 'walkmask';
+                    else if (lastDigit === 1) typeSuffix = 'background';
+                    else if (lastDigit === 2) typeSuffix = 'foreground';
+                    else if (lastDigit === 3) typeSuffix = 'mask';
+                    else typeSuffix = 'unknown';
                 }
-
                 const sceneSpecificDir = path.join(scenesDir, groupName);
-                if (!fs.existsSync(sceneSpecificDir)) {
-                    fs.mkdirSync(sceneSpecificDir, { recursive: true });
-                }
-                const sceneName = `${groupName}_${typeSuffix}_${id}.png`;
-                outPath = path.join(sceneSpecificDir, sceneName);
+                if (!fs.existsSync(sceneSpecificDir)) fs.mkdirSync(sceneSpecificDir, { recursive: true });
+                outPath = path.join(sceneSpecificDir, `${groupName}_${typeSuffix}_${id}.png`);
             } else if (isMainFile) {
                 const outImgDir = path.join(mainDir, 'images');
-                if (!fs.existsSync(outImgDir)) {
-                    fs.mkdirSync(outImgDir, { recursive: true });
-                }
+                if (!fs.existsSync(outImgDir)) fs.mkdirSync(outImgDir, { recursive: true });
                 const cleanName = sanitizeFilename(getString(nameOff)) || `image_${id}`;
                 outPath = path.join(outImgDir, `${cleanName}.png`);
             }
@@ -908,23 +584,16 @@ async function processImageExtraction(fd, types, filePath, mode, getString, tocO
                 id, dataOffset, dataCompressedSize, width, height, x_offset, y_offset,
                 isScene: isSceneFile, activeRemap, outPath, cropInfo
             });
-
             extractedCount++;
-
         } catch (err) {
             console.error(`Error processing image ID ${id} in ${filePath}:`, err.message);
         }
 
-        if (i > 0 && i % 250 === 0) {
-            console.log(`    Processed ${i}/${typeEntry.count} images...`);
-        }
+        if (i > 0 && i % 250 === 0) console.log(`    Processed ${i}/${typeEntry.count} images...`);
     }
     console.log(`  Finished image extraction for ${filePath}: Extracted ${extractedCount} items successfully.`);
 }
 
-/**
- * Handle Sound (snd ) Resource Extraction Pipeline
- */
 async function processSoundExtraction(fd, types, filePath, mode, getString, tocOffset, tocBuffer) {
     const isActorFile = mode === 'actors';
     const isSceneFile = mode === 'scenes';
@@ -934,13 +603,10 @@ async function processSoundExtraction(fd, types, filePath, mode, getString, tocO
     if (!typeEntry) return;
 
     const actualStart = 30 + typeEntry.typeOffset;
-    const entrySize = 12;
     let extractedCount = 0;
 
     for (let i = 0; i < typeEntry.count; i++) {
-        const entryOffset = actualStart + i * entrySize;
-        const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
-
+        const chunk = tocBuffer.slice(actualStart + i * 12, actualStart + i * 12 + 12);
         const nameOff = chunk.readUInt16BE(0);
         const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
         const id = chunk.readUInt16BE(10);
@@ -950,12 +616,9 @@ async function processSoundExtraction(fd, types, filePath, mode, getString, tocO
 
         try {
             const { dataCompressedSize } = readSoundResourceHeader(fd, dataOffset);
-
             if (dataCompressedSize <= 48) continue;
 
-            const name = getString(nameOff);
-            const cleanName = sanitizeFilename(name);
-
+            const cleanName = sanitizeFilename(getString(nameOff));
             let targetDir = soundsDir;
 
             if (isActorFile) {
@@ -973,43 +636,30 @@ async function processSoundExtraction(fd, types, filePath, mode, getString, tocO
                 targetDir = path.join(mainDir, 'sounds');
             }
 
-            if (!fs.existsSync(targetDir)) {
-                fs.mkdirSync(targetDir, { recursive: true });
-            }
-
+            if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
             const soundFilename = cleanName ? `${cleanName}_${id}.wav` : `sound_${id}.wav`;
-            const outPath = path.join(targetDir, soundFilename);
-
-            extractAndSaveSound(fd, { dataOffset, dataCompressedSize, outPath });
+            extractAndSaveSound(fd, { dataOffset, dataCompressedSize, outPath: path.join(targetDir, soundFilename) });
             extractedCount++;
-
         } catch (err) {
             console.error(`Error processing sound ID ${id} in ${filePath}:`, err.message);
         }
 
-        if (i > 0 && i % 250 === 0) {
-            console.log(`    Processed ${i}/${typeEntry.count} sounds...`);
-        }
+        if (i > 0 && i % 250 === 0) console.log(`    Processed ${i}/${typeEntry.count} sounds...`);
     }
     console.log(`  Finished sound extraction for ${filePath}: Extracted ${extractedCount} items successfully.`);
 }
 
-/**
- * Handle Generic (untyped) Resource Extraction Pipeline
- */
 async function processGenericExtraction(fd, types, filePath, getString, tocOffset, tocBuffer) {
     for (const typeEntry of types) {
-        if (typeEntry.tag === 'Im08' || typeEntry.tag === 'snd ') continue; // Handled natively above
+        if (typeEntry.tag === 'Im08' || typeEntry.tag === 'snd ') continue;
 
         const actualStart = 30 + typeEntry.typeOffset;
-        const entrySize = 12;
         let extractedCount = 0;
         const safeTag = sanitizeFilename(typeEntry.tag.trim()) || 'UNKNOWN';
         const targetDir = path.join(mainDir, safeTag);
 
         for (let i = 0; i < typeEntry.count; i++) {
-            const entryOffset = actualStart + i * entrySize;
-            const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
+            const chunk = tocBuffer.slice(actualStart + i * 12, actualStart + i * 12 + 12);
             const nameOff = chunk.readUInt16BE(0);
             const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
             const id = chunk.readUInt16BE(10);
@@ -1019,7 +669,6 @@ async function processGenericExtraction(fd, types, filePath, getString, tocOffse
 
             try {
                 const { dataSize } = readGenericResourceHeader(fd, dataOffset);
-
                 const saved = extractAndSaveGeneric(fd, {
                     dataOffset, dataSize, tag: typeEntry.tag, getString, nameOff, id, targetDir, isDump: false
                 });
@@ -1028,15 +677,10 @@ async function processGenericExtraction(fd, types, filePath, getString, tocOffse
                 console.error(`Error processing ${typeEntry.tag} ID ${id} in ${filePath}:`, err.message);
             }
         }
-        if (extractedCount > 0) {
-            console.log(`  Finished generic extraction for ${typeEntry.tag}: Extracted ${extractedCount} items successfully.`);
-        }
+        if (extractedCount > 0) console.log(`  Finished generic extraction for ${typeEntry.tag}: Extracted ${extractedCount} items successfully.`);
     }
 }
 
-// =========================================================
-// 8. SAFELY LOAD JSON COLOR OVERRIDES
-// =========================================================
 const mappingPath = path.join(__dirname, 'color_mappings.json');
 if (fs.existsSync(mappingPath)) {
     try {
@@ -1049,26 +693,14 @@ if (fs.existsSync(mappingPath)) {
     console.log('Warning: color_mappings.json not found. Using default palette.');
 }
 
-// =========================================================
-// 9. CORE PIPELINE RUNNERS
-// =========================================================
-
-/**
- * Main parser and extractor for a single RF file
- * @param {string} filePath Path to .RF file
- * @param {string} mode Extraction mode ('actors', 'scenes', 'sounds', 'main')
- */
 async function processRFFile(filePath, mode) {
     if (!fs.existsSync(filePath)) {
         console.log(`Skipping missing file: ${filePath}`);
         return;
     }
-
     console.log(`\nProcessing ${filePath}...`);
-
     const fd = fs.openSync(filePath, 'r');
     const { types, getString, tocOffset, tocBuffer } = readRFTOC(fd);
-
     try {
         if (mode === 'actors' || mode === 'scenes' || mode === 'main') {
             await processImageExtraction(fd, types, filePath, mode, getString, tocOffset, tocBuffer);
@@ -1084,34 +716,27 @@ async function processRFFile(filePath, mode) {
     }
 }
 
-/**
- * Full RAW Binary Dump Function (extracts unmodified contents of all resources)
- * @param {string} filePath Path to .RF file
- */
 async function dumpRFFile(filePath) {
     if (!fs.existsSync(filePath)) {
         console.log(`Skipping missing file: ${filePath}`);
         return;
     }
-
     const filename = path.basename(filePath);
-    console.log(`\nStarting Full Dump of ${filename}...`);
-
+    console.log(`\nDumping ${filename}...`);
     const fd = fs.openSync(filePath, 'r');
     const { types, getString, tocOffset, tocBuffer } = readRFTOC(fd);
     const fileOutDir = path.join(dumpDir, sanitizeFilename(filename));
+    const isSceneDump = filename.toUpperCase().startsWith('SCENES');
 
     try {
         for (const typeEntry of types) {
             const actualStart = 30 + typeEntry.typeOffset;
-            const entrySize = 12;
             let extractedCount = 0;
             const safeTag = sanitizeFilename(typeEntry.tag.trim()) || 'UNKNOWN';
             const targetDir = path.join(fileOutDir, safeTag);
 
             for (let i = 0; i < typeEntry.count; i++) {
-                const entryOffset = actualStart + i * entrySize;
-                const chunk = tocBuffer.slice(entryOffset, entryOffset + entrySize);
+                const chunk = tocBuffer.slice(actualStart + i * 12, actualStart + i * 12 + 12);
                 const nameOff = chunk.readUInt16BE(0);
                 const relativeOffset = chunk.readUInt32BE(2) & 0x00FFFFFF;
                 const id = chunk.readUInt16BE(10);
@@ -1122,45 +747,27 @@ async function dumpRFFile(filePath) {
                 try {
                     if (typeEntry.tag === 'Im08') {
                         const { dataCompressedSize, y_offset, x_offset, height, width } = readImageResourceHeader(fd, dataOffset);
-
                         if (dataCompressedSize <= 0 || dataCompressedSize > 50000000) continue;
                         if (width <= 0 || height <= 0 || width > 2000 || height > 2000) continue;
-
-                        if (!fs.existsSync(targetDir)) {
-                            fs.mkdirSync(targetDir, { recursive: true });
-                        }
-                        const name = getString(nameOff);
-                        const cleanName = sanitizeFilename(name) || `${safeTag}_${id}`;
-                        const outPath = path.join(targetDir, `${cleanName}.png`);
-
-                        const isSceneDump = filename.toUpperCase().startsWith('SCENES');
+                        if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+                        const cleanName = sanitizeFilename(getString(nameOff)) || `${safeTag}_${id}`;
                         const groupId = SCENE_REROUTES[id] !== undefined ? SCENE_REROUTES[id] : Math.floor(id / 10);
-                        const cropInfo = isSceneDump ? sceneGroupCrops[groupId] : null;
-
                         await extractAndSaveImage(fd, {
                             id, dataOffset, dataCompressedSize, width, height, x_offset, y_offset,
-                            isScene: isSceneDump, activeRemap: null, outPath, cropInfo
+                            isScene: isSceneDump, activeRemap: null,
+                            outPath: path.join(targetDir, `${cleanName}.png`),
+                            cropInfo: isSceneDump ? sceneGroupCrops[groupId] : null
                         });
                         extractedCount++;
-                    }
-                    else if (typeEntry.tag === 'snd ') {
+                    } else if (typeEntry.tag === 'snd ') {
                         const { dataCompressedSize } = readSoundResourceHeader(fd, dataOffset);
-
                         if (dataCompressedSize <= 48) continue;
-
-                        if (!fs.existsSync(targetDir)) {
-                            fs.mkdirSync(targetDir, { recursive: true });
-                        }
-                        const name = getString(nameOff);
-                        const cleanName = sanitizeFilename(name) || `${safeTag}_${id}`;
-                        const outPath = path.join(targetDir, `${cleanName}.wav`);
-
-                        extractAndSaveSound(fd, { dataOffset, dataCompressedSize, outPath });
+                        if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+                        const cleanName = sanitizeFilename(getString(nameOff)) || `${safeTag}_${id}`;
+                        extractAndSaveSound(fd, { dataOffset, dataCompressedSize, outPath: path.join(targetDir, `${cleanName}.wav`) });
                         extractedCount++;
-                    }
-                    else {
+                    } else {
                         const { dataSize } = readGenericResourceHeader(fd, dataOffset);
-
                         const saved = extractAndSaveGeneric(fd, {
                             dataOffset, dataSize, tag: typeEntry.tag, getString, nameOff, id, targetDir, isDump: true
                         });
@@ -1170,23 +777,15 @@ async function dumpRFFile(filePath) {
                     console.error(`Error dumping ${typeEntry.tag} ID ${id} in ${filename}:`, err.message);
                 }
             }
-            if (extractedCount > 0) {
-                console.log(`  Dumped ${extractedCount} items for tag: ${typeEntry.tag}`);
-            }
+            if (extractedCount > 0) console.log(`  Dumped ${extractedCount} items for tag: ${typeEntry.tag}`);
         }
     } finally {
         fs.closeSync(fd);
     }
 }
 
-/**
- * Orchestrator to run selected extraction stages
- * @param {string} drive CD-ROM Drive Letter
- * @param {string} choice Interactive selected choice
- */
 async function runExtractor(drive, choice) {
     console.log(`Starting Unified CD Asset Extractor to: ${baseOutDir}`);
-
     try {
         globalPalette = getGlobalPalette(drive);
     } catch (err) {
@@ -1194,25 +793,19 @@ async function runExtractor(drive, choice) {
     }
 
     if (choice === '6') {
-        console.log('\n=========================================');
-        console.log('PERFORMING FULL RAW BINARY DUMP');
-        console.log('=========================================');
+        console.log('\nPERFORMING FULL RAW BINARY DUMP');
         const driveRoot = `${drive}:\\`;
         try {
             if (fs.existsSync(driveRoot)) {
                 const files = fs.readdirSync(driveRoot).filter(f => f.toUpperCase().endsWith('.RF'));
-                for (const file of files) {
-                    await dumpRFFile(path.join(driveRoot, file));
-                }
+                for (const file of files) await dumpRFFile(path.join(driveRoot, file));
             } else {
                 console.log(`Could not read drive root: ${driveRoot}`);
             }
         } catch (err) {
             console.log(`Error reading drive: ${err.message}`);
         }
-        console.log(`\n======================================================`);
-        console.log(`Extraction complete! All dump files placed in:\n${dumpDir}`);
-        console.log(`======================================================`);
+        console.log(`\nDump complete: ${dumpDir}`);
         return;
     }
 
@@ -1223,9 +816,7 @@ async function runExtractor(drive, choice) {
     }
 
     if (choice === '1' || choice === '2') {
-        console.log('\n=========================================');
-        console.log('EXTRACTING CHARACTER SPRITES & AUDIO (ACTORS)');
-        console.log('=========================================');
+        console.log('\nEXTRACTING CHARACTER SPRITES & AUDIO (ACTORS)');
         await processRFFile(`${drive}:\\ACTORS1.RF`, 'actors');
         await processRFFile(`${drive}:\\ACTORS2.RF`, 'actors');
         await processRFFile(`${drive}:\\ACTORS3.RF`, 'actors');
@@ -1233,18 +824,14 @@ async function runExtractor(drive, choice) {
     }
 
     if (choice === '1' || choice === '3') {
-        console.log('\n=========================================');
-        console.log('EXTRACTING BACKGROUND IMAGES & AUDIO (SCENES)');
-        console.log('=========================================');
+        console.log('\nEXTRACTING BACKGROUND IMAGES & AUDIO (SCENES)');
         await processRFFile(`${drive}:\\SCENES1.RF`, 'scenes');
         await processRFFile(`${drive}:\\SCENES2.RF`, 'scenes');
         await processRFFile(`${drive}:\\SCENES3.RF`, 'scenes');
     }
 
     if (choice === '1' || choice === '4') {
-        console.log('\n=========================================');
-        console.log('EXTRACTING AUDIO TRACKS (SOUNDS)');
-        console.log('=========================================');
+        console.log('\nEXTRACTING AUDIO TRACKS (SOUNDS)');
         await processRFFile(`${drive}:\\SOUND1.RF`, 'sounds');
         await processRFFile(`${drive}:\\SOUND2.RF`, 'sounds');
         await processRFFile(`${drive}:\\SOUND3.RF`, 'sounds');
@@ -1253,25 +840,14 @@ async function runExtractor(drive, choice) {
     }
 
     if (choice === '1' || choice === '5') {
-        console.log('\n=========================================');
-        console.log('EXTRACTING GENERIC ASSETS (MAIN)');
-        console.log('=========================================');
+        console.log('\nEXTRACTING GENERIC ASSETS (MAIN)');
         await processRFFile(`${drive}:\\MAIN.RF`, 'main');
     }
 
-    console.log('\n======================================================');
-    console.log(`Extraction complete! All assets placed in:\n${baseOutDir}`);
-    console.log('======================================================');
+    console.log(`\nExtraction complete: ${baseOutDir}`);
 }
 
-// =========================================================
-// 10. CLI INTERACTIVE INTERFACE
-// =========================================================
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 rl.question('Drive letter for Hollywood High CD-ROM (e.g., J): ', (driveLetter) => {
     driveLetter = driveLetter.trim().toUpperCase() || 'J';
     console.log('\nWhat would you like to extract?');
@@ -1281,7 +857,6 @@ rl.question('Drive letter for Hollywood High CD-ROM (e.g., J): ', (driveLetter) 
     console.log('  4. Sounds only');
     console.log('  5. Main assets only');
     console.log('  6. Full RAW Binary Dump (All .RF files)');
-
     rl.question('Choice [1-6]: ', (choice) => {
         choice = choice.trim();
         rl.close();

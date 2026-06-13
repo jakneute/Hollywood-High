@@ -1,4 +1,4 @@
-﻿function step_effects_update() {
+function step_effects_update() {
     var _mx = mouse_x; var _my = mouse_y;
 // --- Particle update (runs every step regardless of mode) ---
 for (var _ppi = array_length(active_particles) - 1; _ppi >= 0; _ppi--) {
@@ -260,9 +260,13 @@ if (playing_block_index != -1) {
         if (_bla.blood_timer >= _btrig) {
             _bla.blood_timer = 0;
             var _blly = get_composite_character_sprite(_bla.char_index, _bla.pose, _bla.expression, _bla.facing);
-            var _blbh = (_blly[0].spr != -1) ? sprite_get_height(_blly[0].spr) * _asc_bl : 200;
-            var _bnx = _bla.x + random_range(-6, 6);
-            var _bny = _bla.y - _blbh * 0.92;
+            var _bl_face   = _blly[1];
+            var _bl_face_w = (_bl_face.spr != -1) ? sprite_get_width(_bl_face.spr)  : 0;
+            var _bl_face_h = (_bl_face.spr != -1) ? sprite_get_height(_bl_face.spr) : 0;
+            var _bl_body_w = (_blly[0].spr != -1) ? sprite_get_width(_blly[0].spr)  : 80;
+            var _bl_body_h = (_blly[0].spr != -1) ? sprite_get_height(_blly[0].spr) : 200;
+            var _bnx = _bla.x + (_bl_face.dx + _bl_face_w * 0.5 - _bl_body_w * 0.5) * _asc_bl + random_range(-6, 6);
+            var _bny = _bla.y - max(1, _bl_body_h - _bl_face.dy - _bl_face_h) * _asc_bl;
             repeat (irandom_range(2, 4)) {
                 var _bba = degtorad(random_range(240, 300));
                 var _bsp = random_range(1.2, 3.5);

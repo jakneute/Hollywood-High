@@ -913,22 +913,34 @@ function step_tts_playback() {
                                     var _kbh = (_kly[0].spr != -1) ? sprite_get_height(_kly[0].spr) * _ksc : 200;
                                     var _kbw = (_kly[0].spr != -1) ? sprite_get_width(_kly[0].spr)  * _ksc : 80;
                                     var _kface = variable_struct_exists(_ia, "facing") ? _ia.facing : 1;
-                                    // Compute neck position — upright it's 0.90 up from foot; if knocked down rotate that offset around the foot pivot
+                                    // Flying head draw reference: 0.25 from foot matches _td_neck_by = 0.75 from top in the draw code
                                     var _neck_ux = 0;
-                                    var _neck_uy = -_kbh * 0.90;
+                                    var _neck_uy = -_kbh * 0.25;
+                                    // Neckhole center: midpoint of face sprite (X) at its bottom edge (Y)
+                                    var _face_l    = _kly[1];
+                                    var _face_w_px = (_face_l.spr != -1) ? sprite_get_width(_face_l.spr)  : 0;
+                                    var _face_h_px = (_face_l.spr != -1) ? sprite_get_height(_face_l.spr) : 0;
+                                    var _body_w_px = (_kly[0].spr != -1) ? sprite_get_width(_kly[0].spr)  : 80;
+                                    var _body_h_px = (_kly[0].spr != -1) ? sprite_get_height(_kly[0].spr) : 200;
+                                    var _splatter_ux = (_face_l.dx + _face_w_px * 0.5 - _body_w_px * 0.5) * _ksc;
+                                    var _splatter_uy = -max(1, _body_h_px - _face_l.dy - _face_h_px) * _ksc;
                                     var _kangle = (variable_struct_exists(_ia, "is_knocked_down") && _ia.is_knocked_down) ? (variable_struct_exists(_ia, "knock_angle") ? _ia.knock_angle : 0) : 0;
-                                    var _knx, _kny;
+                                    var _knx, _kny, _snx, _sny;
                                     if (abs(_kangle) > 1) {
                                         var _krac = dcos(_kangle); var _kras = dsin(_kangle);
                                         _knx = _ia.x + _neck_ux * _krac + _neck_uy * _kras;
                                         _kny = _ia.y - _neck_ux * _kras + _neck_uy * _krac;
+                                        _snx = _ia.x + _splatter_ux * _krac + _splatter_uy * _kras;
+                                        _sny = _ia.y - _splatter_ux * _kras + _splatter_uy * _krac;
                                     } else {
                                         _knx = _ia.x + _neck_ux;
                                         _kny = _ia.y + _neck_uy;
+                                        _snx = _ia.x + _splatter_ux;
+                                        _sny = _ia.y + _splatter_uy;
                                     }
                                     // Fly direction: away from neck along the rotated "up" axis
                                     var _fly_angle = 270 - _kangle;
-                                    start_particle_emitter("splatter", _knx, _kny, _fly_angle, 1.5, 0.55, 7, 1.8, 100, "darkred", 0,0,0, 18, 8);
+                                    start_particle_emitter("splatter", _snx, _sny, _fly_angle, 1.5, 0.55, 7, 1.8, 100, "darkred", 0,0,0, 18, 8);
                                     // Base fly velocity is straight up; rotate by knock_angle so it fires away from the neck regardless of orientation
                                     var _base_spd = random_range(4.5, 5.5);
                                     var _fly_krac = dcos(_kangle); var _fly_kras = dsin(_kangle);
@@ -943,8 +955,8 @@ function step_tts_playback() {
                                         decap_mode:  _decap_mode,
                                         body_w:      _kbw,
                                         body_h:      _kbh,
-                                        x:           scene_win_x + _knx,
-                                        y:           scene_win_y + _kny,
+                                        x:           scene_win_x + _snx,
+                                        y:           scene_win_y + _sny,
                                         vx:          _hvx,
                                         vy:          _hvy,
                                         angle:       0,
@@ -1008,8 +1020,13 @@ function step_tts_playback() {
                                 var _rbw = (_rly[0].spr != -1) ? sprite_get_width(_rly[0].spr)  * _rsc : 80;
                                 var _rface = variable_struct_exists(_rha, "facing") ? _rha.facing : 1;
                                 var _rdm = variable_struct_exists(_rha, "decap_mode") ? _rha.decap_mode : "remove_head";
-                                var _r_neck_ux = 0;
-                                var _r_neck_uy = -_rbh * 0.90;
+                                var _r_face_l    = _rly[1];
+                                var _r_face_w_px = (_r_face_l.spr != -1) ? sprite_get_width(_r_face_l.spr)  : 0;
+                                var _r_face_h_px = (_r_face_l.spr != -1) ? sprite_get_height(_r_face_l.spr) : 0;
+                                var _r_body_w_px = (_rly[0].spr != -1) ? sprite_get_width(_rly[0].spr)  : 80;
+                                var _r_body_h_px = (_rly[0].spr != -1) ? sprite_get_height(_rly[0].spr) : 200;
+                                var _r_neck_ux = (_r_face_l.dx + _r_face_w_px * 0.5 - _r_body_w_px * 0.5) * _rsc;
+                                var _r_neck_uy = -max(1, _r_body_h_px - _r_face_l.dy - _r_face_h_px) * _rsc;
                                 var _rkangle = (variable_struct_exists(_rha, "is_knocked_down") && _rha.is_knocked_down) ? (variable_struct_exists(_rha, "knock_angle") ? _rha.knock_angle : 0) : 0;
                                 var _rnx, _rny;
                                 if (abs(_rkangle) > 1) {

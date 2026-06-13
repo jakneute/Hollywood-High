@@ -158,6 +158,12 @@ move_modal_temp_target_scale = 1.0;
 move_modal_start_scale       = 1.0;
 move_modal_edit_mode = false;
 move_modal_target_index = -1;
+move_modal_temp_target_x = 0;
+move_modal_temp_target_y = 0;
+move_modal_start_x       = 0;
+move_modal_dragging      = false;
+move_modal_drag_off_x    = 0;
+move_modal_drag_off_y    = 0;
 
 theater_mode = false;
 theater_paused = false;

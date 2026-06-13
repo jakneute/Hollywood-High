@@ -685,6 +685,12 @@ if (mouse_check_button_pressed(mb_left)) {
                         move_modal_temp_moonwalk    = (variable_struct_exists(_block, "moonwalk") && _block.moonwalk) || (string_pos("[moonwalk]", string_lower(_block.action_name)) > 0);
                         move_modal_temp_trick       = variable_struct_exists(_block, "trick")       ? _block.trick       : "none";
                         move_modal_temp_trick_count = variable_struct_exists(_block, "trick_count") ? _block.trick_count : 1;
+                        // Capture start position (before this block) for drag facing updates
+                        update_preview_actors_for_block(i, false);
+                        move_modal_start_x = 0;
+                        for (var _paj_sx = 0; _paj_sx < array_length(preview_actors); _paj_sx++) {
+                            if (preview_actors[_paj_sx].char_index == _block.char_index) { move_modal_start_x = preview_actors[_paj_sx].x; break; }
+                        }
                         var _blk_cur_scale = 1.0;
                         if (variable_struct_exists(_block, "target_scale")) {
                             update_preview_actors_for_block(i, false);
@@ -699,6 +705,9 @@ if (mouse_check_button_pressed(mb_left)) {
                         }
                         move_modal_start_scale       = _blk_cur_scale;
                         move_modal_temp_target_scale = variable_struct_exists(_block, "target_scale") ? _block.target_scale : _blk_cur_scale;
+                        move_modal_temp_target_x     = variable_struct_exists(_block, "target_x") ? _block.target_x : 0;
+                        move_modal_temp_target_y     = variable_struct_exists(_block, "target_y") ? _block.target_y : (scene_win_h * 0.8);
+                        move_modal_dragging          = false;
                         move_modal_temp_speed_index  = 2;
                         var _blk_spd_arr = (abs(move_modal_temp_target_scale - _blk_cur_scale) > 0.01) ? move_speeds_scaled : move_speeds;
                         for (var j = 0; j < array_length(_blk_spd_arr); j++) {

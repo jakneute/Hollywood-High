@@ -954,6 +954,14 @@ function step_modal_movement() {
     var _m_w = 400; var _m_h = 730;
     var _m_x = 1280 - _m_w - 20; var _m_y = (800 - _m_h) / 2;
 
+    // Scene-area drag: update destination while button held
+    var _in_scene = (_mx >= scene_win_x && _mx <= scene_win_x + scene_win_w && _my >= scene_win_y && _my <= scene_win_y + scene_win_h);
+    if (mouse_check_button(mb_left) && move_modal_dragging) {
+        move_modal_temp_target_x = clamp(_mx - scene_win_x - move_modal_drag_off_x, 0, scene_win_w);
+        move_modal_temp_target_y = clamp(_my - scene_win_y - move_modal_drag_off_y, 0, scene_win_h);
+    }
+    if (!mouse_check_button(mb_left)) move_modal_dragging = false;
+
     if (mouse_check_button_pressed(mb_left)) {
         for (var i = 0; i < array_length(move_speed_labels); i++) {
             var _by = _m_y + 80 + (i * 45);
@@ -988,6 +996,28 @@ function step_modal_movement() {
             move_modal_temp_target_scale = 1.0;
         }
 
+        // Click in scene area: begin dragging character to set end destination
+        if (_in_scene && move_modal_target_index != -1 && !move_modal_dragging) {
+            var _mm_blk_d = script_blocks[move_modal_target_index];
+            for (var _dj = 0; _dj < array_length(preview_actors); _dj++) {
+                var _dp = preview_actors[_dj];
+                if (real(_dp.char_index) == real(_mm_blk_d.char_index)) {
+                    var _da_sx = scene_win_x + move_modal_temp_target_x;
+                    var _da_sy = scene_win_y + move_modal_temp_target_y;
+                    var _sc_d  = (scene_win_h * 1.5) / 450 * (_dp[$ "scale"] ?? 1.0);
+                    var _lyr_d = get_composite_character_sprite(_dp.char_index, _dp[$ "pose"] ?? 1, _dp[$ "expression"] ?? 21, _dp[$ "facing"] ?? 1);
+                    var _bh_d  = (_lyr_d[0].spr != -1) ? sprite_get_height(_lyr_d[0].spr) * _sc_d : 150;
+                    var _bw_d  = (_lyr_d[0].spr != -1) ? sprite_get_width(_lyr_d[0].spr)  * _sc_d : 80;
+                    if (_mx >= _da_sx - _bw_d * 0.6 && _mx <= _da_sx + _bw_d * 0.6 && _my >= _da_sy - _bh_d && _my <= _da_sy + 10) {
+                        move_modal_dragging   = true;
+                        move_modal_drag_off_x = _mx - scene_win_x - move_modal_temp_target_x;
+                        move_modal_drag_off_y = _my - scene_win_y - move_modal_temp_target_y;
+                    }
+                    break;
+                }
+            }
+        }
+
         if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             if (move_modal_edit_mode && move_modal_target_index != -1) {
                 var _b = script_blocks[move_modal_target_index];
@@ -1002,6 +1032,8 @@ function step_modal_movement() {
                 _b.trick       = move_modal_temp_trick;
                 _b.trick_count = (move_modal_temp_trick != "none") ? move_modal_temp_trick_count : 1;
                 _b.target_scale = move_modal_temp_target_scale;
+                _b.target_x     = move_modal_temp_target_x;
+                _b.target_y     = move_modal_temp_target_y;
                 var _bn = _b.action_name;
                 var _pos = string_pos(" (", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
                 _pos = string_pos(" [MOONWALK]", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
@@ -1064,9 +1096,13 @@ function step_modal_movement() {
             if (preview_actors[_mmi].char_index == _mm_char) {
                 var _pa_mm = preview_actors[_mmi];
                 _pa_mm.scale = move_modal_temp_target_scale;
-                var _mm_saved_moon = (variable_struct_exists(_mm_blk, "moonwalk") && _mm_blk.moonwalk)
-                                  || (string_pos("[moonwalk]", string_lower(_mm_blk.action_name)) > 0);
-                if (move_modal_temp_moonwalk != _mm_saved_moon) _pa_mm.facing *= -1;
+                _pa_mm.x     = move_modal_temp_target_x;
+                _pa_mm.y     = move_modal_temp_target_y;
+                var _is_kd_mm = variable_struct_exists(_pa_mm, "is_knocked_down") && _pa_mm.is_knocked_down;
+                if (!_is_kd_mm) {
+                    var _base_f_mm = (move_modal_temp_target_x > move_modal_start_x) ? -1 : 1;
+                    _pa_mm.facing  = move_modal_temp_moonwalk ? -_base_f_mm : _base_f_mm;
+                }
                 break;
             }
         }
