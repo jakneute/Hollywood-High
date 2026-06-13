@@ -158,10 +158,26 @@ if (theater_mode) {
 		_mask_sprite = get_scene_sprite(_mask_name);
 	}
 
-	var draw_theater_actors = function(_stg_w, _stg_h, _stg_x, _stg_y, target_surface = -1) {
+	var draw_theater_actors = function(_stg_w, _stg_h, _stg_x, _stg_y, target_surface = -1, _scale_filter = 0) {
 		gpu_set_texfilter(false);
-		for (var i = 0; i < array_length(preview_actors); i++) {
-			var _act = preview_actors[i];
+		var _draw_order = [];
+		for (var _sdi = 0; _sdi < array_length(preview_actors); _sdi++) {
+		    var _ins_th  = preview_actors[_sdi];
+		    var _ins_scl = _ins_th[$ "scale"] ?? 1.0;
+		    var _ins_pos = array_length(_draw_order);
+		    for (var _sdj = 0; _sdj < array_length(_draw_order); _sdj++) {
+		        var _cmp_scl = _draw_order[_sdj][$ "scale"] ?? 1.0;
+		        if (_ins_scl < _cmp_scl || (_ins_scl == _cmp_scl && _ins_th.y < _draw_order[_sdj].y)) {
+		            _ins_pos = _sdj; break;
+		        }
+		    }
+		    array_insert(_draw_order, _ins_pos, _ins_th);
+		}
+		for (var i = 0; i < array_length(_draw_order); i++) {
+			var _act = _draw_order[i];
+			var _act_scale_th = _act[$ "scale"] ?? 1.0;
+			if (_scale_filter == -1 && _act_scale_th > 1.0) continue;
+			if (_scale_filter ==  1 && _act_scale_th <= 1.0) continue;
 			var _pose  = variable_struct_exists(_act, "pose")       ? _act.pose       : 1;
 			var _expr  = variable_struct_exists(_act, "expression") ? _act.expression : 21;
 			var _aface = variable_struct_exists(_act, "facing")     ? _act.facing     : undefined;
@@ -200,7 +216,7 @@ if (theater_mode) {
 				var _idle_layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
 				var _csw = (_idle_layers[0].spr != -1) ? sprite_get_width(_idle_layers[0].spr) : sprite_get_width(_spr);
 				var _csh = sprite_get_height(_spr);
-				var _asc = (_stg_h * 1.5) / 450;
+				var _asc = (_stg_h * 1.5) / 450 * _act_scale_th;
 
 				var _ax = (_act.x / scene_win_w) * _stg_w;
 				var _ay = (_act.y / scene_win_h) * _stg_h;
@@ -399,7 +415,7 @@ if (theater_mode) {
 		}
 		surface_set_target(o_char_surface);
 		draw_clear_alpha(c_black, 0);
-		draw_theater_actors(_stage_w, _stage_h, _stage_x, _stage_y, o_char_surface);
+		draw_theater_actors(_stage_w, _stage_h, _stage_x, _stage_y, o_char_surface, 0);
 		surface_reset_target();
 
 		if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != _stage_w || surface_get_height(o_mask_surface) != _stage_h) {
@@ -824,12 +840,28 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 	}
 
 	// --- Actor Drawing Logic ---
-	var draw_editor_actors = function(_s, target_surface = -1, _draw_outline = true, _draw_sprite = true) {
+	var draw_editor_actors = function(_s, target_surface = -1, _draw_outline = true, _draw_sprite = true, _scale_filter = 0) {
 		if (variable_struct_exists(_s, "actors")) {
 			gpu_set_texfilter(false);
-			for (var a = 0; a < array_length(preview_actors); a++) {
-				var _act = preview_actors[a];
-				
+			var _ed_order = [];
+			for (var _sdi = 0; _sdi < array_length(preview_actors); _sdi++) {
+			    var _ins_ed  = preview_actors[_sdi];
+			    var _ins_scl = _ins_ed[$ "scale"] ?? 1.0;
+			    var _ins_pos = array_length(_ed_order);
+			    for (var _sdj = 0; _sdj < array_length(_ed_order); _sdj++) {
+			        var _cmp_scl = _ed_order[_sdj][$ "scale"] ?? 1.0;
+			        if (_ins_scl < _cmp_scl || (_ins_scl == _cmp_scl && _ins_ed.y < _ed_order[_sdj].y)) {
+			            _ins_pos = _sdj; break;
+			        }
+			    }
+			    array_insert(_ed_order, _ins_pos, _ins_ed);
+			}
+			for (var a = 0; a < array_length(_ed_order); a++) {
+				var _act = _ed_order[a];
+				var _act_scale_ed = _act[$ "scale"] ?? 1.0;
+				if (_scale_filter == -1 && _act_scale_ed > 1.0) continue;
+				if (_scale_filter ==  1 && _act_scale_ed <= 1.0) continue;
+
 				var _is_being_dragged = false;
 				if (dragging_actor_idx != -1 && dragging_actor_idx < array_length(_s.actors) && _s.actors[dragging_actor_idx].char_index == _act.char_index) _is_being_dragged = true;
 				if (dragging_preview_idx != -1 && dragging_preview_idx < array_length(preview_actors) && preview_actors[dragging_preview_idx].char_index == _act.char_index) _is_being_dragged = true;
@@ -874,7 +906,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 					var _idle_layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _aface);
 					var _csw = (_idle_layers[0].spr != -1) ? sprite_get_width(_idle_layers[0].spr) : sprite_get_width(_spr);
 					var _csh = sprite_get_height(_spr);
-					var _sc = (scene_win_h * 1.5) / 450;
+					var _sc = (scene_win_h * 1.5) / 450 * _act_scale_ed;
 					var _y_off  = variable_struct_exists(_act, "y_offset")  ? _act.y_offset  : 0;
 					var _jit_x  = variable_struct_exists(_act, "jitter_x")  ? _act.jitter_x  : 0;
 					var _jit_y  = variable_struct_exists(_act, "jitter_y")  ? _act.jitter_y  : 0;
@@ -1098,7 +1130,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 		}
 		surface_set_target(o_char_surface);
 		draw_clear_alpha(c_black, 0);
-		draw_editor_actors(_scene, o_char_surface, false, true);
+		draw_editor_actors(_scene, o_char_surface, false, true, 0);
 		surface_reset_target();
 
 		if (!surface_exists(o_mask_surface) || surface_get_width(o_mask_surface) != scene_win_w || surface_get_height(o_mask_surface) != scene_win_h) {
@@ -1383,7 +1415,7 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 
 			var _ocsw = sprite_get_width(_idle_layers[0].spr);
 			var _ocsh = sprite_get_height(_idle_layers[0].spr);
-			var _osc  = (scene_win_h * 1.5) / 450;
+			var _osc  = (scene_win_h * 1.5) / 450 * (_oact[$ "scale"] ?? 1.0);
 			// Local surface coords (no scene_win offset — applied when drawing the surface)
 			var _sdx = _oact.x - (_ocsw * _osc) / 2;
 			var _sdy = _oact.y - (_ocsh * _osc) + _oy_off;
@@ -1523,6 +1555,62 @@ if (active_scene_block_idx != -1 && active_scene_block_idx < array_length(script
 
 
 gpu_set_scissor(0, 0, 1280, 960);
+
+// --- SCALE PANEL (staging + off-stage entry scale) ---
+var _sp_sel_visible = false;
+if (selected_character_index != -1) {
+    for (var _svi = 0; _svi < array_length(preview_actors); _svi++) {
+        if (preview_actors[_svi].char_index == selected_character_index
+            && !(variable_struct_exists(preview_actors[_svi], "hidden") && preview_actors[_svi].hidden)) {
+            _sp_sel_visible = true; break;
+        }
+    }
+}
+if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && playing_block_index == -1
+    && current_scene_sprite != -1 && characters[selected_character_index].name != "NARRATOR"
+    && (scene_edit_mode || !_sp_sel_visible)) {
+    var _sp_act_idx = -1;
+    for (var _spi = 0; _spi < array_length(preview_actors); _spi++) {
+        if (preview_actors[_spi].char_index == selected_character_index) { _sp_act_idx = _spi; break; }
+    }
+    var _sp_scale = (_sp_act_idx != -1) ? (preview_actors[_sp_act_idx][$ "scale"] ?? 1.0) : char_entry_scales[selected_character_index];
+    var _sp_on_right = (_sp_act_idx == -1) || (preview_actors[_sp_act_idx].x < scene_win_w * 0.5);
+    var _sp_pw = 48; var _sp_ph = 220;
+    var _sp_px = _sp_on_right ? (scene_win_x + scene_win_w - _sp_pw - 4) : (scene_win_x + 4);
+    var _sp_py = scene_win_y + (scene_win_h - _sp_ph) / 2;
+    var _sp_cx = _sp_px + _sp_pw / 2;
+    var _sp_track_top = _sp_py + 30;
+    var _sp_track_bot = _sp_py + _sp_ph - 46;
+    var _sp_track_h   = _sp_track_bot - _sp_track_top;
+    var _sp_t = clamp((_sp_scale - 0.10) / 4.90, 0, 1);
+    var _sp_thumb_y = _sp_track_bot - _sp_t * _sp_track_h;
+    var _sp_rst_y = _sp_py + _sp_ph - 36;
+    // Background
+    draw_set_color(make_color_rgb(20, 38, 20)); draw_set_alpha(0.88);
+    draw_rectangle(_sp_px, _sp_py, _sp_px + _sp_pw, _sp_py + _sp_ph, false);
+    draw_set_alpha(1.0);
+    draw_set_color(make_color_rgb(100, 155, 30));
+    draw_rectangle(_sp_px, _sp_py, _sp_px + _sp_pw, _sp_py + _sp_ph, true);
+    // Label
+    draw_set_color(make_color_rgb(196, 213, 20));
+    draw_set_halign(fa_center); draw_text(_sp_cx, _sp_py + 6, "SCALE"); draw_set_halign(fa_left);
+    // Track
+    draw_set_color(make_color_rgb(40, 80, 25));
+    draw_rectangle(_sp_cx - 3, _sp_track_top, _sp_cx + 3, _sp_track_bot, false);
+    // Thumb
+    var _sp_thumb_hov = (point_distance(_mx, _my, _sp_cx, _sp_thumb_y) < 12);
+    draw_set_color(staging_scale_drag || _sp_thumb_hov ? make_color_rgb(140, 220, 30) : make_color_rgb(100, 175, 20));
+    draw_circle(_sp_cx, _sp_thumb_y, 8, false);
+    draw_set_color(make_color_rgb(20, 40, 10)); draw_circle(_sp_cx, _sp_thumb_y, 8, true);
+    // Value
+    draw_set_color(c_white);
+    draw_set_halign(fa_center); draw_text(_sp_cx, _sp_thumb_y - 16, string(round(_sp_scale * 100)) + "%"); draw_set_halign(fa_left);
+    // RST button
+    var _sp_rst_hov = (_mx > _sp_px + 4 && _mx < _sp_px + _sp_pw - 4 && _my > _sp_rst_y && _my < _sp_rst_y + 22);
+    draw_set_color(_sp_rst_hov ? make_color_rgb(180, 60, 30) : make_color_rgb(120, 35, 20));
+    draw_roundrect_ext(_sp_px + 4, _sp_rst_y, _sp_px + _sp_pw - 4, _sp_rst_y + 22, 3, 3, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_sp_cx, _sp_rst_y + 5, "RST"); draw_set_halign(fa_left);
+}
 
 // --- PARTICLE EDIT MODE OVERLAY ---
 if (particle_edit_mode && particle_edit_block_idx != -1 && particle_edit_block_idx < array_length(script_blocks)
@@ -2390,6 +2478,15 @@ if (dragging_char_index != -1 || dragging_actor_idx != -1 || dragging_preview_id
         var _csh = sprite_get_height(_spr);
         var _csw = sprite_get_width(_spr);
         var _scale = (scene_win_h * 1.5) / 450;
+        var _drag_act_scale = 1.0;
+        if (dragging_char_index != -1) {
+            _drag_act_scale = char_entry_scales[dragging_char_index];
+        } else if (dragging_actor_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+            _drag_act_scale = script_blocks[active_scene_block_idx].actors[dragging_actor_idx][$ "scale"] ?? 1.0;
+        } else if (dragging_preview_idx != -1) {
+            _drag_act_scale = preview_actors[dragging_preview_idx][$ "scale"] ?? 1.0;
+        }
+        _scale *= _drag_act_scale;
 
         var _px = _mx - scene_win_x - drag_off_x;
         var _py = _my - scene_win_y - drag_off_y;

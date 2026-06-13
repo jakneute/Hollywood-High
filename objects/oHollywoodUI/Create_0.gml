@@ -133,8 +133,9 @@ pose_names = ["POSE 1", "POSE 2", "POSE 3", "POSE 4"];
 // --- 2c. MOVEMENT PARAMETERS STATE ---
 move_modal_open = false;
 move_speed_index = 2; // Default: WALK
-move_speeds = [0.6, 1.25, 1.9, 3.1, 5.6];
-move_speed_labels = ["CRAWL", "SLOW", "WALK", "JOG", "RUN"];
+move_speeds        = [0.6, 1.9, 3.1, 5.6, 9.0];
+move_speeds_scaled = [0.35, 0.6, 1.9, 3.1, 5.6];
+move_speed_labels  = ["CRAWL", "SLOW", "WALK", "JOG", "RUN"];
 disappear_speed_labels = ["VERY SLOW", "SLOW", "MEDIUM", "FAST", "VERY FAST"];
 moonwalk_enabled = false;
 move_trick = "none";
@@ -142,6 +143,8 @@ move_modal_temp_speed_index = 2;
 move_modal_temp_moonwalk = false;
 move_modal_temp_trick = "none";
 move_modal_temp_trick_count = 1;
+move_modal_temp_target_scale = 1.0;
+move_modal_start_scale       = 1.0;
 move_modal_edit_mode = false;
 move_modal_target_index = -1;
 
@@ -577,6 +580,9 @@ drag_off_x = 0;
 drag_off_y = 0;
 active_scene_block_idx = 0; // The index of the scene block currently being viewed
 insertion_idx = -1; // -1 means add to end, >=0 means insert AFTER this index
+char_entry_scales  = array_create(22, 1.0);
+staging_scale_drag       = false;
+scale_key_repeat_timer   = 0;
 
 // --- 3bc. SCENE EDIT CONTEXT MENU ---
 scene_edit_menu_open = false;

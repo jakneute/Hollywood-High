@@ -768,6 +768,96 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
     }
 }
 
+// --- SCALE PANEL INTERACTION (staging + off-stage entry scale, mutually exclusive with particle edit) ---
+if (particle_edit_mode || current_scene_sprite == -1
+    || (selected_character_index != -1 && characters[selected_character_index].name == "NARRATOR")) staging_scale_drag = false;
+var _sp2_sel_visible = false;
+if (selected_character_index != -1) {
+    for (var _svi2 = 0; _svi2 < array_length(preview_actors); _svi2++) {
+        if (preview_actors[_svi2].char_index == selected_character_index
+            && !(variable_struct_exists(preview_actors[_svi2], "hidden") && preview_actors[_svi2].hidden)) {
+            _sp2_sel_visible = true; break;
+        }
+    }
+}
+if (selected_character_index != -1 && !particle_edit_mode && !theater_mode && playing_block_index == -1
+    && current_scene_sprite != -1 && characters[selected_character_index].name != "NARRATOR"
+    && (scene_edit_mode || !_sp2_sel_visible)) {
+    var _sp2_act_idx = -1;
+    for (var _spi2 = 0; _spi2 < array_length(preview_actors); _spi2++) {
+        if (preview_actors[_spi2].char_index == selected_character_index) { _sp2_act_idx = _spi2; break; }
+    }
+    var _sp2_on_right = (_sp2_act_idx == -1) || (preview_actors[_sp2_act_idx].x < scene_win_w * 0.5);
+    var _sp2_pw = 48; var _sp2_ph = 220;
+    var _sp2_px = _sp2_on_right ? (scene_win_x + scene_win_w - _sp2_pw - 4) : (scene_win_x + 4);
+    var _sp2_py = scene_win_y + (scene_win_h - _sp2_ph) / 2;
+    var _sp2_cx = _sp2_px + _sp2_pw / 2;
+    var _sp2_track_top = _sp2_py + 30;
+    var _sp2_track_bot = _sp2_py + _sp2_ph - 46;
+    var _sp2_track_h   = _sp2_track_bot - _sp2_track_top;
+    var _sp2_rst_y = _sp2_py + _sp2_ph - 36;
+    // Start drag on press in track area
+    if (mouse_check_button_pressed(mb_left)) {
+        if (_mx > _sp2_px && _mx < _sp2_px + _sp2_pw && _my > _sp2_track_top - 12 && _my < _sp2_track_bot + 12) {
+            staging_scale_drag = true;
+        }
+        // RST button
+        if (_mx > _sp2_px + 4 && _mx < _sp2_px + _sp2_pw - 4 && _my > _sp2_rst_y && _my < _sp2_rst_y + 22) {
+            char_entry_scales[selected_character_index] = 1.0;
+            if (scene_edit_mode && _sp2_act_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                var _sp2_sb = script_blocks[active_scene_block_idx];
+                if (variable_struct_exists(_sp2_sb, "actors")) {
+                    for (var _sp2_ai = 0; _sp2_ai < array_length(_sp2_sb.actors); _sp2_ai++) {
+                        if (_sp2_sb.actors[_sp2_ai].char_index == selected_character_index) { _sp2_sb.actors[_sp2_ai].scale = 1.0; break; }
+                    }
+                }
+            }
+        }
+    }
+    // Active drag
+    if (staging_scale_drag) {
+        if (mouse_check_button(mb_left)) {
+            var _sp2_t = clamp((_sp2_track_bot - _my) / _sp2_track_h, 0, 1);
+            var _sp2_new = round(lerp(0.10, 5.0, _sp2_t) * 100) / 100;
+            char_entry_scales[selected_character_index] = _sp2_new;
+            if (scene_edit_mode && _sp2_act_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                var _sp2_sb = script_blocks[active_scene_block_idx];
+                if (variable_struct_exists(_sp2_sb, "actors")) {
+                    for (var _sp2_ai = 0; _sp2_ai < array_length(_sp2_sb.actors); _sp2_ai++) {
+                        if (_sp2_sb.actors[_sp2_ai].char_index == selected_character_index) { _sp2_sb.actors[_sp2_ai].scale = _sp2_new; break; }
+                    }
+                }
+            }
+        } else {
+            staging_scale_drag = false;
+        }
+    }
+    // Arrow key fine adjust when slider is hovered or being dragged
+    var _sp2_hover = (_mx > _sp2_px && _mx < _sp2_px + _sp2_pw && _my > _sp2_track_top - 12 && _my < _sp2_track_bot + 12);
+    if (staging_scale_drag || _sp2_hover) {
+        var _sp2_kup = keyboard_check(vk_up);
+        var _sp2_kdn = keyboard_check(vk_down);
+        if (_sp2_kup || _sp2_kdn) {
+            scale_key_repeat_timer++;
+            if (keyboard_check_pressed(vk_up) || keyboard_check_pressed(vk_down) || scale_key_repeat_timer >= 20) {
+                if (scale_key_repeat_timer >= 20) scale_key_repeat_timer = 17;
+                var _sp2_kval = clamp(round((char_entry_scales[selected_character_index] + (_sp2_kup ? 0.01 : -0.01)) * 100) / 100, 0.10, 5.0);
+                char_entry_scales[selected_character_index] = _sp2_kval;
+                if (scene_edit_mode && _sp2_act_idx != -1 && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
+                    var _sp2_ksb = script_blocks[active_scene_block_idx];
+                    if (variable_struct_exists(_sp2_ksb, "actors")) {
+                        for (var _sp2_kai = 0; _sp2_kai < array_length(_sp2_ksb.actors); _sp2_kai++) {
+                            if (_sp2_ksb.actors[_sp2_kai].char_index == selected_character_index) { _sp2_ksb.actors[_sp2_kai].scale = _sp2_kval; break; }
+                        }
+                    }
+                }
+            }
+        } else {
+            scale_key_repeat_timer = 0;
+        }
+    }
+}
+
 // --- 2e. IN-SCENE DRAGGING & DROPPING ---
 if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && !trans_in_picker_open && !trans_out_picker_open && active_scene_block_idx != -1 && active_scene_block_idx < array_length(script_blocks)) {
     _scene = script_blocks[active_scene_block_idx];
@@ -780,7 +870,6 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && !trans_in
                 var _tl = get_composite_character_sprite(_act.char_index, variable_struct_exists(_act, "pose") ? _act.pose : 1, variable_struct_exists(_act, "expression") ? _act.expression : 21, variable_struct_exists(_act, "facing") ? _act.facing : undefined);
                 var _spr = _tl[0].spr;
                 if (_spr != -1) {
-                    var _scale = (scene_win_h * 1.5) / 450;
                     var _ax = scene_win_x + _act.x;
                     var _ay = scene_win_y + _act.y;
                     // Use get_actor_bbox so knocked-down rotation is accounted for
@@ -788,6 +877,7 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && !trans_in
                     for (var _paj2 = 0; _paj2 < array_length(preview_actors); _paj2++) {
                         if (preview_actors[_paj2].char_index == _act.char_index) { _pa_inj2 = preview_actors[_paj2]; break; }
                     }
+                    var _scale = (scene_win_h * 1.5) / 450 * (_pa_inj2[$ "scale"] ?? 1.0);
                     var _hbox = get_actor_bbox(_tl, _scale, _ax, _ay, _pa_inj2);
                     if (_mx > _hbox.bb_left && _mx < _hbox.bb_right && _my > _hbox.bb_top && _my < _hbox.bb_bottom) {
                         // Select on click regardless of injury
@@ -841,7 +931,6 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && !trans_in
             var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
             var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
             if (_layers[0].spr != -1) {
-                var _sc = (scene_win_h * 1.5) / 450;
                 var _ax_abs = scene_win_x + _act.x;
                 var _ay_abs = scene_win_y + _act.y;
                 // Find live preview_actors entry for injury state
@@ -849,6 +938,7 @@ if (playing_block_index == -1 && scene_edit_mode && !fx_picker_open && !trans_in
                 for (var _paj = 0; _paj < array_length(preview_actors); _paj++) {
                     if (preview_actors[_paj].char_index == _act.char_index) { _pa_inj = preview_actors[_paj]; break; }
                 }
+                var _sc = (scene_win_h * 1.5) / 450 * (_pa_inj[$ "scale"] ?? (_act[$ "scale"] ?? 1.0));
                 var _bbox = get_actor_bbox(_layers, _sc, _ax_abs, _ay_abs, _pa_inj);
                 var _bb_w = _bbox.bb_right - _bbox.bb_left;
                 var _bb_h = _bbox.bb_bottom - _bbox.bb_top;
@@ -1016,7 +1106,7 @@ if (!script_expanded && !scene_edit_mode && !particle_edit_mode && !fx_picker_op
                 var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
                 var _face = variable_struct_exists(_act, "facing") ? _act.facing : 1;
                 var _layers = get_composite_character_sprite(_act.char_index, _pose, _expr, _face);
-                var _sc = (scene_win_h * 1.5) / 450;
+                var _sc = (scene_win_h * 1.5) / 450 * (_act[$ "scale"] ?? 1.0);
                 var _ax_abs = scene_win_x + _act.x;
                 var _ay_abs = scene_win_y + _act.y;
                 var _bbox = get_actor_bbox(_layers, _sc, _ax_abs, _ay_abs, _act);
@@ -1503,7 +1593,7 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                         _expr = variable_struct_exists(_c, "expression") ? _c.expression : 21;
 
                         // Carry injury state from any hidden pre-injured preview actor
-                        var _sa_new = { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face, pose: _pose, expression: _expr };
+                        var _sa_new = { char_index: dragging_char_index, x: _nx, y: _ny, facing: _face, pose: _pose, expression: _expr, scale: char_entry_scales[dragging_char_index] };
                         for (var _hpi = 0; _hpi < array_length(preview_actors); _hpi++) {
                             var _hpa = preview_actors[_hpi];
                             if (_hpa.char_index == dragging_char_index && variable_struct_exists(_hpa, "hidden") && _hpa.hidden) {
@@ -1534,7 +1624,9 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                         scene_edit_selected_actor_idx = array_length(_scene.actors) - 1;
                         }
                     } else {
-                        // If character already onstage, update selection to them immediately
+                        // Reposition existing actor to drop point (handles offscreen/oversized characters)
+                        _scene.actors[_dup_idx].x = _px;
+                        _scene.actors[_dup_idx].y = _py;
                         scene_edit_selected_actor_idx = _dup_idx;
                     }
                 }
@@ -1553,7 +1645,7 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                 if (!_onstage) {
                     var _is_left = (_mx < scene_win_x + (scene_win_w / 2));
                     var _aname = _is_left ? "enters from left" : "enters from right";
-                    
+
                     var _lbl = move_speed_labels[move_speed_index];
                     if (_lbl != "WALK") _aname += " (" + _lbl + ")";
                     if (moonwalk_enabled) _aname += " [MOONWALK]";
@@ -1577,9 +1669,45 @@ if (!script_expanded && !_overlay_active && playing_block_index == -1 && draggin
                     });
                     focused_block = _insert_idx;
                     update_all_block_heights();
-                    
+
                     var _th = 0; for (var k = 0; k < _insert_idx; k++) _th += script_blocks[k].height + 20;
-                    block_scroll_y = -_th + 50; 
+                    block_scroll_y = -_th + 50;
+                } else {
+                    // Already on stage but may be offscreen — create a moves block to reposition
+                    var _onstg_x     = scene_win_w / 2;
+                    var _onstg_scale = 1.0;
+                    for (var _pao = 0; _pao < array_length(preview_actors); _pao++) {
+                        if (preview_actors[_pao].char_index == dragging_char_index) {
+                            _onstg_x     = preview_actors[_pao].x;
+                            _onstg_scale = preview_actors[_pao][$ "scale"] ?? 1.0;
+                            break;
+                        }
+                    }
+                    var _lbl2  = move_speed_labels[move_speed_index];
+                    var _aname2 = "moves";
+                    if (_lbl2 != "WALK") _aname2 += " (" + _lbl2 + ")";
+                    if (moonwalk_enabled) _aname2 += " [MOONWALK]";
+                    if (move_trick != "none") _aname2 += " [" + string_upper(move_trick) + "]";
+                    var _mv_bface = (_px > _onstg_x) ? -1 : 1;
+                    var _mv_face  = moonwalk_enabled ? -_mv_bface : _mv_bface;
+                    var _insert_idx2 = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
+                    array_insert(script_blocks, _insert_idx2, {
+                        type: "action",
+                        action_name: _aname2,
+                        char_index: dragging_char_index,
+                        target_x: _px,
+                        target_y: _py,
+                        facing: _mv_face,
+                        height: 85,
+                        speed: move_speeds[move_speed_index],
+                        moonwalk: moonwalk_enabled,
+                        trick: move_trick,
+                        target_scale: _onstg_scale
+                    });
+                    focused_block = _insert_idx2;
+                    update_all_block_heights();
+                    var _th2 = 0; for (var k = 0; k < _insert_idx2; k++) _th2 += script_blocks[k].height + 20;
+                    block_scroll_y = -_th2 + 50;
                 }
             }
         }
@@ -1768,6 +1896,21 @@ if (scene_edit_mode && focused_block != active_scene_block_idx) {
 // Compute preview_actors
 if (playing_block_index == -1) {
     update_preview_actors_for_block(_ref_idx, true);
+    // Live preview while move modal is open: apply temp scale + recompute facing from live moonwalk toggle
+    if (move_modal_open && move_modal_target_index != -1 && move_modal_target_index < array_length(script_blocks)) {
+        var _mm_blk  = script_blocks[move_modal_target_index];
+        var _mm_char = _mm_blk.char_index;
+        for (var _mmi = 0; _mmi < array_length(preview_actors); _mmi++) {
+            if (preview_actors[_mmi].char_index == _mm_char) {
+                var _pa_mm = preview_actors[_mmi];
+                _pa_mm.scale = move_modal_temp_target_scale;
+                var _mm_saved_moon = (variable_struct_exists(_mm_blk, "moonwalk") && _mm_blk.moonwalk)
+                                  || (string_pos("[moonwalk]", string_lower(_mm_blk.action_name)) > 0);
+                if (move_modal_temp_moonwalk != _mm_saved_moon) _pa_mm.facing *= -1;
+                break;
+            }
+        }
+    }
 }
 
 // 3. Re-apply drag state AFTER recomputing

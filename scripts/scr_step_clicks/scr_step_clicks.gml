@@ -1,4 +1,4 @@
-﻿function step_ui_clicks(_mx, _my) {
+function step_ui_clicks(_mx, _my) {
     var _overlay_active = false;
 if (mouse_check_button_pressed(mb_left)) {
     // PLAY Button
@@ -304,23 +304,6 @@ if (mouse_check_button_pressed(mb_left)) {
     // ADD VOICE Button
     if (!is_speaking && playing_block_index == -1 && _mx > btn_add_x && _mx < btn_add_x + btn_add_w && _my > btn_add_y && _my < btn_add_y + btn_add_h) {
         selection_start = 0; selection_end = 0;
-        // Injured characters can still talk; only block if offstage/disappeared
-        var _vblocked = false;
-        var _vcheck_limit = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
-        for (var _vk = 0; _vk < _vcheck_limit; _vk++) {
-            var _vb = script_blocks[_vk];
-            if (!variable_struct_exists(_vb, "type")) continue;
-            if (_vb.type == "action" && _vb.char_index == selected_character_index) {
-                var _vaname = string_lower(_vb.action_name);
-                if (string_pos("exit", _vaname) > 0 || string_pos("disappears", _vaname) > 0) _vblocked = true;
-                else if (string_pos("enter", _vaname) > 0) _vblocked = false;
-            } else if (_vb.type == "scene" && variable_struct_exists(_vb, "actors")) {
-                for (var _va = 0; _va < array_length(_vb.actors); _va++) {
-                    if (_vb.actors[_va].char_index == selected_character_index) { _vblocked = false; break; }
-                }
-            }
-        }
-        if (_vblocked) return;
         var _c = characters[selected_character_index];
         var _idx = (focused_block != -1) ? focused_block + 1 : array_length(script_blocks);
         array_insert(script_blocks, _idx, {
@@ -694,12 +677,27 @@ if (mouse_check_button_pressed(mb_left)) {
                         move_modal_target_index = i;
                         move_modal_edit_mode = true;
                         var _blk_spd = variable_struct_exists(_block, "speed") ? _block.speed : 1.9;
-                        move_modal_temp_moonwalk    = variable_struct_exists(_block, "moonwalk")     ? _block.moonwalk     : false;
+                        move_modal_temp_moonwalk    = (variable_struct_exists(_block, "moonwalk") && _block.moonwalk) || (string_pos("[moonwalk]", string_lower(_block.action_name)) > 0);
                         move_modal_temp_trick       = variable_struct_exists(_block, "trick")       ? _block.trick       : "none";
                         move_modal_temp_trick_count = variable_struct_exists(_block, "trick_count") ? _block.trick_count : 1;
-                        move_modal_temp_speed_index = 2;
-                        for (var j = 0; j < array_length(move_speeds); j++) {
-                            if (abs(move_speeds[j] - _blk_spd) < 0.01) { move_modal_temp_speed_index = j; break; }
+                        var _blk_cur_scale = 1.0;
+                        if (variable_struct_exists(_block, "target_scale")) {
+                            update_preview_actors_for_block(i, false);
+                            for (var _paj = 0; _paj < array_length(preview_actors); _paj++) {
+                                if (preview_actors[_paj].char_index == _block.char_index) { _blk_cur_scale = preview_actors[_paj][$ "scale"] ?? 1.0; break; }
+                            }
+                            update_preview_actors_for_block(i, true);
+                        } else {
+                            for (var _paj = 0; _paj < array_length(preview_actors); _paj++) {
+                                if (preview_actors[_paj].char_index == _block.char_index) { _blk_cur_scale = preview_actors[_paj][$ "scale"] ?? 1.0; break; }
+                            }
+                        }
+                        move_modal_start_scale       = _blk_cur_scale;
+                        move_modal_temp_target_scale = variable_struct_exists(_block, "target_scale") ? _block.target_scale : _blk_cur_scale;
+                        move_modal_temp_speed_index  = 2;
+                        var _blk_spd_arr = (abs(move_modal_temp_target_scale - _blk_cur_scale) > 0.01) ? move_speeds_scaled : move_speeds;
+                        for (var j = 0; j < array_length(_blk_spd_arr); j++) {
+                            if (abs(_blk_spd_arr[j] - _blk_spd) < 0.01) { move_modal_temp_speed_index = j; break; }
                         }
                     } else if (_is_pose) {
                         selected_character_index = _block.char_index;
@@ -874,11 +872,27 @@ if (mouse_check_button_pressed(mb_left)) {
                             if (_dbl_is_move) {
                                 move_modal_open = true; move_modal_target_index = i; move_modal_edit_mode = true;
                                 var _dbl_spd = variable_struct_exists(_block, "speed") ? _block.speed : 1.9;
-                                move_modal_temp_moonwalk = variable_struct_exists(_block, "moonwalk") ? _block.moonwalk : false;
-                                move_modal_temp_trick = variable_struct_exists(_block, "trick") ? _block.trick : "none";
-                                move_modal_temp_speed_index = 2;
-                                for (var _dj2 = 0; _dj2 < array_length(move_speeds); _dj2++) {
-                                    if (abs(move_speeds[_dj2] - _dbl_spd) < 0.01) { move_modal_temp_speed_index = _dj2; break; }
+                                move_modal_temp_moonwalk    = (variable_struct_exists(_block, "moonwalk") && _block.moonwalk) || (string_pos("[moonwalk]", string_lower(_block.action_name)) > 0);
+                                move_modal_temp_trick       = variable_struct_exists(_block, "trick") ? _block.trick : "none";
+                                move_modal_temp_trick_count = variable_struct_exists(_block, "trick_count") ? _block.trick_count : 1;
+                                var _dbl_cur_scale = 1.0;
+                                if (variable_struct_exists(_block, "target_scale")) {
+                                    update_preview_actors_for_block(i, false);
+                                    for (var _paj2 = 0; _paj2 < array_length(preview_actors); _paj2++) {
+                                        if (preview_actors[_paj2].char_index == _block.char_index) { _dbl_cur_scale = preview_actors[_paj2][$ "scale"] ?? 1.0; break; }
+                                    }
+                                    update_preview_actors_for_block(i, true);
+                                } else {
+                                    for (var _paj2 = 0; _paj2 < array_length(preview_actors); _paj2++) {
+                                        if (preview_actors[_paj2].char_index == _block.char_index) { _dbl_cur_scale = preview_actors[_paj2][$ "scale"] ?? 1.0; break; }
+                                    }
+                                }
+                                move_modal_start_scale       = _dbl_cur_scale;
+                                move_modal_temp_target_scale = variable_struct_exists(_block, "target_scale") ? _block.target_scale : _dbl_cur_scale;
+                                move_modal_temp_speed_index  = 2;
+                                var _dbl_spd_arr = (abs(move_modal_temp_target_scale - _dbl_cur_scale) > 0.01) ? move_speeds_scaled : move_speeds;
+                                for (var _dj2 = 0; _dj2 < array_length(_dbl_spd_arr); _dj2++) {
+                                    if (abs(_dbl_spd_arr[_dj2] - _dbl_spd) < 0.01) { move_modal_temp_speed_index = _dj2; break; }
                                 }
                             } else if (_dbl_is_gen) {
                                 action_modal_open = true; action_modal_target_index = i; action_modal_edit_mode = true;

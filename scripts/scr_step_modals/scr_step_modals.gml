@@ -951,8 +951,8 @@ function step_modal_dictionary() {
 
 function step_modal_movement() {
     var _mx = mouse_x; var _my = mouse_y;
-    var _m_w = 400; var _m_h = 660;
-    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    var _m_w = 400; var _m_h = 730;
+    var _m_x = 1280 - _m_w - 20; var _m_y = (800 - _m_h) / 2;
 
     if (mouse_check_button_pressed(mb_left)) {
         for (var i = 0; i < array_length(move_speed_labels); i++) {
@@ -982,10 +982,18 @@ function step_modal_movement() {
                 }
             }
         }
+        // RST button for End Scale
+        var _scl_ry2 = _m_y + 592 + 28;
+        if (_mx > _m_x + 304 && _mx < _m_x + 350 && _my > _scl_ry2 && _my < _scl_ry2 + 20) {
+            move_modal_temp_target_scale = 1.0;
+        }
+
         if (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             if (move_modal_edit_mode && move_modal_target_index != -1) {
                 var _b = script_blocks[move_modal_target_index];
-                _b.speed = move_speeds[move_modal_temp_speed_index];
+                _b.speed = (abs(move_modal_temp_target_scale - move_modal_start_scale) > 0.01)
+                         ? move_speeds_scaled[move_modal_temp_speed_index]
+                         : move_speeds[move_modal_temp_speed_index];
                 var _old_moonwalk = (variable_struct_exists(_b, "moonwalk") && _b.moonwalk) || (string_pos("[moonwalk]", string_lower(_b.action_name)) > 0);
                 if (_old_moonwalk != move_modal_temp_moonwalk) {
                     if (variable_struct_exists(_b, "facing")) _b.facing *= -1;
@@ -993,6 +1001,7 @@ function step_modal_movement() {
                 }
                 _b.trick       = move_modal_temp_trick;
                 _b.trick_count = (move_modal_temp_trick != "none") ? move_modal_temp_trick_count : 1;
+                _b.target_scale = move_modal_temp_target_scale;
                 var _bn = _b.action_name;
                 var _pos = string_pos(" (", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
                 _pos = string_pos(" [MOONWALK]", _bn); if (_pos > 0) _bn = string_copy(_bn, 1, _pos - 1);
@@ -1019,6 +1028,47 @@ function step_modal_movement() {
         }
         if (_mx > _m_x + 220 && _mx < _m_x + 360 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20) {
             move_modal_edit_mode = false; move_modal_open = false;
+        }
+    }
+    // End Scale slider — continuous drag
+    if (mouse_check_button(mb_left)) {
+        var _scl_track_x2 = _m_x + 50; var _scl_track_w2 = 240;
+        var _scl_ry2 = _m_y + 592 + 28;
+        if (_mx >= _scl_track_x2 && _mx <= _scl_track_x2 + _scl_track_w2 && _my > _scl_ry2 - 10 && _my < _scl_ry2 + 20) {
+            move_modal_temp_target_scale = round(clamp((_mx - _scl_track_x2) / _scl_track_w2, 0, 1) * 490 + 10) / 100;
+        }
+    }
+    // Arrow key fine adjust when hovering over End Scale slider
+    var _scl_kx = _m_x + 50; var _scl_kw = 240; var _scl_ky = _m_y + 592 + 28;
+    var _scl_khov = (_mx >= _scl_kx - 5 && _mx <= _scl_kx + _scl_kw + 5 && _my > _scl_ky - 12 && _my < _scl_ky + 22);
+    if (_scl_khov) {
+        var _scl_krt = keyboard_check(vk_right);
+        var _scl_klt = keyboard_check(vk_left);
+        if (_scl_krt || _scl_klt) {
+            scale_key_repeat_timer++;
+            if (keyboard_check_pressed(vk_right) || keyboard_check_pressed(vk_left) || scale_key_repeat_timer >= 20) {
+                if (scale_key_repeat_timer >= 20) scale_key_repeat_timer = 17;
+                move_modal_temp_target_scale = clamp(round((move_modal_temp_target_scale + (_scl_krt ? 0.01 : -0.01)) * 100) / 100, 0.10, 5.0);
+            }
+        } else {
+            scale_key_repeat_timer = 0;
+        }
+    }
+
+    // Live scene preview: update preview_actors every step while modal is open
+    if (move_modal_open && move_modal_target_index != -1 && move_modal_target_index < array_length(script_blocks)) {
+        update_preview_actors_for_block(move_modal_target_index, true);
+        var _mm_blk  = script_blocks[move_modal_target_index];
+        var _mm_char = _mm_blk.char_index;
+        for (var _mmi = 0; _mmi < array_length(preview_actors); _mmi++) {
+            if (preview_actors[_mmi].char_index == _mm_char) {
+                var _pa_mm = preview_actors[_mmi];
+                _pa_mm.scale = move_modal_temp_target_scale;
+                var _mm_saved_moon = (variable_struct_exists(_mm_blk, "moonwalk") && _mm_blk.moonwalk)
+                                  || (string_pos("[moonwalk]", string_lower(_mm_blk.action_name)) > 0);
+                if (move_modal_temp_moonwalk != _mm_saved_moon) _pa_mm.facing *= -1;
+                break;
+            }
         }
     }
 }

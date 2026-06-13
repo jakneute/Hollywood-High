@@ -113,7 +113,7 @@ function step_tts_playback() {
     }
 
     // --- ACTION ANIMATOR ---
-    if (action_animating) {
+    if (action_animating && !theater_paused) {
         for (var _ai = array_length(active_animations) - 1; _ai >= 0; _ai--) {
             var _anim = active_animations[_ai];
             var _act_idx = -1;
@@ -325,14 +325,22 @@ function step_tts_playback() {
                 var _trick_count = variable_struct_exists(_anim, "trick_count") ? max(1, _anim.trick_count) : 1;
                 // Initialize trick_start_dist on first frame
                 if (_trick != "none" && _anim.trick_start_dist < 0) _anim.trick_start_dist = max(1, _dist);
-                var _target_speed = _anim.speed;
-                var _decel_dist = _anim.speed * 12;
-                if (_dist < _decel_dist) _target_speed = max(0.2, _anim.speed * (_dist / _decel_dist));
+                var _is_tweening  = variable_struct_exists(_anim, "start_scale") && (_anim.start_scale != _anim.target_scale);
+                var _spd_scl      = _is_tweening ? 1.0 : (_act[$ "scale"] ?? 1.0);
+                var _base_spd     = _anim.speed * _spd_scl;
+                var _target_speed = _base_spd;
+                var _decel_dist   = _base_spd * 12;
+                if (_dist < _decel_dist) _target_speed = max(0.1, _base_spd * (_dist / _decel_dist));
                 _anim.cur_speed += (_target_speed - _anim.cur_speed) * 0.2;
                 if (_dist > _anim.cur_speed) {
                     var _dir = point_direction(_act.x, _act.y, _anim.target_x, _anim.target_y);
                     var _dx = lengthdir_x(_anim.cur_speed, _dir); var _dy = lengthdir_y(_anim.cur_speed, _dir);
                     _act.x += _dx; _act.y += _dy;
+                    if (variable_struct_exists(_anim, "start_scale") && _anim.start_scale != _anim.target_scale) {
+                        var _td = point_distance(_anim.start_x, _anim.start_y, _anim.target_x, _anim.target_y);
+                        var _rd = point_distance(_act.x, _act.y, _anim.target_x, _anim.target_y);
+                        _act.scale = lerp(_anim.start_scale, _anim.target_scale, clamp(1.0 - _rd / max(1, _td), 0, 1));
+                    }
                     var _act_is_kd_anim = variable_struct_exists(_act, "is_knocked_down") && _act.is_knocked_down;
                     if (_act_is_kd_anim) {
                         // Knocked down: no bounce, no image_angle — knock_angle handles all rotation
@@ -354,14 +362,17 @@ function step_tts_playback() {
                         }
                     } else {
                         _act.image_angle = 0;
-                        var _h_speed = abs(_dx);
-                        if (_h_speed > 0.2) {
-                            _act.bounce_timer += _h_speed * 0.07;
-                            _act.y_offset = -round(abs(sin(_act.bounce_timer)) * clamp(_h_speed * 0.8, 0, 4));
+                        var _spd = _anim.cur_speed;
+                        if (_spd > 0.2) {
+                            var _is_scaling = variable_struct_exists(_anim, "start_scale") && (_anim.start_scale != _anim.target_scale);
+                            var _act_scl = _act[$ "scale"] ?? 1.0;
+                            _act.bounce_timer += _spd * (_is_scaling ? 0.035 : 0.07);
+                            _act.y_offset = -round(abs(sin(_act.bounce_timer)) * clamp(_spd * 0.8, 0, 4) * _act_scl);
                         } else { _act.y_offset = 0; _act.bounce_timer = 0; }
                     }
                 } else {
                     _act.x = _anim.target_x; _act.y = _anim.target_y;
+                    if (variable_struct_exists(_anim, "target_scale")) _act.scale = _anim.target_scale;
                     _act.y_offset = 0; _act.bounce_timer = 0; _act.image_angle = 0;
                     speaking_pause_timer = max(speaking_pause_timer, 5);
                     if (_anim.type == "exit") {
@@ -402,6 +413,7 @@ function step_tts_playback() {
                 if (theater_mode) {
                     theater_subtitles = ""; theater_active_char = -1;
                     theater_paused = true; play_from_index(0); playing_block_index = -1;
+                    focused_block = array_length(script_blocks) - 1;
                 } else { stop_playback(); }
             }
         }
@@ -436,6 +448,7 @@ function step_tts_playback() {
                     if (theater_mode) {
                         theater_subtitles = ""; theater_active_char = -1;
                         theater_paused = true; play_from_index(0); playing_block_index = -1;
+                        focused_block = array_length(script_blocks) - 1;
                     } else { stop_playback(); }
                 }
             }
@@ -481,6 +494,7 @@ function step_tts_playback() {
                     if (theater_mode) {
                         theater_subtitles = ""; theater_active_char = -1;
                         theater_paused = true; play_from_index(0); playing_block_index = -1; playing_linked_index = -1;
+                        focused_block = array_length(script_blocks) - 1;
                     } else { stop_playback(); theater_paused = false; }
                     return;
                 }
@@ -518,7 +532,7 @@ function step_tts_playback() {
                             var _face = variable_struct_exists(_act, "facing") ? _act.facing : _def_face;
                             var _pose = variable_struct_exists(_act, "pose") ? _act.pose : 1;
                             var _expr = variable_struct_exists(_act, "expression") ? _act.expression : 21;
-                            array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
+                            array_push(preview_actors, { char_index: _act.char_index, x: _act.x, y: _act.y, is_base: true, facing: _face, pose: _pose, expression: _expr, scale: _act[$ "scale"] ?? 1.0 });
                             char_facings[_act.char_index] = _face;
                         }
                     }
@@ -597,7 +611,14 @@ function step_tts_playback() {
                                 _ha.is_decapitated  = false;
                                 _ha.injured         = false;
                             } else {
-                                array_push(preview_actors, { char_index: _b.char_index, x: _start_x, y: _target_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
+                                var _pb_enter_scale = char_entry_scales[_b.char_index];
+                                var _pb_scene_blk = (active_scene_block_idx != -1) ? script_blocks[active_scene_block_idx] : undefined;
+                                if (_pb_scene_blk != undefined && variable_struct_exists(_pb_scene_blk, "actors")) {
+                                    for (var _pbesi = 0; _pbesi < array_length(_pb_scene_blk.actors); _pbesi++) {
+                                        if (_pb_scene_blk.actors[_pbesi].char_index == _b.char_index) { _pb_enter_scale = _pb_scene_blk.actors[_pbesi][$ "scale"] ?? 1.0; break; }
+                                    }
+                                }
+                                array_push(preview_actors, { char_index: _b.char_index, x: _start_x, y: _target_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr, scale: _pb_enter_scale });
                             }
                             action_animating = true;
                             array_push(active_animations, {
@@ -687,7 +708,7 @@ function step_tts_playback() {
                             var _base_face = (_b.target_x > preview_actors[_act_idx].x) ? -1 : 1;
                             char_facings[_b.char_index] = _moon ? -_base_face : _base_face;
                             preview_actors[_act_idx].facing = char_facings[_b.char_index];
-                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y, trick: variable_struct_exists(_b, "trick") ? _b.trick : "none", trick_count: variable_struct_exists(_b, "trick_count") ? _b.trick_count : 1, trick_start_dist: -1, moonwalk: _moon });
+                            array_push(active_animations, { char_index: _b.char_index, type: "move", speed: _spd, target_x: _b.target_x, target_y: _b.target_y, trick: variable_struct_exists(_b, "trick") ? _b.trick : "none", trick_count: variable_struct_exists(_b, "trick_count") ? _b.trick_count : 1, trick_start_dist: -1, moonwalk: _moon, start_x: preview_actors[_act_idx].x, start_y: preview_actors[_act_idx].y, start_scale: preview_actors[_act_idx][$ "scale"] ?? 1.0, target_scale: variable_struct_exists(_b, "target_scale") ? _b.target_scale : (preview_actors[_act_idx][$ "scale"] ?? 1.0) });
                             }
                         } else { speaking_pause_timer = max(speaking_pause_timer, 5); }
                     } else if (string_pos("expression:", _aname) > 0) {

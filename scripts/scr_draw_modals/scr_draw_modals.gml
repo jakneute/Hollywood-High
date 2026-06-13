@@ -957,9 +957,9 @@ if (action_modal_open) {
 
 
 if (move_modal_open) {
-    draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(0, 0, 1280, 960, false); draw_set_alpha(1.0);
-    var _m_w = 400; var _m_h = 660;
-    var _m_x = (1280 - _m_w) / 2; var _m_y = (800 - _m_h) / 2;
+    draw_set_color(c_black); draw_set_alpha(0.7); draw_rectangle(840, 0, 1280, 960, false); draw_set_alpha(1.0);
+    var _m_w = 400; var _m_h = 730;
+    var _m_x = 1280 - _m_w - 20; var _m_y = (800 - _m_h) / 2;
     draw_set_color(make_color_rgb(14, 48, 20)); draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+_m_h, 14, 14, false);
     draw_set_color(make_color_rgb(196, 213, 20));
     draw_roundrect_ext(_m_x, _m_y, _m_x+_m_w, _m_y+52, 14, 14, false);
@@ -1022,6 +1022,28 @@ if (move_modal_open) {
         draw_set_color(_c_sel ? c_white : (_cnt_active ? make_color_rgb(200, 220, 200) : make_color_rgb(80, 95, 60)));
         draw_set_halign(fa_center); draw_text(_cx + _cbw/2, _cy + 9, string(_ci + 1)); draw_set_halign(fa_left);
     }
+
+    // End Scale section
+    var _scl_y = _m_y + 592;
+    draw_set_color(make_color_rgb(196, 213, 20)); draw_text(_m_x + 50, _scl_y, "END SCALE");
+    draw_set_color(make_color_rgb(100, 120, 40)); draw_line(_m_x + 50, _scl_y + 18, _m_x + 350, _scl_y + 18);
+    var _scl_track_x = _m_x + 50; var _scl_track_w = 240;
+    var _scl_val = move_modal_temp_target_scale;
+    var _scl_frac = clamp((_scl_val - 0.10) / 4.90, 0, 1);
+    var _scl_thumb_x = _scl_track_x + _scl_frac * _scl_track_w;
+    var _scl_ry = _scl_y + 28;
+    draw_set_color(make_color_rgb(30, 50, 25));
+    draw_rectangle(_scl_track_x, _scl_ry + 6, _scl_track_x + _scl_track_w, _scl_ry + 14, false);
+    var _scl_thumb_hov = (_mx > _scl_thumb_x - 10 && _mx < _scl_thumb_x + 10 && _my > _scl_ry && _my < _scl_ry + 20);
+    draw_set_color(_scl_thumb_hov ? make_color_rgb(140, 220, 30) : make_color_rgb(196, 213, 20));
+    draw_circle(_scl_thumb_x, _scl_ry + 10, 8, false);
+    draw_set_color(make_color_rgb(20, 40, 10)); draw_circle(_scl_thumb_x, _scl_ry + 10, 8, true);
+    draw_set_color(c_white);
+    draw_set_halign(fa_center); draw_text(_scl_thumb_x, _scl_ry + 22, string(round(_scl_val * 100)) + "%"); draw_set_halign(fa_left);
+    var _scl_rst_hov = (_mx > _m_x + 304 && _mx < _m_x + 350 && _my > _scl_ry && _my < _scl_ry + 20);
+    draw_set_color(_scl_rst_hov ? make_color_rgb(18, 65, 24) : make_color_rgb(10, 40, 15));
+    draw_roundrect_ext(_m_x + 304, _scl_ry, _m_x + 350, _scl_ry + 20, 4, 4, false);
+    draw_set_color(c_white); draw_set_halign(fa_center); draw_text(_m_x + 327, _scl_ry + 4, "RST"); draw_set_halign(fa_left);
 
     // OK Button
     var _ok_hov = (_mx > _m_x + 40 && _mx < _m_x + 180 && _my > _m_y + _m_h - 60 && _my < _m_y + _m_h - 20);

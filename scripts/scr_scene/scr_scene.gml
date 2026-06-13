@@ -402,7 +402,7 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                 var _face = variable_struct_exists(_sa, "facing")     ? _sa.facing     : 1;
                 var _pose = variable_struct_exists(_sa, "pose")       ? _sa.pose       : 1;
                 var _expr = variable_struct_exists(_sa, "expression") ? _sa.expression : 21;
-                array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr });
+                array_push(preview_actors, { char_index: _sa.char_index, x: _sa.x, y: _sa.y, is_base: true, facing: _face, pose: _pose, expression: _expr, scale: _sa[$ "scale"] ?? 1.0 });
                 char_facings[_sa.char_index] = _face;
             }
         }
@@ -452,7 +452,13 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                                 preview_actors[_act_idx].knock_angle = (_kdir_enter == "forwards") ? (_enter_face * 90) : (-_enter_face * 90);
                             }
                         } else {
-                            array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr });
+                            var _enter_scale = char_entry_scales[_b.char_index];
+                            if (variable_struct_exists(_scene, "actors")) {
+                                for (var _esi = 0; _esi < array_length(_scene.actors); _esi++) {
+                                    if (_scene.actors[_esi].char_index == _b.char_index) { _enter_scale = _scene.actors[_esi][$ "scale"] ?? 1.0; break; }
+                                }
+                            }
+                            array_push(preview_actors, { char_index: _b.char_index, x: _final_x, y: _final_y, is_base: false, facing: char_facings[_b.char_index], pose: _pose, expression: _expr, scale: _enter_scale });
                         }
                     } else {
                         var _act_is_kd_sc_ex = _act_idx != -1 && (variable_struct_exists(preview_actors[_act_idx], "is_knocked_down") && preview_actors[_act_idx].is_knocked_down);
@@ -495,6 +501,7 @@ function update_preview_actors_for_block(_idx, _inclusive) {
                         }
                         preview_actors[_act_idx].x = _b.target_x;
                         preview_actors[_act_idx].y = _b.target_y;
+                        if (variable_struct_exists(_b, "target_scale")) preview_actors[_act_idx].scale = _b.target_scale;
                     }
                 } else if (string_pos("expression:", _aname) > 0) {
                     if (_act_idx != -1) {
