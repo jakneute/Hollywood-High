@@ -234,9 +234,12 @@
     {"id":{"name":"PatrickHand","path":"fonts/PatrickHand/PatrickHand.yy",},},
     {"id":{"name":"Schoolbell","path":"fonts/Schoolbell/Schoolbell.yy",},},
     {"id":{"name":"Sniglet","path":"fonts/Sniglet/Sniglet.yy",},},
+    {"id":{"name":"oActorStudio","path":"objects/oActorStudio/oActorStudio.yy",},},
     {"id":{"name":"oHollywoodUI","path":"objects/oHollywoodUI/oHollywoodUI.yy",},},
     {"id":{"name":"Windows","path":"options/windows/options_windows.yy",},},
+    {"id":{"name":"ActorStudio","path":"rooms/ActorStudio/ActorStudio.yy",},},
     {"id":{"name":"MainWindow","path":"rooms/MainWindow/MainWindow.yy",},},
+    {"id":{"name":"scr_actor_studio","path":"scripts/scr_actor_studio/scr_actor_studio.yy",},},
     {"id":{"name":"scr_canned_anim","path":"scripts/scr_canned_anim/scr_canned_anim.yy",},},
     {"id":{"name":"scr_character_sprite","path":"scripts/scr_character_sprite/scr_character_sprite.yy",},},
     {"id":{"name":"scr_draw_modals","path":"scripts/scr_draw_modals/scr_draw_modals.yy",},},
@@ -276,6 +279,7 @@
   "resourceVersion":"2.0",
   "RoomOrderNodes":[
     {"roomId":{"name":"MainWindow","path":"rooms/MainWindow/MainWindow.yy",},},
+    {"roomId":{"name":"ActorStudio","path":"rooms/ActorStudio/ActorStudio.yy",},},
   ],
   "templateType":"game",
   "TextureGroups":[

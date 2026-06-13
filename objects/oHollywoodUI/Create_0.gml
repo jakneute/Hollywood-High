@@ -13,13 +13,19 @@ if (!variable_global_exists("get_pid")) {
 }
 
 // --- 1b. WINDOW SCALING ---
-window_set_min_width(640);
-window_set_min_height(480);
-window_set_max_width(display_get_width());
-window_set_max_height(display_get_height());
-window_set_size(1280, 960);
-display_reset(0, true); // vsync — eliminates screen tearing
-surface_resize(application_surface, 1280, 960);
+// Boot-time only. Create re-runs when returning from the Actor Studio room; re-applying
+// window_set_size / surface_resize would force the render area back to 1280x960 and undo a
+// maximized window. The GUI size is the one thing worth re-asserting each time (cheap, idempotent).
+if (!variable_global_exists("window_booted")) {
+    global.window_booted = true;
+    window_set_min_width(640);
+    window_set_min_height(480);
+    window_set_max_width(display_get_width());
+    window_set_max_height(display_get_height());
+    window_set_size(1280, 960);
+    display_reset(0, true); // vsync — eliminates screen tearing
+    surface_resize(application_surface, 1280, 960);
+}
 display_set_gui_size(1280, 960);
 room_width = 1280;
 room_height = 960;
@@ -31,7 +37,12 @@ view_xport[0] = 0;
 view_yport[0] = 0;
 view_wport[0] = 1280;
 view_hport[0] = 960;
-view_camera[0] = camera_create_view(0, 0, 1280, 960, 0, -1, -1, -1, 0, 0);
+// Reuse a single global camera — Create re-runs when returning from the Actor Studio room,
+// so creating a fresh camera each time would leak one per round-trip.
+if (!variable_global_exists("main_cam")) {
+    global.main_cam = camera_create_view(0, 0, 1280, 960, 0, -1, -1, -1, 0, 0);
+}
+view_camera[0] = global.main_cam;
 
 current_script_path = ""; // full path of the last saved/loaded .hhi file
 
@@ -242,12 +253,20 @@ if (!directory_exists(datafiles_path)) {
     datafiles_path = working_directory;
 }
 
-// Character sprites and per-sprite canvas offsets (loaded lazily from offsets.json)
-char_sprites      = ds_map_create();
-char_offsets_cache = ds_map_create(); // char_name → struct parsed from offsets.json, or undefined
-char_expr_cache    = ds_map_create(); // char_name → struct parsed from expressions.json, or undefined
-char_anim_cache    = ds_map_create(); // char_name → parsed animations.json array, or undefined
-mouth_anim_cache   = ds_map_create(); // "charName_manim_pose_NNNNN.png" → array of animation frame sprites
+// Character sprites and per-sprite canvas offsets (loaded lazily from offsets.json).
+// These are session-long caches. Create re-runs when returning from the Actor Studio room,
+// so the handles are kept in globals and reused — re-creating them would orphan the old maps
+// (and every sprite cached inside) on each round-trip. Allocated once on first boot.
+char_sprites       = variable_global_exists("cache_char_sprites")   ? global.cache_char_sprites   : ds_map_create();
+char_offsets_cache = variable_global_exists("cache_char_offsets")   ? global.cache_char_offsets   : ds_map_create(); // char_name → struct parsed from offsets.json, or undefined
+char_expr_cache    = variable_global_exists("cache_char_expr")      ? global.cache_char_expr      : ds_map_create(); // char_name → struct parsed from expressions.json, or undefined
+char_anim_cache    = variable_global_exists("cache_char_anim")      ? global.cache_char_anim      : ds_map_create(); // char_name → parsed animations.json array, or undefined
+mouth_anim_cache   = variable_global_exists("cache_mouth_anim")     ? global.cache_mouth_anim     : ds_map_create(); // "charName_manim_pose_NNNNN.png" → array of animation frame sprites
+global.cache_char_sprites = char_sprites;
+global.cache_char_offsets = char_offsets_cache;
+global.cache_char_expr    = char_expr_cache;
+global.cache_char_anim    = char_anim_cache;
+global.cache_mouth_anim   = mouth_anim_cache;
 char_sel_layer_cache = array_create(array_length(characters), undefined); // Per-character composite layer cache for the selector UI (avoids file_exists every frame)
 // Defined in: scr_character_sprite (get_character_sprite, get_composite_character_sprite, get_mouth_anim_sprites)
 
@@ -539,7 +558,9 @@ array_sort(all_scenes, function(a, b) {
 });
 
 
-scene_sprites = ds_map_create();
+// Reused across the Actor Studio round-trip (see character cache note above)
+scene_sprites = variable_global_exists("cache_scene_sprites") ? global.cache_scene_sprites : ds_map_create();
+global.cache_scene_sprites = scene_sprites;
 // get_scene_sprite = function(_internal_name) — defined in scr_scene/scr_utils/scr_expr_cfg
 
 
@@ -580,12 +601,12 @@ drag_off_x = 0;
 drag_off_y = 0;
 active_scene_block_idx = 0; // The index of the scene block currently being viewed
 insertion_idx = -1; // -1 means add to end, >=0 means insert AFTER this index
-char_entry_scales  = array_create(22, 1.0);
+char_entry_scales  = array_create(array_length(characters), 1.0);
 staging_scale_drag          = false;
 scale_key_repeat_timer      = 0;
-char_entry_knock_state      = array_create(22, 0);  // 0=none  1=fwd  2=bck
-char_entry_decap_state      = array_create(22, 0);  // 0=none  1=head  2=body
-char_entry_foreground       = array_create(22, false);
+char_entry_knock_state      = array_create(array_length(characters), 0);  // 0=none  1=fwd  2=bck
+char_entry_decap_state      = array_create(array_length(characters), 0);  // 0=none  1=head  2=body
+char_entry_foreground       = array_create(array_length(characters), false);
 prev_active_scene_block_idx = -1;
 
 // --- 3bc. SCENE EDIT CONTEXT MENU ---
@@ -809,3 +830,28 @@ expr_cfg_pan_ox   = 0;        // pan offset at drag start
 expr_cfg_pan_oy   = 0;
 
 // save_expr_config = function() — defined in scr_scene/scr_utils/scr_expr_cfg
+
+// --- RESTORE EDITOR STATE (returning from Actor Studio) ---
+// oHollywoodUI is non-persistent, so leaving for the Actor Studio room destroys it and
+// re-running this Create rebuilds the app from scratch. The screenplay itself is stashed
+// in a global before the room change and restored here — same post-load steps as LOAD SCRIPT.
+if (variable_global_exists("editor_stash") && global.editor_stash != undefined) {
+    var _st = global.editor_stash;
+    global.editor_stash = undefined;
+    if (variable_struct_exists(_st, "script")) script_blocks   = _st.script;
+    if (variable_struct_exists(_st, "chars"))  characters      = _st.chars;
+    if (variable_struct_exists(_st, "dict"))   dictionary_list = _st.dict;
+    current_script_path = variable_struct_exists(_st, "path") ? _st.path : "";
+    char_facings         = array_create(array_length(characters), 1);
+    char_sel_layer_cache = array_create(array_length(characters), undefined);
+    // NOTE: the character/scene sprite caches are intentionally NOT cleared here. The same
+    // `characters` array goes out and comes back unchanged, so the caches stay valid — and
+    // ds_map_clear wouldn't free the cached sprites anyway. (When the studio can add/save a
+    // new actor to `characters`, invalidate the relevant cache keys at that point.)
+    for (var _bhi = 0; _bhi < array_length(script_blocks); _bhi++) {
+        if (!variable_struct_exists(script_blocks[_bhi], "height")) update_block_height(_bhi);
+    }
+    if (array_length(script_blocks) > 0) { update_preview_actors_for_block(0, false); }
+    else { preview_actors = []; current_scene_sprite = -1; set_scene_dimensions(-1); }
+    script_dirty = variable_struct_exists(_st, "dirty") ? _st.dirty : false;
+}

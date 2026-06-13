@@ -2132,14 +2132,14 @@ if (playing_block_index == -1 && current_scene_sprite != -1) {
 }
 
 if (file_menu_open) {
-    var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 210;
+    var _fm_x = 10; var _fm_y = 45; var _fm_w = 165; var _fm_h = 245;
     draw_set_color(make_color_rgb(10, 42, 15)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, false);
     draw_set_color(make_color_rgb(196, 213, 20)); draw_rectangle(_fm_x, _fm_y, _fm_x + _fm_w, _fm_y + _fm_h, true);
-    var _opts = ["NEW SCRIPT", "SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY", "IMPORT ASSETS", "EXPORT SCRIPT"];
-    for (var i = 0; i < 6; i++) {
+    var _opts = ["NEW SCRIPT", "SAVE SCRIPT", "LOAD SCRIPT", "SAVE SCREENPLAY", "IMPORT ASSETS", "EXPORT SCRIPT", "ACTOR STUDIO"];
+    for (var i = 0; i < 7; i++) {
         var _hov = (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + (i * 35) && _my < _fm_y + ((i + 1) * 35));
         if (_hov) { draw_set_color(make_color_rgb(18, 72, 26)); draw_rectangle(_fm_x + 1, _fm_y + (i * 35) + 1, _fm_x + _fm_w - 1, _fm_y + ((i + 1) * 35) - 1, false); }
-        draw_set_color(i == 3 ? make_color_rgb(180, 220, 255) : (i == 4 ? make_color_rgb(190, 160, 240) : (i == 5 ? make_color_rgb(130, 210, 155) : c_white)));
+        draw_set_color(i == 3 ? make_color_rgb(180, 220, 255) : (i == 4 ? make_color_rgb(190, 160, 240) : (i == 5 ? make_color_rgb(130, 210, 155) : (i == 6 ? make_color_rgb(240, 200, 120) : c_white))));
         var _lbl = _opts[i];
         if (i == 0 && script_dirty) _lbl = "NEW SCRIPT";
         draw_text(_fm_x + 15, _fm_y + (i * 35) + 8, _lbl);
@@ -2724,16 +2724,6 @@ if (script_expanded) {
     draw_roundrect_ext(_tog_x, _tog_y, _tog_x+92, _tog_y+30, 5, 5, true);
     draw_set_color(c_white); draw_set_halign(fa_center);
     draw_text(_tog_x+46, _tog_y+7, "v COLLAPSE"); draw_set_halign(fa_left);
-} else {
-    // Expand button — sits right of the PLAY button, same row
-    var _tog_x = btn_play_x + btn_play_w + 12; var _tog_y = btn_play_y;
-    var _tog_hov = (_mx > _tog_x && _mx < _tog_x + 92 && _my > _tog_y && _my < _tog_y + btn_play_h);
-    draw_set_color(_tog_hov ? make_color_rgb(28, 90, 35) : make_color_rgb(14, 55, 20));
-    draw_roundrect_ext(_tog_x, _tog_y, _tog_x+92, _tog_y+btn_play_h, 5, 5, false);
-    draw_set_color(make_color_rgb(196, 213, 20));
-    draw_roundrect_ext(_tog_x, _tog_y, _tog_x+92, _tog_y+btn_play_h, 5, 5, true);
-    draw_set_color(c_white); draw_set_halign(fa_center);
-    draw_text(_tog_x+46, _tog_y+10, "^ EXPAND"); draw_set_halign(fa_left);
 }
 
 // --- 2. SCRIPT BLOCKS RENDERING ---

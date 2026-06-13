@@ -639,6 +639,22 @@ if (file_menu_open) {
         } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 175 && _my < _fm_y + 210) {
             do_export_script();
             _clicked_option = true;
+
+        // ── ACTOR STUDIO ──
+        } else if (_mx > _fm_x && _mx < _fm_x + _fm_w && _my > _fm_y + 210 && _my < _fm_y + 245) {
+            // Stash the screenplay so it survives the room change (oHollywoodUI is non-persistent),
+            // then hand off to the Actor Studio room. Restored in Create on return.
+            tts_stop(); audio_stop_all(); is_speaking = false;
+            global.editor_stash = {
+                script: script_blocks,
+                chars:  characters,
+                dict:   dictionary_list,
+                path:   current_script_path,
+                dirty:  script_dirty
+            };
+            file_menu_open = false;
+            room_goto(ActorStudio);
+            return;
         }
 
         file_menu_open = false;
@@ -737,18 +753,7 @@ if (mouse_check_button_pressed(mb_left)) {
             script_expanded = false; block_scroll_y = 0; return;
         }
     } else {
-        var _exp_x = btn_play_x + btn_play_w + 12;
-        if (_mx > _exp_x && _mx < _exp_x + 92 && _my > btn_play_y && _my < btn_play_y + btn_play_h) {
-            script_expanded = true; block_scroll_y = 0;
-            dragging_char_index = -1; dragging_actor_idx = -1;
-            scene_edit_mode = false;
-            insertion_idx = -1;
-            particle_edit_mode = false;
-            particle_drag_pos = false; particle_drag_dir = false;
-            particle_drag_area_w = false; particle_drag_area_h = false;
-            dragging_particle_effect = "";
-            return;
-        }
+        // Expand button is dummied out — click does nothing
     }
 }
 
@@ -799,9 +804,9 @@ if (!script_expanded && mouse_check_button_pressed(mb_left)) {
 
 // Reset staging injury defaults when scene changes — injuries don't carry between scenes
 if (active_scene_block_idx != prev_active_scene_block_idx) {
-    char_entry_knock_state      = array_create(22, 0);
-    char_entry_decap_state      = array_create(22, 0);
-    char_entry_foreground       = array_create(22, false);
+    char_entry_knock_state      = array_create(array_length(characters), 0);
+    char_entry_decap_state      = array_create(array_length(characters), 0);
+    char_entry_foreground       = array_create(array_length(characters), false);
     prev_active_scene_block_idx = active_scene_block_idx;
 }
 // --- SCALE PANEL INTERACTION (staging + off-stage entry scale, mutually exclusive with particle edit) ---
